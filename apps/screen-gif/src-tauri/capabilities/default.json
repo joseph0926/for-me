@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "선택 오버레이, 조작 막대와 녹화 범위 테두리가 쓰는 기본 권한",
+  "windows": ["overlay", "toolbar", "frame"],
+  "permissions": ["core:default"]
+}

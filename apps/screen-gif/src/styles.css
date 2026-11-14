@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 색과 서체는 개인 디자인 취향 원장의 기본값이다. docs/ui.md의 화면 값 표와 맞춘다. */
+:root {
+  --surface: #f3f5f8;
+  --ink: #1b1d22;
+  --muted: #5b616e;
+  --line: #7c828e;
+  --danger: #b42318;
+  --dim: rgb(16 19 24 / 0.42);
+  --hole-line: rgb(236 238 242 / 0.9);
+  /* 녹화 중 상태 표시. 녹화 대상 화면 위에 그려지므로 앱의 밝기 설정과 상관없이 같은 값을 쓴다. */
+  --recording: #e5484d;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #101318;
+    --ink: #eceef2;
+    --muted: #a3a9b5;
+    --line: #6b7280;
+    --danger: #f97066;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, sans-serif;
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --ease-out-cubic: cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 선택 오버레이와 녹화 범위 테두리는 투명한 창 위에 그린다. 조작 막대만 바탕을 채운다. */
+body[data-view="overlay"],
+body[data-view="frame"] {
+  background: transparent;
+}
+
+body[data-view="toolbar"] {
+  background: var(--surface);
+}
