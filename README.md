@@ -8,19 +8,23 @@
 
 ## 앱
 
+앱마다 `apps/<앱>/` 폴더에 문서와 플랫폼별 코드를 둡니다.
+
+| 앱 | 폴더 | 상태 |
+|---|---|---|
+| [동영상 앱](apps/video/README.md) | `apps/video` | Android 시제품. 실제 기기에서의 재생은 미검증 |
+
 첫 앱은 휴대폰에 저장한 파일을 재생하는 동영상 앱입니다. 안드로이드부터 개발합니다.
 
-- [동영상 앱의 범위](docs/video-app.md)
-- [기술 선택과 조사 결과](docs/video-app-research.md)
+- [동영상 앱의 범위](apps/video/docs/scope.md)
+- [기술 선택과 조사 결과](apps/video/docs/research.md)
 
 ## 개발
 
-Android 시제품에 파일 선택, 재생 조작, 이어보기 저장을 구현했습니다. 실제 기기에서의 재생은 미검증입니다.
+모든 앱에 공통인 절차와 규칙입니다. 앱별 검사 명령과 기록은 각 앱의 README에 있습니다.
 
-- [개발 절차](docs/development.md)
+- [개발 절차](docs/development.md): 저장소 구성, 앱 추가 방법, 개발 환경
 - [QA 절차](docs/qa.md)
-- [검증 기록](docs/video-app-verification.md)
-- [QA 이슈](docs/qa-issues.md)
 - [작업 규칙](AGENTS.md)
 - [Git 규칙](.docs/git-convention.md)
 
