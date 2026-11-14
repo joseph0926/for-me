@@ -1,0 +1,9 @@
+[package]
+name = "screen-gif-encoder"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+color_quant = "2.0.0"
+gif = "=0.14.2"
