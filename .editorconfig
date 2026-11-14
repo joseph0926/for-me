@@ -1,0 +1,13 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# Room이 생성하는 파일이라 생성기가 쓴 형식을 그대로 둔다.
+[apps/*/android/schemas/**]
+insert_final_newline = unset
