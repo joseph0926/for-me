@@ -67,11 +67,13 @@ Android 11 이상에서는 시스템 폴더 선택기로 내부 저장소 최상
 
 [검사한 공식 배포 파일](https://repo.maven.apache.org/maven2/org/videolan/android/libvlc-all/3.7.7/libvlc-all-3.7.7.aar)
 
-확인한 범위는 배포 파일의 정렬 조건입니다. 다음 항목은 미검증입니다.
+2026-11-13 조사에서 확인한 범위는 배포 파일의 정렬 조건입니다. 당시 다음 항목은 미검증이었습니다.
 
 - 완성 앱의 패키징
 - 16KB 환경에서의 설치와 실행
 - S25와 두 번째 기기에서의 호환성
+
+2026-11-14에 완성 APK의 정렬 조건을 추가 확인했습니다. 설치와 실제 재생은 아직 미검증이며, 결과는 [검증 기록](video-app-verification.md#2026-11-14-로컬-검증)에 있습니다.
 
 ## 다른 선택지와의 비교
 
@@ -92,3 +94,19 @@ Android 11 이상에서는 시스템 폴더 선택기로 내부 저장소 최상
 ## 구현 후 확인할 항목
 
 실제 재생, 자막, 이어보기, 업데이트 후 데이터 보존과 기기별 동작은 [검증 기록](video-app-verification.md#검사-항목)에서 관리합니다. 확인용 파일 정보와 실행 결과도 해당 문서에 남깁니다.
+
+## 시제품의 빌드 구성
+
+2026-11-14에 다음 버전으로 고정했습니다. 최신 버전 목록이 아니라 시제품에서 사용하는 조합입니다.
+
+- Android Gradle Plugin 8.13.2, Gradle 8.14.3, JDK 17
+- Kotlin과 Compose 컴파일러 플러그인 2.2.21
+- Compose 라이브러리 버전 묶음(BOM) 2025.10.01
+- Room 2.8.4, Room 코드 생성 도구 KSP 2.2.21-2.0.5
+- libVLC 3.7.7
+
+Android Gradle Plugin 8.13 계열은 Gradle 8.13 이상과 JDK 17을 요구하며 SDK 36을 지원합니다. 설치된 도구와 이 범위에 맞춰 조합했습니다. [빌드 도구 호환 기준](https://developer.android.com/build/releases/agp-8-13-0-release-notes)
+
+Compose 컴파일러 플러그인은 Kotlin과 같은 버전을 사용합니다. 나머지 Compose 라이브러리는 BOM으로 맞춥니다. [Compose 설정](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler)
+
+libVLC의 `FileDescriptor` 입력으로 시스템 선택기에서 받은 파일을 읽기 전용으로 엽니다. 파일 연결은 재생기가 해제될 때 닫습니다. 화면은 `VLCVideoLayout`을 `AndroidView`에 연결하며, 재생 위치 복원 전의 초기값을 저장하지 않도록 처리합니다. [libVLC 3.7.7 소스](https://repo.maven.apache.org/maven2/org/videolan/android/libvlc-all/3.7.7/libvlc-all-3.7.7-sources.jar)

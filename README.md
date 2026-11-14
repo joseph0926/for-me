@@ -15,10 +15,12 @@
 
 ## 개발
 
-현재 앱의 범위와 기술을 정한 단계입니다. 구현과 기기 검증은 아직 시작하지 않았습니다.
+Android 시제품에 파일 선택, 재생 조작, 이어보기 저장을 구현했습니다. 실제 기기에서의 재생은 미검증입니다.
 
 - [개발 절차](docs/development.md)
+- [QA 절차](docs/qa.md)
 - [검증 기록](docs/video-app-verification.md)
+- [QA 이슈](docs/qa-issues.md)
 - [작업 규칙](AGENTS.md)
 - [Git 규칙](.docs/git-convention.md)
 
