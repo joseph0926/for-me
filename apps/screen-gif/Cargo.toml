@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["encoder", "src-tauri"]
+
+# 녹화 중 프레임 변환은 최적화하지 않으면 10배 가까이 느려져 `pnpm tauri dev`의 녹화가 끊긴다(QA-002).
+# 개발 빌드에서도 변환에 쓰는 크레이트만 최적화한다.
+[profile.dev.package.screen-gif-encoder]
+opt-level = 3
+
+[profile.dev.package.color_quant]
+opt-level = 3
+
+[profile.dev.package.gif]
+opt-level = 3
+
+[profile.dev.package.weezl]
+opt-level = 3
