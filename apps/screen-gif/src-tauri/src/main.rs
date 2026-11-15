@@ -15,16 +15,15 @@ use std::{
     time::Duration,
 };
 
-use serde::Serialize;
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, RunEvent, State, WebviewUrl,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, RunEvent, WebviewUrl,
     WebviewWindowBuilder, Wry,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
 
 use recording::{Recording, Target};
-use targets::{MonitorArea, ScreenRect, WindowTarget};
+use targets::{MonitorArea, ScreenRect, WindowId, WindowTarget};
 
 const OVERLAY: &str = "overlay";
 const TOOLBAR: &str = "toolbar";
@@ -38,14 +37,7 @@ const FRAME_THICKNESS: f64 = 2.0;
 /// 창을 녹화할 때 테두리가 창 위치를 다시 확인하는 간격
 const FRAME_FOLLOW_INTERVAL: Duration = Duration::from_millis(100);
 
-#[derive(Clone, Copy, Serialize)]
-struct OverlayMonitor {
-    bounds: ScreenRect,
-    scale: f64,
-}
-
 struct AppState {
-    overlay_monitor: Mutex<Option<OverlayMonitor>>,
     recording: Mutex<Option<Recording>>,
     /// 녹화를 시작할 때마다 늘린다. 창을 따라가는 스레드가 이전 녹화의 테두리를 움직이지 않게 한다.
     recording_id: AtomicU64,
@@ -67,6 +59,10 @@ impl TrayItems {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            // 트레이에만 상주하므로 Dock 아이콘과 앱 메뉴를 두지 않는다. 다른 앱의 전체 화면 위에 선택
+            // 오버레이를 띄우는 데도 필요하다고 알려져 있다(docs/research.md의 Tauri 창 동작 차이).
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let record = MenuItem::with_id(app, "record", "녹화", true, None::<&str>)?;
             let stop_item = MenuItem::with_id(app, "stop", "정지", false, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
@@ -103,7 +99,6 @@ fn main() {
             }
             tray.build(app)?;
             app.manage(AppState {
-                overlay_monitor: Mutex::new(None),
                 recording: Mutex::new(None),
                 recording_id: AtomicU64::new(0),
                 tray: TrayItems {
@@ -114,7 +109,6 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            overlay_monitor,
             list_windows,
             cancel_selection,
             start_recording,
@@ -146,15 +140,9 @@ fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
     let Some(monitor) = targets::monitor_at(cursor.x as i32, cursor.y as i32) else {
         return Ok(());
     };
-    let scale = app
-        .monitor_from_point(cursor.x, cursor.y)?
-        .map(|m| m.scale_factor())
-        .unwrap_or(1.0);
-    *state.overlay_monitor.lock().unwrap() = Some(OverlayMonitor {
-        bounds: monitor.bounds,
-        scale,
-    });
 
+    // 화면 쪽은 이 창의 실제 위치와 배율로 좌표를 바꾼다. macOS는 창을 메뉴 막대 아래로 옮겨 놓아
+    // 여기서 정한 위치와 실제 위치가 다를 수 있다(QA-003).
     let window = WebviewWindowBuilder::new(
         app,
         OVERLAY,
@@ -272,7 +260,7 @@ fn place_frame(
 }
 
 /// 녹화 중인 창이 움직이거나 크기가 바뀌면 테두리를 따라 옮긴다. 녹화가 끝나면 멈춘다.
-fn follow_window(app: AppHandle, hwnd: isize, recording_id: u64, mut last: ScreenRect) {
+fn follow_window(app: AppHandle, id: WindowId, recording_id: u64, mut last: ScreenRect) {
     std::thread::spawn(move || {
         loop {
             std::thread::sleep(FRAME_FOLLOW_INTERVAL);
@@ -281,7 +269,7 @@ fn follow_window(app: AppHandle, hwnd: isize, recording_id: u64, mut last: Scree
             let (Some(frame), true) = (frame, current_id == recording_id) else {
                 break;
             };
-            if let Some(bounds) = targets::window_bounds(hwnd)
+            if let Some(bounds) = targets::window_bounds(id)
                 && bounds != last
             {
                 let _ = place_frame(&app, &frame, bounds);
@@ -292,6 +280,7 @@ fn follow_window(app: AppHandle, hwnd: isize, recording_id: u64, mut last: Scree
 }
 
 /// 모니터의 배율. 논리 픽셀 하나가 차지하는 물리 픽셀 수
+#[cfg(windows)]
 fn scale_of(app: &AppHandle, monitor: &MonitorArea) -> tauri::Result<f64> {
     Ok(app
         .monitor_from_point(
@@ -300,6 +289,15 @@ fn scale_of(app: &AppHandle, monitor: &MonitorArea) -> tauri::Result<f64> {
         )?
         .map(|m| m.scale_factor())
         .unwrap_or(1.0))
+}
+
+/// 모니터의 배율. 논리 픽셀 하나가 차지하는 물리 픽셀 수
+///
+/// macOS의 Tauri `monitor_from_point`는 물리 픽셀이 아니라 포인트 좌표를 받아, 물리 픽셀로 찾으면
+/// 모니터를 찾지 못하거나 다른 모니터가 나온다(QA-003). 모니터를 찾을 때 구한 배율을 쓴다.
+#[cfg(target_os = "macos")]
+fn scale_of(_app: &AppHandle, monitor: &MonitorArea) -> tauri::Result<f64> {
+    Ok(targets::display_scale(monitor.id))
 }
 
 fn close_window(app: &AppHandle, label: &str) {
@@ -315,7 +313,7 @@ fn stop(app: &AppHandle) -> Result<String, String> {
     close_window(app, FRAME);
     let path = recording.ok_or("녹화 중이 아닙니다")?.stop()?;
     close_window(app, TOOLBAR);
-    reveal_in_explorer(&path);
+    reveal_in_file_manager(&path);
     Ok(path.display().to_string())
 }
 
@@ -329,19 +327,21 @@ fn cancel(app: &AppHandle) {
     close_window(app, TOOLBAR);
 }
 
-fn reveal_in_explorer(path: &Path) {
+/// 저장한 파일을 고른 상태로 파일 탐색기(macOS는 Finder)를 연다.
+fn reveal_in_file_manager(path: &Path) {
+    #[cfg(windows)]
     let _ = std::process::Command::new("explorer")
         .arg(format!("/select,{}", path.display()))
+        .spawn();
+    #[cfg(target_os = "macos")]
+    let _ = std::process::Command::new("open")
+        .arg("-R")
+        .arg(path)
         .spawn();
 }
 
 #[tauri::command]
-fn overlay_monitor(state: State<'_, AppState>) -> Option<OverlayMonitor> {
-    *state.overlay_monitor.lock().unwrap()
-}
-
-#[tauri::command]
-fn list_windows() -> Vec<WindowTarget> {
+fn list_windows() -> Result<Vec<WindowTarget>, String> {
     targets::visible_windows(std::process::id())
 }
 
@@ -360,7 +360,7 @@ async fn start_recording(app: AppHandle, target: Target) -> Result<(), String> {
     }
     let anchor = match target {
         Target::Region { rect } => rect,
-        Target::Window { hwnd } => targets::window_bounds(hwnd).ok_or("창을 찾을 수 없습니다")?,
+        Target::Window { id } => targets::window_bounds(id).ok_or("창을 찾을 수 없습니다")?,
     };
     let save_dir = app
         .path()
@@ -394,8 +394,8 @@ async fn start_recording(app: AppHandle, target: Target) -> Result<(), String> {
     // 테두리는 위치를 알려 주는 보조 표시라, 띄우지 못해도 녹화는 이어 간다.
     match open_frame(&app, anchor) {
         Ok(()) => {
-            if let Target::Window { hwnd } = target {
-                follow_window(app.clone(), hwnd, recording_id, anchor);
+            if let Target::Window { id } = target {
+                follow_window(app.clone(), id, recording_id, anchor);
             }
         }
         Err(error) => eprintln!("녹화 범위 테두리를 띄울 수 없습니다: {error}"),

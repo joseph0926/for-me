@@ -8,21 +8,15 @@ export type ScreenRect = {
   height: number;
 };
 
-export type OverlayMonitor = {
-  bounds: ScreenRect;
-  /** 논리 픽셀 하나가 차지하는 물리 픽셀 수 */
-  scale: number;
-};
-
 export type WindowTarget = {
-  hwnd: number;
+  /** 운영체제의 창 식별자 */
+  id: number;
   title: string;
   bounds: ScreenRect;
 };
 
-export type Target = { kind: "region"; rect: ScreenRect } | { kind: "window"; hwnd: number };
+export type Target = { kind: "region"; rect: ScreenRect } | { kind: "window"; id: number };
 
-export const overlayMonitor = () => invoke<OverlayMonitor | null>("overlay_monitor");
 export const listWindows = () => invoke<WindowTarget[]>("list_windows");
 export const cancelSelection = () => invoke<void>("cancel_selection");
 export const startRecording = (target: Target) => invoke<void>("start_recording", { target });

@@ -1,19 +1,18 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion } from "motion/react";
 import { useEffect, useState, type PointerEvent } from "react";
 
-import {
-  cancelSelection,
-  listWindows,
-  overlayMonitor,
-  startRecording,
-  type OverlayMonitor,
-  type Target,
-} from "./commands";
+import { cancelSelection, listWindows, startRecording, type ScreenRect, type Target, type WindowTarget } from "./commands";
 
 /** 오버레이 창 안의 CSS 픽셀 좌표 */
 type Box = { x: number; y: number; width: number; height: number };
 type Point = { x: number; y: number };
-type LocalWindow = { hwnd: number; box: Box };
+
+/**
+ * 오버레이 창의 화면 위치(물리 픽셀)와 배율. Rust가 정한 위치가 아니라 실제 창 위치를 쓴다.
+ * macOS는 화면 전체에 놓은 창을 메뉴 막대 아래로 옮겨 놓는다(QA-003).
+ */
+type OverlayFrame = { left: number; top: number; scale: number };
 
 /** 누른 뒤 이만큼 움직여야 클릭이 아니라 드래그로 본다 */
 const DRAG_THRESHOLD = 4;
@@ -21,23 +20,29 @@ const DRAG_THRESHOLD = 4;
 type Gesture = { kind: "idle" } | { kind: "pressing"; start: Point } | { kind: "dragging"; start: Point; current: Point };
 
 export function Overlay() {
-  const [monitor, setMonitor] = useState<OverlayMonitor | null>(null);
-  const [windows, setWindows] = useState<LocalWindow[]>([]);
+  const [frame, setFrame] = useState<OverlayFrame | null>(null);
+  const [targets, setTargets] = useState<WindowTarget[]>([]);
   const [cursor, setCursor] = useState<Point | null>(null);
   const [gesture, setGesture] = useState<Gesture>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([overlayMonitor(), listWindows()])
-      .then(([monitor, targets]) => {
-        if (!active || !monitor) return;
-        setMonitor(monitor);
-        setWindows(targets.map((target) => ({ hwnd: target.hwnd, box: toLocal(target.bounds, monitor) })));
-      })
-      .catch((reason) => active && setError(String(reason)));
+    const fail = (reason: unknown) => active && setError(String(reason));
+    // 창이 처음 그려진 뒤에 자리를 잡거나 운영체제가 옮길 수 있어, 옮겨질 때마다 다시 읽는다.
+    const refreshFrame = () => {
+      readOverlayFrame()
+        .then((next) => active && setFrame(next))
+        .catch(fail);
+    };
+    refreshFrame();
+    const unlisten = getCurrentWindow().onMoved(refreshFrame);
+    listWindows()
+      .then((next) => active && setTargets(next))
+      .catch(fail);
     return () => {
       active = false;
+      void unlisten.then((stop) => stop());
     };
   }, []);
 
@@ -49,6 +54,7 @@ export function Overlay() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const windows = frame ? targets.map((target) => ({ id: target.id, box: toLocal(target.bounds, frame) })) : [];
   const hovered = gesture.kind === "dragging" || !cursor ? undefined : windows.find((w) => contains(w.box, cursor));
   const hole = gesture.kind === "dragging" ? boxBetween(gesture.start, gesture.current) : hovered?.box;
 
@@ -75,16 +81,16 @@ export function Overlay() {
   const onPointerUp = () => {
     const finished = gesture;
     setGesture({ kind: "idle" });
-    if (!monitor) return;
+    if (!frame) return;
     if (finished.kind === "dragging") {
-      const rect = toScreen(boxBetween(finished.start, finished.current), monitor);
+      const rect = toScreen(boxBetween(finished.start, finished.current), frame);
       if (rect.width >= 2 && rect.height >= 2) begin({ kind: "region", rect });
     } else if (finished.kind === "pressing" && hovered) {
-      begin({ kind: "window", hwnd: hovered.hwnd });
+      begin({ kind: "window", id: hovered.id });
     }
   };
 
-  const dragSize = gesture.kind === "dragging" && monitor ? toScreen(boxBetween(gesture.start, gesture.current), monitor) : null;
+  const dragSize = gesture.kind === "dragging" && frame ? toScreen(boxBetween(gesture.start, gesture.current), frame) : null;
 
   return (
     <div
@@ -137,24 +143,30 @@ function boxBetween(a: Point, b: Point): Box {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(a.x - b.x), height: Math.abs(a.y - b.y) };
 }
 
-function toLocal(rect: { left: number; top: number; width: number; height: number }, monitor: OverlayMonitor): Box {
-  const { bounds, scale } = monitor;
+async function readOverlayFrame(): Promise<OverlayFrame> {
+  const overlay = getCurrentWindow();
+  const [position, scale] = await Promise.all([overlay.innerPosition(), overlay.scaleFactor()]);
+  return { left: position.x, top: position.y, scale };
+}
+
+function toLocal(rect: ScreenRect, frame: OverlayFrame): Box {
+  const { scale } = frame;
   return {
-    x: (rect.left - bounds.left) / scale,
-    y: (rect.top - bounds.top) / scale,
+    x: (rect.left - frame.left) / scale,
+    y: (rect.top - frame.top) / scale,
     width: rect.width / scale,
     height: rect.height / scale,
   };
 }
 
-function toScreen(box: Box, monitor: OverlayMonitor) {
-  const { bounds, scale } = monitor;
-  const left = Math.round(bounds.left + box.x * scale);
-  const top = Math.round(bounds.top + box.y * scale);
+function toScreen(box: Box, frame: OverlayFrame): ScreenRect {
+  const { scale } = frame;
+  const left = Math.round(frame.left + box.x * scale);
+  const top = Math.round(frame.top + box.y * scale);
   return {
     left,
     top,
-    width: Math.round(bounds.left + (box.x + box.width) * scale) - left,
-    height: Math.round(bounds.top + (box.y + box.height) * scale) - top,
+    width: Math.round(frame.left + (box.x + box.width) * scale) - left,
+    height: Math.round(frame.top + (box.y + box.height) * scale) - top,
   };
 }
