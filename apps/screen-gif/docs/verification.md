@@ -2,6 +2,39 @@
 
 실행한 검사와 결과를 날짜별로 남깁니다. 실제 녹화와 PC 동작은 아직 미검증입니다. 발견한 문제는 [QA 이슈](qa-issues.md)에서 관리합니다.
 
+## 2026-11-15 macOS 드래그 영역 어긋남 수정(QA-003)
+
+환경은 아래 macOS 첫 구현 빌드 검증과 같습니다.
+
+- 사용자 녹화 결과: `screen-gif-20261115-113823.gif`, 800×485 픽셀. 드래그한 곳이 아닌 화면 왼쪽 위 쪽이 담겼습니다. 화면 내용이 담긴 프레임 이미지는 확인 후 지웠습니다.
+- 원인 측정: 오버레이를 자동으로 여는 임시 코드로 확인했습니다. 화면 쪽 배율은 1.0이었고, 오버레이 창은 요청한 (0, 0)이 아니라 물리 픽셀 (0, 66)에 놓였습니다. CoreGraphics로 읽은 창 범위도 (0, 33, 1470, 956) 포인트였습니다. 임시 코드는 지웠습니다.
+- 수정 뒤 `cargo test --workspace` 22개 통과, `cargo clippy --workspace --all-targets` 경고 0개, `cargo fmt --all --check`와 `pnpm typecheck` 통과
+- 미검증: 수정 빌드로 드래그한 영역과 GIF 영역이 일치하는지, Windows에서 오버레이 좌표가 그대로인지
+
+## 2026-11-15 macOS 첫 구현 빌드 검증
+
+환경: macOS 27.2.1(빌드 26B131), Apple 칩(arm64), Retina 내장 화면 하나(2560×1664), Command Line Tools(Swift 6.4.2, macOS SDK 27.2), Xcode 없음, Rust 1.100.0(Homebrew rustup 1.29.3), Node.js 24.22.1, pnpm 12.9.0
+
+바꾼 내용:
+
+- 운영체제별 코드를 나눴습니다. 창과 모니터 찾기는 `src-tauri/src/targets/`, 화면 캡처는 `src-tauri/src/recording/` 아래 `win32.rs`와 `macos.rs`에 있습니다. Windows 코드는 위치만 옮겼고, 창 식별자 이름을 `hwnd`에서 `id`로 바꿨습니다.
+- macOS 화면 캡처는 `screencapturekit` 11.1.2입니다. 영역 녹화는 모니터 캡처에 잘라 낼 범위를 지정하고, 이 앱의 창을 캡처 필터에서 뺍니다. 녹화 간격(0.1초)과 캡처 큐 깊이(3)는 기본값이 문서마다 달라 직접 지정했습니다. 창 목록은 CoreGraphics(`CGWindowListCopyWindowInfo`)에서 앞에 놓인 창부터 받습니다.
+- 화면 기록 권한이 없으면 선택 오버레이에 안내를 보이고 권한을 요청합니다.
+- Dock 아이콘을 숨기고(활성화 정책 Accessory), 투명 창을 위해 `macOSPrivateApi`를 켰습니다. 저장 뒤에는 Finder에서 파일을 보여 줍니다.
+- `src-tauri/build.rs`가 Swift 런타임 검색 경로(`/usr/lib/swift`)와 Command Line Tools의 Swift 호환 라이브러리 경로를 더합니다. 없으면 각각 연결 실패(`swiftCompatibility56`)와 실행 직후 종료(`libswift_Concurrency.dylib`를 찾지 못함)가 났습니다.
+
+검사:
+
+- `cargo test --workspace` 22개 통과(인코더 10개, 앱 12개). 새로 넣은 macOS 테스트 4개(색 순서와 줄 여분 처리, 짧은 데이터 거절, Retina 좌표 변환, 모니터 거리)는 구현을 일부러 틀리게 바꾸면 각각 실패하는 것을 확인하고 되돌렸습니다.
+- `cargo clippy --workspace --all-targets` 경고 0개, `cargo fmt --all --check` 통과, `pnpm build` 통과
+- `pnpm tauri dev`로 개발 빌드를 실행해 프로세스가 시작 뒤에도 유지되는 것을 확인했습니다. Claude 앱 안에서 실행해 화면 기록 권한이 그 앱에 붙기 때문에 녹화 메뉴는 누르지 않았습니다.
+
+실행하지 못한 검사:
+
+- Windows 빌드. 이 맥에서 Windows 대상 검사(`cargo check --target x86_64-pc-windows-msvc`)는 Tauri가 Windows 리소스 컴파일러(`llvm-rc`)를 요구해 멈췄습니다. 옮긴 Windows 코드는 이전 커밋과 비교해 이름 바꾼 곳만 다른 것을 확인했습니다.
+- macOS 실제 녹화: 메뉴 막대 아이콘, 선택 오버레이, 드래그 영역과 창 녹화, 녹화 결과의 좌표와 조작 막대 제외, 권한 요청과 거절, 정지와 취소, 저장 뒤 Finder 열기
+- 배율이 다른 외부 모니터, 다른 앱의 전체 화면 Space
+
 ## 2026-11-14 1차 완료 확인
 
 사용자가 끊김 수정, 저장 폴더 변경과 녹화 범위 테두리를 `pnpm tauri dev`로 확인하고 1차 완료로 판정했습니다. 저장된 GIF를 Windows GDI+로 읽은 값입니다.

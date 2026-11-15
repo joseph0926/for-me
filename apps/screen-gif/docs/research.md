@@ -110,11 +110,76 @@ FFmpeg의 팔레트 생성 방식은 이번에 조사하지 않았습니다.
 
 `java.awt.Robot`으로 화면을 반복 캡처하면 초당 20프레임 정도에 그친다는 사용자 보고가 있습니다. 공식 측정값이 아니라 판단 근거로 쓰지 않았습니다.
 
-## macOS 확장 때 확인할 것
+## macOS 확장
 
-- ScreenCaptureKit은 macOS 12.3 이상에서 쓸 수 있고, 사용자의 화면 기록 권한이 필요합니다.
-- 커서 포함은 `showsCursor`, 자기 창 제외는 캡처 필터의 제외 창 목록으로 처리합니다.
-- Electron 문서는 macOS의 창 공유 차단 설정(`NSWindowSharingNone`)이 ScreenCaptureKit을 쓰는 앱에는 통하지 않는다고 경고합니다. 따라서 macOS에서는 Tauri의 캡처 방지 설정에 기대지 않고, 캡처 필터에서 조작 막대 창을 직접 빼야 할 가능성이 큽니다.
+2026-11-15에 조사했습니다. 버전과 날짜는 이날 crates.io, docs.rs와 Apple 문서에서 확인한 값입니다. 포럼과 이슈 글에서 가져온 내용은 사용자 보고라고 표시했습니다. macOS에서 빌드하거나 녹화해 본 항목은 아직 없습니다.
+
+개발 맥 상태(2026-11-15): macOS 27.2.1(빌드 26B131), Apple 칩(arm64), Retina 내장 화면 하나(2560×1664). Node.js 24.22.1, pnpm 12.9.0이 있습니다. Xcode 없이 Command Line Tools만 있습니다. 조사할 때는 Rust가 없었고, 같은 날 Homebrew로 rustup 1.29.3을 설치했습니다.
+
+### 캡처 라이브러리
+
+`screencapturekit` 11.1.2(2026-11-02, MIT 또는 Apache-2.0)를 씁니다. 9.0.1(2026-08-31)부터 11.1.2까지 열 번 넘게 새 버전이 나와 관리가 활발하지만, 11.0에서 생성 함수가 `Result`를 돌려주도록 바뀌는 등 큰 변경도 잦습니다.
+
+- 지원하는 macOS는 12.3 이상이고, 빌드에는 macOS 13 SDK 이상이 필요합니다. 최소 Rust 버전은 1.82입니다.
+- Swift로 만든 연결 코드가 들어 있어 빌드할 때 Swift 컴파일러가 필요합니다. 라이브러리 문서는 Swift 연결 코드의 빌드 오류에 `xcode-select --install`을 안내합니다. 2026-11-15에 Command Line Tools만으로 빌드되는 것을 확인했습니다. 다만 그 크레이트들의 빌드 스크립트가 Xcode 경로만 가정하고 실행 파일의 Swift 런타임 검색 경로도 넘기지 못해, 앱의 `build.rs`에서 보충합니다([검증 기록](verification.md#2026-11-15-macos-첫-구현-빌드-검증)).
+- macOS 버전별 기능은 기능 플래그(`macos_14_0`, `macos_15_0` 등)로 켭니다. 녹화 해상도 방식(`with_capture_resolution_type`)은 `macos_14_0`이 필요합니다.
+
+### 요구별 macOS 구현 방법
+
+| 요구 | 방법 | 근거 | 상태 |
+|---|---|---|---|
+| 선택한 창 녹화 | 창 하나만 담는 캡처 필터(`SCContentFilter::create().with_window(..)`) | Apple 문서: "지정한 창만 캡처하는 필터". 창 하나를 녹화할 때는 `sourceRect`를 보지 않고 창 전체를 캡처 | 창을 옮기거나 다른 모니터로 옮길 때 따라가는지는 문서에 없어 미확인 |
+| 드래그한 영역 녹화 | 모니터 캡처 필터에 `with_source_rect`로 영역 지정 | Apple 문서: `sourceRect`를 정하지 않으면 화면 전체를 캡처 | `sourceRect`의 단위(포인트와 픽셀)와 원점이 문서에 없어 미확인 |
+| 커서 포함 | `with_shows_cursor(true)` | docs.rs의 `SCStreamConfiguration` | 미확인 |
+| 녹화 간격 | `with_minimum_frame_interval`(`CMTime`), 편의 함수 `with_fps` | docs.rs의 `SCStreamConfiguration` | 미확인 |
+| 조작 막대 제외 | 모니터 캡처 필터의 제외 창 목록(`with_excluding_windows`)에 이 앱의 창을 넣음 | 아래 [창 내용 캡처 방지](#창-내용-캡처-방지) | 미확인 |
+| 창 목록 | `SCShareableContent::get()`의 `windows()`. 창마다 `window_id`(u32), `title`, `frame`, `window_layer`, `is_on_screen` | docs.rs의 `SCWindow` | `frame`의 단위와 원점이 문서에 없어 미확인 |
+| 트레이 아이콘 | Tauri의 트레이 기능. macOS에서는 메뉴 막대에 놓임 | Tauri 2 | 메뉴 막대용 단색 아이콘은 미정 |
+
+프레임은 BGRA로 받습니다(`with_pixel_format(PixelFormat::BGRA)`). 인코더는 RGBA를 받으므로 색 순서를 바꾸고, 줄마다 붙는 여분 바이트(`bytes_per_row`)를 빼야 합니다. 받은 픽셀 버퍼는 잠근 뒤(`CVPixelBufferLockGuard`) 읽습니다.
+
+Windows 코드는 모든 화면 좌표를 물리 픽셀로 다룹니다. macOS의 화면 좌표는 포인트이고, 이 맥의 배율은 2입니다. 좌표 변환이 틀리면 영역이 두 배로 어긋나므로, 드래그 영역과 녹화 결과가 맞는지를 실제 녹화로 확인합니다.
+
+### 창 내용 캡처 방지
+
+Tauri의 `set_content_protected`는 macOS에서 창 공유 차단 설정(`NSWindowSharingNone`)을 씁니다(tao 0.34.5의 macOS 구현). Apple의 현재 문서는 이 값을 더 이상 쓰지 않는 옛 값으로 설명하고, 캡처에서 창을 숨기는 용도로 쓰지 말라고 적고 있습니다. Electron 문서도 이 설정이 ScreenCaptureKit을 쓰는 앱에 통하지 않는다고 경고합니다. Apple 개발자 포럼에도 macOS 15.4 이후 이 설정을 한 창이 ScreenCaptureKit 캡처에 그대로 나온다는 보고(2025-07)가 있습니다.
+
+따라서 macOS에서는 캡처 방지 설정에 기대지 않고 캡처 필터에서 이 앱의 창을 뺍니다. 녹화 범위 테두리와 선택 오버레이도 같은 방법으로 뺍니다.
+
+### Tauri 창 동작 차이
+
+- `skip_taskbar`는 macOS에서 아무 동작도 하지 않습니다(`tauri-runtime-wry` 소스). Dock 아이콘을 숨기려면 활성화 정책을 Accessory로 바꿉니다(`set_activation_policy`).
+- 다른 앱의 전체 화면 위에 창을 띄우려면 Accessory 정책이 필요하다는 포럼 답변이 있습니다. 공식 문서가 아니므로 전체 화면 Space에서 직접 확인합니다. `visible_on_all_workspaces`도 함께 확인합니다.
+- 투명 창(선택 오버레이와 녹화 범위 테두리)에는 Tauri의 `macOSPrivateApi` 설정이 필요합니다. 이 설정을 켜면 App Store에 낼 수 없습니다.
+- 저장한 파일을 보여 주는 명령은 `open -R <파일>`입니다.
+
+### 권한과 서명
+
+- 화면 기록 권한이 없으면 `SCShareableContent::get()`이 빈 결과나 오류를 돌려줍니다. 권한 요청, 거절과 취소 때의 안내를 새로 설계해야 합니다.
+- 앱 정보(Info.plist)에 화면 기록 사용 이유(`NSScreenCaptureUsageDescription`)를 넣습니다. 빠지면 공증한 앱이 죽는다고 라이브러리 문서에 적혀 있습니다.
+- macOS 권한 시스템(TCC)은 코드 서명으로 새 빌드가 같은 앱인지 판단합니다. Apple 기술 지원 엔지니어는 서명이 고정되면 빌드가 바뀌어도 권한이 유지된다고 답했습니다. 임시 서명(ad-hoc)에서는 권한이 잘 유지되지 않고, macOS 15에서 임시 서명 앱의 ScreenCaptureKit 접근이 거절됐다는 보고도 있습니다. 업데이트 후 권한을 보존하려면 Apple Development 같은 고정 인증서로 서명해야 할 가능성이 큽니다.
+- 터미널에서 띄운 프로그램의 권한은 그 터미널 앱에 붙습니다(권한을 책임지는 프로세스 기준). `pnpm tauri dev`로 확인한 권한 동작은 묶음 앱의 동작과 다를 수 있습니다.
+- macOS 15 Sequoia는 ScreenCaptureKit을 쓰는 앱에 한 달마다 권한을 다시 물었습니다(2024-08 보도). macOS 26 이후에도 그런지는 찾지 못했습니다. Apple의 창 선택 화면(`SCContentSharingPicker`, macOS 14 이상)을 쓰면 이 질문이 없다는 사용자 의견이 있지만, 드래그로 영역을 그리는 지금 설계와 맞지 않습니다. 질문을 없애는 권한(`com.apple.developer.persistent-content-capture`)은 원격 접속 앱용이고 Apple에 따로 신청해야 합니다.
+
+### 바꿀 코드
+
+| 위치 | 지금 | macOS에서 |
+|---|---|---|
+| `src-tauri/Cargo.toml` | `windows`, `windows-capture`를 운영체제 구분 없이 사용 | Windows 전용 의존성으로 나누고 macOS에 `screencapturekit` 추가 |
+| `src-tauri/src/recording.rs` | Windows.Graphics.Capture로 녹화. 파일 이름 시각은 `GetLocalTime` | ScreenCaptureKit으로 녹화. 시각은 운영체제마다 다른 방법이 필요 |
+| `src-tauri/src/targets.rs` | Win32로 창 목록, 창 범위, 모니터를 찾음. 창 식별자는 `hwnd` | 창 목록과 범위는 `SCShareableContent`, 창 식별자는 창 번호(u32) |
+| `src-tauri/src/main.rs` | 저장 뒤 `explorer /select` | `open -R` |
+
+프레임 큐, 정지와 취소 흐름, 파일 이름 정하기, `.part` 파일 처리와 인코더는 운영체제와 무관합니다. 웹 화면은 창 식별자 이름(`hwnd`)만 바꾸면 그대로 씁니다.
+
+### macOS에서 직접 확인할 항목
+
+- `sourceRect`와 `SCWindow::frame`의 단위와 원점, Retina 배율에서 드래그 영역과 녹화 결과가 맞는지
+- 배율이 다른 외부 모니터를 붙였을 때의 좌표. 이 맥은 화면이 하나라 외부 모니터가 있어야 확인할 수 있습니다.
+- 캡처 필터에서 뺀 조작 막대, 오버레이와 테두리가 녹화 결과에 나오지 않는지. 녹화 범위 안에 겹쳐 놓은 상태에서 확인합니다. 범위 밖에 있던 창이 나오지 않은 결과는 제외가 된다는 근거가 아닙니다.
+- 선택한 창을 옮기거나, 다른 창에 가리거나, 최소화할 때 녹화 결과
+- 화면 기록 권한의 요청, 거절, 취소와 다시 빌드한 뒤 권한 유지
+- 다른 앱의 전체 화면 Space와 여러 Space에서 오버레이와 조작 막대가 뜨는지
 
 ## 직접 확인할 항목
 
@@ -146,3 +211,14 @@ FFmpeg의 팔레트 생성 방식은 이번에 조사하지 않았습니다.
 - [WgcSharp](https://www.nuget.org/packages/WgcSharp): C#에서 Windows.Graphics.Capture를 직접 쓸 때의 상호 운용 부담 설명
 - [Kotlin Slack: Compose Desktop 화면 녹화](https://slack-chats.kotlinlang.org/t/16380068/have-anyone-tried-ffmpeg-screen-recording-with-desktop-i-was)
 - [WWDC22: Meet ScreenCaptureKit](https://developer.apple.com/videos/play/wwdc2022/10155/)
+
+macOS 확장(2026-11-15 확인):
+
+- [screencapturekit-rs](https://github.com/doom-fish/screencapturekit-rs), [SCStreamConfiguration 문서](https://docs.rs/screencapturekit/11.1.2/screencapturekit/stream/configuration/struct.SCStreamConfiguration.html), [SCWindow 문서](https://docs.rs/screencapturekit/11.1.2/screencapturekit/shareable_content/window/struct.SCWindow.html), [SCContentFilter 문서](https://docs.rs/screencapturekit/11.1.2/screencapturekit/stream/content_filter/struct.SCContentFilter.html)
+- [Apple: SCStreamConfiguration.sourceRect](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/sourcerect), [Apple: SCContentFilter init(desktopIndependentWindow:)](https://developer.apple.com/documentation/screencapturekit/sccontentfilter/init(desktopindependentwindow:))
+- [Apple: NSWindow.SharingType.none](https://developer.apple.com/documentation/appkit/nswindow/sharingtype-swift.enum/none), [tao의 macOS 구현](https://github.com/tauri-apps/tao/blob/tao-v0.34.5/src/platform_impl/macos/window.rs)
+- [Apple 개발자 포럼: macOS 15.4 이후 SharingNone 창이 ScreenCaptureKit에 캡처됨](https://developer.apple.com/forums/thread/792152)
+- [tauri-runtime-wry 소스](https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-runtime-wry/src/lib.rs): macOS의 `skip_taskbar`와 활성화 정책
+- [Tauri: Window Customization](https://v2.tauri.app/learn/window-customization/), [Apple 개발자 포럼: 전체 화면 위에 뜨는 창](https://origin-devforums.apple.com/forums/thread/826308)
+- [Apple 개발자 포럼: 코드 서명과 화면 기록 권한](https://developer.apple.com/forums/thread/695689), [Cap 이슈 #1722: 임시 서명 앱의 ScreenCaptureKit 거절](https://github.com/CapSoftware/Cap/issues/1722), [Qt: 권한을 책임지는 프로세스](https://www.qt.io/blog/the-curious-case-of-the-responsible-process)
+- [TidBITS: Sequoia의 한 달 주기 권한 질문](https://tidbits.com/2024/08/19/apple-reduces-excessive-sequoia-permission-requests-shifts-to-monthly), [Apple 개발자 포럼: persistent-content-capture 권한](https://developer.apple.com/forums/thread/761641)
