@@ -110,3 +110,14 @@ Android Gradle Plugin 8.13 계열은 Gradle 8.13 이상과 JDK 17을 요구하�
 Compose 컴파일러 플러그인은 Kotlin과 같은 버전을 사용합니다. 나머지 Compose 라이브러리는 BOM으로 맞춥니다. [Compose 설정](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler)
 
 libVLC의 `FileDescriptor` 입력으로 시스템 선택기에서 받은 파일을 읽기 전용으로 엽니다. 파일 연결은 재생기가 해제될 때 닫습니다. 화면은 `VLCVideoLayout`을 `AndroidView`에 연결하며, 재생 위치 복원 전의 초기값을 저장하지 않도록 처리합니다. [libVLC 3.7.7 소스](https://repo.maven.apache.org/maven2/org/videolan/android/libvlc-all/3.7.7/libvlc-all-3.7.7-sources.jar)
+
+## 재생 위치 이동 처리
+
+2026-11-15에 QA-005부터 QA-007까지의 수정에서 아래 동작을 적용했습니다. 라이브러리 버전과 저장 구조는 바꾸지 않았습니다.
+
+- 재생바를 끄는 동안에는 재생을 잠시 멈추고, 약 100ms 간격으로 최신 위치의 장면을 요청합니다. 손을 놓으면 마지막 위치를 바로 적용하고, 원래 재생 중이었다면 재생을 이어갑니다.
+- 사용자가 고른 위치는 멈춘 상태에서도 이어보기 위치로 저장합니다. 처음 파일을 여는 중의 초기 시간과 이전 위치 이벤트로 기록을 덮어쓰지 않는 처리는 유지합니다.
+- 파일 안에서 영상과 음성 데이터를 찾아 전달하는 처리를 demux라고 합니다. 기본 설정에서 4K MP4 샘플을 탐색하면 참조 장면 누락 로그와 회색 화면이 나타났고, 하드웨어 가속을 꺼도 같았습니다. 내장 `avformat` 처리를 우선 사용한 비교 빌드에서는 목표 장면이 표시됐습니다. 이에 `:demux=avformat,any`를 적용했습니다. `any`는 해당 처리가 파일을 열지 못하면 다른 libVLC 처리 방식도 시도하게 합니다. 이 순서는 [VLC 모듈 선택 코드](https://github.com/videolan/vlc/blob/3.0.x/src/modules/modules.c)에서 확인했습니다. 모든 형식의 호환성을 확인한 결과는 아닙니다.
+- 재생이 끝난 뒤에는 기존 입력을 멈추고 파일의 읽기 위치를 처음으로 되돌린 다음, 선택한 시간부터 다시 준비합니다. 파일 내용은 수정하지 않습니다. VLC의 파일 연결 복제는 읽기 위치를 공유하므로, 끝에 도달한 연결을 그대로 다시 사용하면 입력이 비어 있는 상태로 시작할 수 있습니다. [VLC 파일 입력 코드](https://github.com/videolan/vlc/blob/3.0.x/modules/access/file.c)
+
+하드웨어 가속은 기존 설정을 유지합니다. 샘플별 결과와 실제 기기에서 확인하지 못한 범위는 [검증 기록](verification.md#2026-11-15-재생바와-이어보기-수정-검증)에 남깁니다.
