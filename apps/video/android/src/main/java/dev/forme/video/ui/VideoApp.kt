@@ -126,9 +126,12 @@ private fun PlayerScreen(selection: VideoSelection, model: VideoViewModel, modif
         val seekLabel = stringResource(R.string.seek)
         Slider(
             value = (dragging ?: state.positionMs.toFloat()).coerceIn(0f, maximum),
-            onValueChange = { dragging = it },
+            onValueChange = {
+                dragging = it
+                playback.previewSeek(it.toLong())
+            },
             onValueChangeFinished = {
-                dragging?.let { playback.seek(it.toLong()) }
+                playback.finishSeek()
                 dragging = null
             },
             valueRange = 0f..maximum,
