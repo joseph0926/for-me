@@ -14,7 +14,8 @@ for-me/
 │   │   ├── docs/           범위, 기술 조사, QA, 검증 기록, QA 이슈
 │   │   ├── android/        Android 모듈
 │   │   └── gradlew 등      이 앱의 Gradle 빌드
-│   └── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
+│   ├── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
+│   └── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
 ├── docs/                   모든 앱에 공통인 개발 절차와 QA 절차
 ├── AGENTS.md               작업 규칙
 └── .gitattributes 등       모든 앱에 공통인 줄바꿈과 편집기 설정
