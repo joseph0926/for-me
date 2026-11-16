@@ -6,10 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.forme.video.ui.VideoApp
+import dev.forme.video.ui.VideoTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,7 +18,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            VideoTheme {
                 VideoApp(viewModel())
             }
         }
