@@ -14,6 +14,7 @@
 |---|---|---|---|
 | [동영상 앱](apps/video/README.md) | `apps/video` | Android, 이후 Windows와 macOS | 개발 중. Android 시제품, 실제 기기에서의 재생은 미검증 |
 | [화면 녹화 GIF 생성기](apps/screen-gif/README.md) | `apps/screen-gif` | Windows, 이후 macOS | 개발 중. Windows 시제품 1차 완료(영역 녹화와 저장 확인), 자르기와 품질 모드는 구현 전 |
+| [TermKeys](apps/termkeys/README.md) | `apps/termkeys` | macOS | 개발 중. 0.2.1에서 보안 입력 중 줄 이동 확인. 메뉴 입력 제외와 실제 응답 지연 조건은 미검증 |
 
 ## 개발
 
