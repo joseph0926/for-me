@@ -150,7 +150,8 @@ class VlcPlayback(
     }
 
     fun togglePlayback() {
-        if (state.playing) pauseByUser() else {
+        // 탐색 직후 엔진이 아직 멈춰 있어도 화면에 표시한 재생 의도를 전환한다.
+        if (wantsToPlay() && state.error == null) pauseByUser() else {
             changePlayIntent(true)
             playIfRequested()
         }

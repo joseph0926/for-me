@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import dev.forme.video.data.PlaybackRecord
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +16,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 
 data class VideoSelection(val uri: Uri, val sequence: Long) {
-    var wantsToPlay = true
+    var wantsToPlay by mutableStateOf(true)
 }
 
 class VideoViewModel(application: Application) : AndroidViewModel(application) {
