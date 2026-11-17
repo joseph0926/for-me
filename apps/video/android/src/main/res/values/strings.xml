@@ -4,7 +4,6 @@
     <string name="recent_videos">최근 영상</string>
     <string name="play">재생</string>
     <string name="pause">일시정지</string>
-    <string name="close_video">영상 닫기</string>
     <string name="seek">재생 위치</string>
     <string name="loading">영상을 여는 중</string>
     <string name="file_unavailable">파일을 열 수 없습니다. 파일이 이동하거나 삭제됐거나 접근 권한이 없을 수 있습니다. 다시 선택해 주세요.</string>
@@ -12,17 +11,28 @@
     <string name="storage_failed">이어보기 기록을 읽거나 저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해 주세요.</string>
     <string name="temporary_access">이 파일은 접근 권한을 유지할 수 없어 다음 실행 때 다시 선택해야 할 수 있습니다.</string>
     <string name="audio_focus_failed">다른 앱이 소리를 사용하고 있습니다. 잠시 후 재생해 주세요.</string>
-    <string name="choose_first_video">재생할 영상을 골라 주세요</string>
     <string name="back_to_list">목록으로</string>
     <string name="choose_again">다시 선택</string>
     <string name="file_address">파일 주소</string>
-    <string name="today">오늘</string>
-    <string name="yesterday">어제</string>
     <string name="skip_back">10초 뒤로</string>
     <string name="skip_seconds">10</string>
     <string name="skip_forward">10초 앞으로</string>
-    <string name="show_controls">조작 보이기</string>
-    <string name="hide_controls">조작 숨기기</string>
     <string name="resuming_from">%1$s부터 이어서 재생</string>
     <string name="start_over">처음부터</string>
+    <string name="library">보관함</string>
+    <string name="home">홈</string>
+    <string name="library_count">최근에 연 영상 %1$d편</string>
+    <string name="search_videos">영상 제목 검색</string>
+    <string name="continue_watching">계속 시청하기</string>
+    <string name="your_last_scene">마지막으로 보던 장면</string>
+    <string name="resume_video">이어서 재생</string>
+    <string name="empty_title">나만의 장면을 모으는 곳</string>
+    <string name="empty_description">기기에 저장한 영상을 열어 보세요.
+보던 장면은 여기에 남겨 둘게요.</string>
+    <string name="no_search_results">찾는 영상이 없어요</string>
+    <string name="try_another_title">다른 제목으로 검색해 보세요.</string>
+    <string name="local_video">기기에 저장한 영상</string>
+    <string name="lock_screen">화면 잠금</string>
+    <string name="unlock_screen">잠금 해제</string>
+    <string name="show_unlock">화면이 잠겼습니다. 잠금 해제 버튼 표시</string>
 </resources>

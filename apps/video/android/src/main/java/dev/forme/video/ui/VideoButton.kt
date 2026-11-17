@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,10 +27,10 @@ internal fun VideoButton(label: String, onClick: () -> Unit, secondary: Boolean 
     val modifier = Modifier.defaultMinSize(minHeight = 44.dp)
         .graphicsLayer { scaleX = scale; scaleY = scale }
     if (secondary) {
-        OutlinedButton(onClick, modifier, interactionSource = interaction,
+        OutlinedButton(onClick, modifier, shape = MaterialTheme.shapes.small, interactionSource = interaction,
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp)) { Text(label) }
     } else {
-        Button(onClick, modifier, interactionSource = interaction,
+        Button(onClick, modifier, shape = MaterialTheme.shapes.small, interactionSource = interaction,
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp)) { Text(label) }
     }
 }

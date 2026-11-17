@@ -17,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,10 +48,22 @@ internal fun SeekBar(
         tween(120, easing = VideoEasing), label = "seekThumb")
     val colors = MaterialTheme.colorScheme
     val seekLabel = stringResource(R.string.seek)
-    val timeText = "${formatTime(shownPosition.toLong())} / ${formatTime(durationMs)}"
+    val currentTime = formatTime(shownPosition.toLong())
+    val totalTime = formatTime(durationMs)
+    val timeStyle = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum")
+    val textMeasurer = rememberTextMeasurer()
+    val timeWidthPx = maxOf(
+        textMeasurer.measure(currentTime, timeStyle).size.width,
+        textMeasurer.measure(totalTime, timeStyle).size.width,
+    )
+    val timeWidth = with(LocalDensity.current) { timeWidthPx.toDp() }
+    val timeText = "$currentTime / $totalTime"
 
-    Column(modifier.fillMaxWidth()) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(currentTime, style = timeStyle, textAlign = TextAlign.Start,
+            modifier = Modifier.width(timeWidth).clearAndSetSemantics {})
+        BoxWithConstraints(Modifier.weight(1f)) {
             Slider(
                 value = shownPosition,
                 onValueChange = { dragging = it; onSeek(it.toLong()) },
@@ -90,7 +105,7 @@ internal fun SeekBar(
                 }
             }
         }
-        Text(timeText, style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.clearAndSetSemantics {})
+        Text(totalTime, style = timeStyle, textAlign = TextAlign.End,
+            modifier = Modifier.width(timeWidth).clearAndSetSemantics {})
     }
 }

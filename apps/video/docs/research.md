@@ -121,3 +121,32 @@ libVLC의 `FileDescriptor` 입력으로 시스템 선택기에서 받은 파일�
 - 재생이 끝난 뒤에는 기존 입력을 멈추고 파일의 읽기 위치를 처음으로 되돌린 다음, 선택한 시간부터 다시 준비합니다. 파일 내용은 수정하지 않습니다. VLC의 파일 연결 복제는 읽기 위치를 공유하므로, 끝에 도달한 연결을 그대로 다시 사용하면 입력이 비어 있는 상태로 시작할 수 있습니다. [VLC 파일 입력 코드](https://github.com/videolan/vlc/blob/3.0.x/modules/access/file.c)
 
 하드웨어 가속은 기존 설정을 유지합니다. 샘플별 결과와 실제 기기에서 확인하지 못한 범위는 [검증 기록](verification.md#2026-11-15-재생바와-이어보기-수정-검증)에 남깁니다.
+
+## 2026-11-17 자막 기능 조사
+
+사용자 요청으로 서브에이전트가 공식 자료와 설치된 `libvlc-all-3.7.7-sources.jar`를 읽기 전용으로 조사했습니다. 부모 에이전트도 해당 소스의 자막 API 선언을 확인했습니다. 아래는 구현 제안이며 기기에서 검증된 지원 목록이 아닙니다.
+
+### 먼저 구현할 기능
+
+1. 자막 끄기, 내장 자막 목록과 선택, 외부 UTF-8 SRT 열기.
+2. 자막을 0.1초 일찍 또는 늦게 표시하는 싱크 조절과 초기화.
+3. 영상별 외부 자막 주소와 싱크 저장. Room 구조를 바꾸면 기존 재생 기록 보존 검사가 필요합니다.
+4. 글자 크기와 인코딩 선택. 별도로 재생 상태 복원 방식을 검증합니다.
+
+### 현재 버전의 API와 수명
+
+3.7.7의 `getSpuTracks()`는 자막 ID와 이름을 반환하고 `setSpuTrack(int)`로 선택합니다. 배열 순번 대신 반환된 ID를 사용하며, 트랙 추가와 삭제, 선택 이벤트에서 화면을 갱신해야 합니다. 최신 VLC Android의 문자열 트랙 ID API를 그대로 적용하지 않습니다.
+
+`setSpuDelay(long)`는 마이크로초 단위입니다. 양수는 늦게, 음수는 일찍 표시하며, 미디어 변경 시 초기화되므로 재적용해야 합니다. [공식 libVLC 3 자막 제어 문서](https://videolan.videolan.me/vlc-3.0/group__libvlc__video.html).
+
+외부 파일은 시스템 파일 선택기로 고르고 읽기 권한을 보존합니다. 영구 저장 대상은 원본 URI이며 열려 있는 파일 번호가 아닙니다. 파일이 이동하거나 삭제되면 권한을 보존했어도 재선택이 필요할 수 있습니다. [Android 파일 접근 문서](https://developer.android.com/training/data-storage/shared/documents-files).
+
+연결 후보는 `ContentResolver.openFileDescriptor(uri, "r")`로 파일을 열고 `fd://` 주소를 `addSlave(IMedia.Slave.Type.Subtitle, uri, true)`에 전달하는 방식입니다. `VlcPlayback`이 파일 연결을 소유하고 엔진의 사용이 끝난 뒤 닫아야 합니다. 클라우드 제공자의 탐색 불가 입력은 실제 검증이 필요하며, 필요한 경우 앱 내부 임시 복사본을 검토합니다. 원본은 수정하지 않습니다. [공식 VLC 파일 처리](https://github.com/videolan/vlc-android/blob/master/application/vlc-android/src/org/videolan/vlc/util/FileUtils.kt), [공식 자막 연결부](https://github.com/videolan/vlc-android/blob/master/application/vlc-android/src/org/videolan/vlc/gui/video/VideoPlayerActivity.kt).
+
+현재 `VlcPlayback.restartMedia()`는 미디어 객체를 다시 만듭니다. 영상 종료 후 다시 재생하거나 위치를 바꾸는 이 경로에도 외부 자막 연결, 선택과 싱크를 복원해야 합니다.
+
+### 글자 크기와 검증 범위
+
+3.7.7 Java API에는 실시간 자막 크기 setter가 없습니다. `--freetype-rel-fontsize` 생성 옵션을 검증하고, 크기를 바꿀 때 재생기 재생성과 함께 위치, 재생 의도, 자막 선택과 싱크를 복원하는 방안을 검토합니다. ASS의 자체 스타일과 이미지 자막에 같은 설정이 적용된다고 보장하지 않습니다. [공식 VLC 옵션 구현](https://github.com/videolan/vlc-android/blob/master/application/resources/src/main/java/org/videolan/resources/VLCOptions.kt), [VLC 3 ASS 디코더](https://github.com/videolan/vlc/blob/3.0.x/modules/codec/libass.c).
+
+첫 검증은 한글 UTF-8 SRT와 다중 내장 자막으로 시작합니다. 이후 ASS/SSA, SMI/SAMI, WebVTT, CP949/EUC-KR과 이미지 자막 샘플을 추가합니다. 선택 취소, 권한 거절, 파일 이동과 삭제, 회전, 재생 종료 후 다시 열기와 업데이트 후 보존을 확인합니다. 자막 실패 때문에 영상 자체를 사용할 수 없게 만들지 않습니다.

@@ -41,17 +41,18 @@ fun VideoTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Color(0xFFECEEF2),
-            onPrimary = Color(0xFF101318),
-            background = Color(0xFF101318),
+            onPrimary = Color(0xFF0B1016),
+            background = Color(0xFF0B1016),
             onBackground = Color(0xFFECEEF2),
-            surface = Color(0xFF101318),
+            surface = Color(0xFF0B1016),
             onSurface = Color(0xFFECEEF2),
-            surfaceVariant = Color(0xFF262B34),
+            surfaceVariant = Color(0xFF202A35),
             onSurfaceVariant = Color(0xFFAEB5C0),
             outline = Color(0xFF858D9A),
             error = Color(0xFFFFB4AB),
         ),
         typography = Typography(
+            headlineLarge = Body.copy(fontSize = 30.sp, lineHeight = 38.sp, fontWeight = FontWeight(650)),
             titleLarge = Body.copy(fontSize = 21.sp, lineHeight = 32.55.sp, fontWeight = FontWeight(650)),
             titleMedium = Body.copy(fontSize = 16.sp, lineHeight = 24.8.sp, fontWeight = FontWeight(650)),
             titleSmall = Body.copy(fontWeight = FontWeight.SemiBold),
@@ -65,7 +66,7 @@ fun VideoTheme(content: @Composable () -> Unit) {
         shapes = Shapes(
             extraSmall = RoundedCornerShape(4.dp),
             small = RoundedCornerShape(6.dp),
-            medium = RoundedCornerShape(6.dp),
+            medium = RoundedCornerShape(10.dp),
             large = RoundedCornerShape(6.dp),
             extraLarge = RoundedCornerShape(6.dp),
         ),
