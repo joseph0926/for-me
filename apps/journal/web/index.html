@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>for-me — 사용과 변화의 기록</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">본문으로 이동</a>
+    <aside class="sidebar">
+      <a class="brand" href="/">for-me<span>사용과 변화의 기록</span></a>
+      <p class="nav-label">내가 만든 앱</p>
+      <nav id="apps" aria-label="앱 목록"></nav>
+      <button id="add-app" class="sidebar-button">＋ 앱 등록</button>
+      <div class="sidebar-footer">
+        <span class="local-dot"></span> 이 컴퓨터에 보관
+        <p>만들고, 쓰고, 조금씩 고칩니다.</p>
+        <a href="/api/backup" download>백업 받기</a>
+        <button id="restore-backup">백업 복원</button>
+        <input id="backup-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </aside>
+    <main id="main">
+      <header class="topbar"><span id="today"></span><button id="refresh" class="quiet">새로고침</button></header>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <section class="heading">
+        <div><p class="eyebrow">MY APPS / JOURNAL</p><h1 id="app-title">기록을 불러오는 중</h1><p id="app-subtitle" class="muted"></p></div>
+        <button id="quick-record" class="primary">＋ 기록 남기기</button>
+      </section>
+      <div id="overview"></div>
+      <section class="journal-section">
+        <div class="section-heading"><h2>사용에서 변화까지</h2><a id="export" class="text-link" href="/api/export">Markdown 내보내기 ↗</a></div>
+        <div class="filters">
+          <label>종류<select id="kind-filter"><option value="">모든 기록</option><option value="use">사용</option><option value="request">불편과 요청</option><option value="change">변경</option><option value="verification">검증</option><option value="release">버전</option><option value="followup">후속 사용</option><option value="origin">만든 이유</option><option value="status">상태 변경</option></select></label>
+          <label>기간<select id="period"><option value="all">전체</option><option value="week">최근 7일</option><option value="month">최근 30일</option></select></label>
+          <label class="search-label">검색<input id="search" type="search" placeholder="내용, 버전, 기기 검색"></label>
+          <label class="trash-toggle"><input id="trash-filter" type="checkbox"> 휴지통</label>
+        </div>
+        <div id="summary" class="summary"></div>
+        <div id="timeline"></div>
+      </section>
+      <footer class="page-footer">기록이 없는 날은 사용하지 않은 날과 다릅니다.</footer>
+    </main>
+    <dialog id="record-dialog">
+      <form id="record-form">
+        <div class="dialog-heading"><div><p class="eyebrow">KEEP A NOTE</p><h2 id="form-title">기록 남기기</h2></div><button type="button" class="close" data-close="record-dialog" aria-label="닫기">×</button></div>
+        <p id="draft-message" class="muted"></p>
+        <div class="form-row"><label>앱<select name="appId" required></select></label><label>종류<select name="kind"></select></label></div>
+        <label>무슨 일이 있었나요?<textarea name="body" rows="4" maxlength="20000" required placeholder="한 줄만 적어도 괜찮습니다."></textarea></label>
+        <div id="origin-help" class="hint" hidden>어떤 불편이 있었나요? 당시에는 어떻게 해결했고, 직접 만들어 무엇이 좋아지기를 바랐나요? 나중에 떠올린 내용이면 그 사실도 적어 주세요.</div>
+        <label id="app-detail-label"><span id="app-detail-title">덧붙일 내용</span><input name="details" maxlength="20000"></label>
+        <details id="extra-fields"><summary>날짜, 버전, 근거와 연결 더하기</summary>
+          <label>제목<input name="title" maxlength="200" placeholder="비워 두면 내용의 첫 줄을 사용합니다."></label>
+          <div class="form-row"><label>사건 날짜<input type="date" name="occurredOn" required></label><label>사용 구분<select name="context"><option value="daily">실사용</option><option value="test">동작 확인용 테스트</option></select></label></div>
+          <label>연결할 이전 기록<select name="parentId"><option value="">연결하지 않음</option></select></label>
+          <div class="form-row"><label>근거<select name="authority"><option value="user">사용자 경험과 발언</option><option value="interpretation">AI 해석 또는 제안</option><option value="verified">검사로 확인한 사실</option></select></label><label>진행 상태<select name="stage"><option value="unknown">미확인</option><option value="open">열림</option><option value="in_progress">진행 중</option><option value="waiting">확인 대기</option><option value="done">완료</option></select></label></div>
+          <label>사용자 원문<textarea name="originalQuote" rows="2" maxlength="20000" placeholder="실제로 전달받은 원문만 보존합니다."></textarea></label>
+          <label>출처와 검증 근거<input name="source" placeholder="관련 문서, 검사 명령과 결과, 대화 식별 정보"></label>
+          <div class="form-row"><label>앱 버전<input name="version" placeholder="모르면 비워 두세요."></label><label>빌드 식별값<input name="build" placeholder="빌드 번호 또는 파일 해시"></label></div>
+          <div class="form-row"><label>기기와 OS<input name="device"></label><label>버전 확인 범위<select name="releaseState"><option value="development">개발 중</option><option value="built">빌드 확인</option><option value="installed">설치 확인</option><option value="used">실사용 확인</option></select></label></div>
+          <div class="form-row"><label>재생 또는 사용 시간 (분)<input type="number" name="minutes" min="0" max="10000000" step="any"></label><label>사용 횟수<input type="number" name="count" min="0" max="10000000" step="any"></label></div>
+          <div class="form-row"><label>숫자의 근거<select name="measurement"><option value="unknown">숫자 없음</option><option value="measured">실측</option><option value="estimate">추정</option></select></label><label>직접 유지보수한 시간 (분)<input type="number" name="effortMinutes" min="0" max="10000000" step="any"></label></div>
+        </details>
+        <p id="form-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions"><button type="button" id="discard-draft" class="quiet">초안 비우기</button><button type="submit" class="primary">기록 저장</button></div>
+      </form>
+    </dialog>
+    <dialog id="app-dialog">
+      <form id="app-form">
+        <div class="dialog-heading"><h2 id="app-form-title">앱 등록</h2><button type="button" class="close" data-close="app-dialog" aria-label="닫기">×</button></div>
+        <label>앱 ID<input name="id" pattern="[a-zA-Z0-9_-]{1,100}" required placeholder="이름과 폴더를 바꿔도 유지할 ID"></label>
+        <label>앱 이름<input name="name" maxlength="120" required></label>
+        <label>대상 기기와 플랫폼<input name="platform" maxlength="200"></label>
+        <label>저장소의 앱 폴더<input name="folder" placeholder="apps/video"></label>
+        <label>사용 상태<select name="status"><option value="unknown">아직 확인하지 않음</option><option value="active">계속 사용</option><option value="occasional">필요할 때 사용</option><option value="waiting">개선 대기</option><option value="stopped">사용 중단</option></select></label>
+        <label>상태를 바꾼 이유<textarea name="reason" rows="2"></textarea></label>
+        <p class="hint">앱을 더 이상 쓰지 않아도 기록은 남습니다. 폴더가 이동하면 이 연결만 바꾸세요.</p>
+        <p id="app-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions"><button type="submit" class="primary">앱 저장</button></div>
+      </form>
+    </dialog>
+    <dialog id="history-dialog"><div class="dialog-heading"><h2>기록 변경 이력</h2><button type="button" class="close" data-close="history-dialog" aria-label="닫기">×</button></div><div id="history-content"></div></dialog>
+  </body>
+</html>
