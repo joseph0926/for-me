@@ -1,14 +1,15 @@
 # Viewgrain MCP 조회 계약
 
-AI가 레퍼런스를 검색하고, 선택한 화면 이미지와 구현할 특징을 함께 읽게 합니다. MCP 사용은 확정했으며, 현재는 로컬 파일을 읽는 두 도구를 제공합니다. 검색은 후속 제안입니다.
+AI가 레퍼런스를 찾고, 선택한 화면 이미지와 구현할 특징을 함께 읽게 합니다. MCP 사용은 확정했으며, 현재는 로컬 파일을 읽는 세 도구를 제공합니다. 검색 필터는 후속 제안입니다.
 
 ## 현재 조회 흐름
 
-1. 지정한 묶음과 버전을 `get_reference_set`으로 조회합니다.
-2. 반환된 화면 ID로 `get_reference`를 호출해 원본 이미지와 기록을 읽습니다.
-3. 구현에 사용한 식별자와 버전, 실제로 확인한 범위를 작업 기록에 남깁니다.
+1. ID를 모르면 `list_reference_sets({})`로 제목, 용도, 플랫폼, 화면 종류와 사용자 선택 상태를 확인합니다.
+2. 고른 묶음의 ID와 버전을 `get_reference_set`으로 조회합니다.
+3. 반환된 화면 ID로 `get_reference`를 호출해 원본 이미지와 기록을 읽습니다.
+4. 구현에 사용한 식별자와 버전, 실제로 확인한 범위를 작업 기록에 남깁니다.
 
-묶음을 검색하거나 전체 목록을 반환하는 도구는 아직 없습니다.
+목록은 모든 등록 버전을 ID와 버전 순으로 반환합니다. 최신 버전만 자동 선택하지 않습니다. 검색어나 필터 인수는 아직 지원하지 않습니다.
 
 ## 후속 검색 흐름 제안
 
@@ -22,15 +23,18 @@ AI가 레퍼런스를 검색하고, 선택한 화면 이미지와 구현할 특�
 
 ## 구현한 도구
 
+- `list_reference_sets`: 인수 없이 `{}`를 받아 `{sets: [...]}`를 반환합니다. 각 항목은 `id`, `version`, `title`, `domain`, `platforms`, `screens`, `status`, `selection`을 포함합니다. `screens`에는 이미지별 `id`, `screen`, `orientation`이 있습니다. README와 프롬프트 전문 및 이미지 바이트는 읽지 않습니다.
 - `get_reference_set`: `set_id`와 양의 정수 `version`을 받아 묶음 메타데이터와 공통 설명, 화면 목록을 반환합니다. 이미지 바이트를 포함하지 않으며 목록에 있는 파일의 실제 존재는 상세 조회에서 확인합니다.
 - `get_reference`: `set_id`, `version`, `image_id`를 받아 PNG 한 장과 선택 기록, 생성 정보, 설명 및 프롬프트 기록을 반환합니다. `include_context` 기본값은 `true`입니다. `false`이면 이미지와 식별자, 크기 및 해시만 반환해 설명 없이 시각 인식을 검사할 수 있습니다.
 
-버전은 생략할 수 없으며 가장 최신 버전으로 자동 대체하지 않습니다. 등록된 묶음은 `scene-001` 버전 `1`과 `frame-002` 버전 `1`입니다. 화면 ID는 묶음 조회에서 얻습니다.
+버전은 생략할 수 없으며 가장 최신 버전으로 자동 대체하지 않습니다. 등록된 묶음은 `video-streaming-scene`, `film-collection-frame`, `service-logs`이며 모두 버전 `1`입니다. 화면 ID는 묶음 조회에서 얻습니다. `service-logs`는 완전한 만족 없이 우선 보관한 후보이므로 `selection`의 사용자 발언과 `satisfaction: provisional`을 함께 읽습니다. `selected_by_user`는 등록 선택이며 최종 만족을 뜻하지 않습니다.
+
+이전 묶음 ID `scene-001`, `frame-002`, `logs-003`도 같은 순서의 현재 묶음으로 연결합니다. 이전 이미지 ID는 manifest의 `aliases`로 해석합니다. 이미지 ID는 묶음과 버전 안에서 고유하며 별칭끼리 또는 현재 ID와 겹칠 수 없습니다. 목록과 묶음 응답은 현재 ID를 반환하고, 이미지 응답의 `set_id`와 `image_id`는 기존 소비자를 위해 요청한 값을 유지합니다. 이전 ID를 써도 버전은 그대로 적용하며 최신 버전으로 대체하지 않습니다.
 
 식별자는 영문 소문자와 숫자를 하이픈으로 연결한 형태입니다. 묶음 ID는 최대 100자, 이미지 ID는 최대 150자이며 보관 목록 검사와 도구 입력이 같은 정의를 사용합니다. 한도를 초과한 이미지 ID를 가진 manifest는 목록 조회부터 거부합니다.
 
 ```json
-{"set_id":"frame-002","version":1,"image_id":"frame-002-collection-list","include_context":false}
+{"set_id":"film-collection-frame","version":1,"image_id":"collection-list","include_context":false}
 ```
 
 성공 응답은 `content`의 텍스트와 `structuredContent`에 같은 메타데이터를 제공합니다. 상세 조회에는 `type: image`, `mimeType: image/png`, base64 데이터인 이미지 블록이 하나 추가됩니다. 바이너리 데이터를 텍스트나 `structuredContent`에 중복해서 넣지 않습니다.
@@ -67,6 +71,8 @@ AI가 레퍼런스를 검색하고, 선택한 화면 이미지와 구현할 특�
 
 잘못된 도구 입력은 SDK 스키마 검사에서 거부합니다. 자료 조회 오류는 `isError: true`와 텍스트 JSON의 `code`, `message`로 반환하고 이미지 블록을 넣지 않습니다.
 
+등록 목록은 이름 규칙에 맞는 묶음 폴더와 `v1` 형태의 버전 폴더를 확인합니다. 빈 보관 폴더는 빈 목록을 반환합니다. 등록 버전의 manifest가 누락되거나 손상되면 해당 항목을 조용히 숨기지 않고 요청 전체를 오류로 반환합니다. 폴더 링크도 거부합니다. 이미지 파일의 존재와 무결성은 기존처럼 이미지 상세 조회에서 확인합니다.
+
 - `NOT_FOUND`: 묶음, 버전, 이미지 ID 또는 파일 누락
 - `INVALID_INPUT`: 유효하지 않은 식별자나 버전
 - `INVALID_MANIFEST`: 필수 기록, 식별자 또는 파일 이름 오류
@@ -88,6 +94,6 @@ AI가 레퍼런스를 검색하고, 선택한 화면 이미지와 구현할 특�
 
 ## 첫 실제 자료
 
-[SCENE 묶음](../references/scene-001/v1/README.md)은 `scene-001`, 버전 `1`로 등록했습니다. 홈, 세로 재생과 가로 재생 이미지, 선택 맥락과 대화에서 제공한 프롬프트를 포함합니다. [manifest.json](../references/scene-001/v1/manifest.json)에 화면별 식별자, 상대 경로, 크기와 해시를 기록했습니다.
+[SCENE 묶음](../references/video-streaming-scene/v1/README.md)은 `scene-001`, 버전 `1`로 등록했습니다. 홈, 세로 재생과 가로 재생 이미지, 선택 맥락과 대화에서 제공한 프롬프트를 포함합니다. [manifest.json](../references/video-streaming-scene/v1/manifest.json)에 화면별 식별자, 상대 경로, 크기와 해시를 기록했습니다.
 
-manifest는 자료 보관용 기록입니다. 서버는 이를 읽어 도구 응답을 구성하며 원본 manifest를 변경하지 않습니다. 실제 생성 모델과 정확한 입력 전문은 미확인으로 남겼습니다. 사용자 선택과 구현 검증 상태는 분리했습니다. [FRAME 목록](../references/frame-002/v1/README.md) 한 장도 같은 방식으로 조회합니다.
+manifest는 자료 보관용 기록입니다. 서버는 이를 읽어 도구 응답을 구성하며 원본 manifest를 변경하지 않습니다. 실제 생성 모델과 정확한 입력 전문은 미확인으로 남겼습니다. 사용자 선택과 구현 검증 상태는 분리했습니다. [FRAME 목록](../references/film-collection-frame/v1/README.md) 한 장도 같은 방식으로 조회합니다.

@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "id": "scene-001",
+  "id": "video-streaming-scene",
   "version": 1,
-  "title": "SCENE 비디오 앱",
+  "title": "SCENE — 스트리밍 홈과 플레이어",
   "registered_at": "2026-11-17",
   "status": {
     "generated": true,
@@ -29,7 +29,7 @@
   "design_notes": "README.md",
   "images": [
     {
-      "id": "scene-001-home",
+      "id": "home",
       "screen": "home",
       "orientation": "portrait",
       "file": "home.png",
@@ -37,10 +37,13 @@
       "width": 941,
       "height": 1672,
       "bytes": 1951457,
-      "sha256": "84a7dba8fbbd8a431bad8320d4034d3c8f83ade0c56a622fe6b1de271be5477b"
+      "sha256": "84a7dba8fbbd8a431bad8320d4034d3c8f83ade0c56a622fe6b1de271be5477b",
+      "aliases": [
+        "scene-001-home"
+      ]
     },
     {
-      "id": "scene-001-player-portrait",
+      "id": "player-portrait",
       "screen": "player",
       "orientation": "portrait",
       "file": "player-portrait.png",
@@ -48,10 +51,13 @@
       "width": 941,
       "height": 1672,
       "bytes": 1776439,
-      "sha256": "dabdcd6064b6a2cf2f19e42808bc06c105724a60fafeac729fab5c884cb4a3c0"
+      "sha256": "dabdcd6064b6a2cf2f19e42808bc06c105724a60fafeac729fab5c884cb4a3c0",
+      "aliases": [
+        "scene-001-player-portrait"
+      ]
     },
     {
-      "id": "scene-001-player-landscape",
+      "id": "player-landscape",
       "screen": "player",
       "orientation": "landscape",
       "file": "player-landscape.png",
@@ -59,7 +65,14 @@
       "width": 1672,
       "height": 941,
       "bytes": 1852092,
-      "sha256": "62b3f239e2309219072cfa45ad40208fbd5379e89bc240fc24594d392eea19b3"
+      "sha256": "62b3f239e2309219072cfa45ad40208fbd5379e89bc240fc24594d392eea19b3",
+      "aliases": [
+        "scene-001-player-landscape"
+      ]
     }
+  ],
+  "domain": "video-streaming",
+  "platforms": [
+    "mobile"
   ]
 }

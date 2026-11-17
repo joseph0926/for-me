@@ -21,8 +21,8 @@ async function fixtureServer(t) {
     finally { await rm(directory, { recursive: true, force: true }); }
   });
   await cp(join(appRoot, 'src'), join(directory, 'src'), { recursive: true });
-  const set = join(directory, 'references', 'scene-001', 'v1');
-  await cp(join(appRoot, 'references', 'scene-001', 'v1'), set, { recursive: true });
+  const set = join(directory, 'references', 'video-streaming-scene', 'v1');
+  await cp(join(appRoot, 'references', 'video-streaming-scene', 'v1'), set, { recursive: true });
   await symlink(join(appRoot, 'node_modules'), join(directory, 'node_modules'), 'junction');
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [join(directory, 'src/server.mjs')] }));
   return { client, set };

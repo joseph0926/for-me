@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "id": "frame-002",
+  "id": "film-collection-frame",
   "version": 1,
-  "title": "FRAME 도시의 밤 컬렉션",
+  "title": "FRAME — 영화 컬렉션 목록",
   "registered_at": "2026-11-17",
   "status": {
     "generated": true,
@@ -30,7 +30,7 @@
   "design_notes": "README.md",
   "images": [
     {
-      "id": "frame-002-collection-list",
+      "id": "collection-list",
       "screen": "collection-detail",
       "orientation": "portrait",
       "file": "collection-list.png",
@@ -38,7 +38,14 @@
       "width": 941,
       "height": 1671,
       "bytes": 1670001,
-      "sha256": "c84a5371fa9e091ac222e04bfdfaf1f9e1d3f6989034c7119aafb09df0ae346a"
+      "sha256": "c84a5371fa9e091ac222e04bfdfaf1f9e1d3f6989034c7119aafb09df0ae346a",
+      "aliases": [
+        "frame-002-collection-list"
+      ]
     }
+  ],
+  "domain": "film-collection",
+  "platforms": [
+    "mobile"
   ]
 }

@@ -1,14 +1,14 @@
 # SCENE 비디오 앱 레퍼런스
 
-첫 번째 사용자 선택 묶음이다. 식별자는 `scene-001`, 버전은 `1`이며 2026-11-17에 등록했다. SCENE은 생성 이미지 안의 앱 이름이고 Viewgrain의 이름을 바꾼 것이 아니다.
+첫 번째 사용자 선택 묶음이다. 식별자는 `video-streaming-scene`, 버전은 `1`이며 2026-11-17에 등록했다. SCENE은 생성 이미지 안의 앱 이름이고 Viewgrain의 이름을 바꾼 것이 아니다.
 
 ## 선택한 화면
 
 | 화면 | 이미지 | 크기 | 레퍼런스 식별자 |
 |---|---|---|---|
-| 홈 | [home.png](home.png) | 941 × 1672픽셀 | `scene-001-home` |
-| 세로 재생 | [player-portrait.png](player-portrait.png) | 941 × 1672픽셀 | `scene-001-player-portrait` |
-| 가로 재생 | [player-landscape.png](player-landscape.png) | 1672 × 941픽셀 | `scene-001-player-landscape` |
+| 홈 | [home.png](home.png) | 941 × 1672픽셀 | `home` |
+| 세로 재생 | [player-portrait.png](player-portrait.png) | 941 × 1672픽셀 | `player-portrait` |
+| 가로 재생 | [player-landscape.png](player-landscape.png) | 1672 × 941픽셀 | `player-landscape` |
 
 ### 홈
 
@@ -57,3 +57,5 @@
 - 초기 금색 시안과 중간 수정 이미지는 이 묶음에 포함하지 않는다. 선택된 세 원본과 대화의 수정 맥락만 보존한다.
 
 [레퍼런스 목록](../../README.md)과 [프롬프트 활용 문서](../../../docs/prompt-guide.md)로 돌아갈 수 있다.
+
+이전 묶음 ID `scene-001`와 이전 이미지 ID도 MCP에서 계속 조회할 수 있다. 현재 폴더명과 ID의 대응은 [레퍼런스 목록](../../README.md)에 있다.

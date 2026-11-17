@@ -10,16 +10,17 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { getReference, getReferenceSet, referenceRoot } from '../src/catalog.mjs';
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url));
-const scene = { set_id: 'scene-001', version: 1, image_id: 'scene-001-home' };
+const scene = { set_id: 'video-streaming-scene', version: 1, image_id: 'home' };
 const selectedImages = [
-  ['scene-001', 'scene-001-home', 'home.png', '84a7dba8fbbd8a431bad8320d4034d3c8f83ade0c56a622fe6b1de271be5477b'],
-  ['scene-001', 'scene-001-player-portrait', 'player-portrait.png', 'dabdcd6064b6a2cf2f19e42808bc06c105724a60fafeac729fab5c884cb4a3c0'],
-  ['scene-001', 'scene-001-player-landscape', 'player-landscape.png', '62b3f239e2309219072cfa45ad40208fbd5379e89bc240fc24594d392eea19b3'],
-  ['frame-002', 'frame-002-collection-list', 'collection-list.png', 'c84a5371fa9e091ac222e04bfdfaf1f9e1d3f6989034c7119aafb09df0ae346a'],
+  ['video-streaming-scene', 'home', 'home.png', '84a7dba8fbbd8a431bad8320d4034d3c8f83ade0c56a622fe6b1de271be5477b'],
+  ['video-streaming-scene', 'player-portrait', 'player-portrait.png', 'dabdcd6064b6a2cf2f19e42808bc06c105724a60fafeac729fab5c884cb4a3c0'],
+  ['video-streaming-scene', 'player-landscape', 'player-landscape.png', '62b3f239e2309219072cfa45ad40208fbd5379e89bc240fc24594d392eea19b3'],
+  ['film-collection-frame', 'collection-list', 'collection-list.png', 'c84a5371fa9e091ac222e04bfdfaf1f9e1d3f6989034c7119aafb09df0ae346a'],
+  ['service-logs', 'investigation-selected-request', 'investigation-selected-request.png', '37ab4825a5d83eea1abb0672e70e20ec0f713f7224035937f4f572dba80ec134'],
 ];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('실제 stdio 연결에서 선택 이미지 네 장과 기록을 반환하고 원본을 보존한다', { timeout: 20000 }, async t => {
+test('실제 stdio 연결에서 등록 이미지 다섯 장과 기록을 반환하고 원본을 보존한다', { timeout: 20000 }, async t => {
   const client = new Client({ name: 'viewgrain-test', version: '0.1.0' });
   const transport = new StdioClientTransport({ command: process.execPath, args: [join(appRoot, 'src/server.mjs')], cwd: tmpdir(), stderr: 'pipe' });
   let stderr = '';
@@ -27,19 +28,23 @@ test('실제 stdio 연결에서 선택 이미지 네 장과 기록을 반환하�
   t.after(async () => { await client.close(); });
   await client.connect(transport);
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map(tool => tool.name).sort(), ['get_reference', 'get_reference_set']);
+  assert.deepEqual(tools.map(tool => tool.name).sort(), ['get_reference', 'get_reference_set', 'list_reference_sets']);
   assert.ok(tools.every(tool => tool.annotations.readOnlyHint && !tool.annotations.openWorldHint));
   const before = new Map();
-  for (const setId of ['scene-001', 'frame-002']) {
+  for (const setId of ['video-streaming-scene', 'film-collection-frame', 'service-logs']) {
     for (const file of ['manifest.json', 'README.md', 'prompts.md']) {
       const path = join(referenceRoot, setId, 'v1', file);
       before.set(path, hash(await readFile(path)));
     }
   }
-  const set = await client.callTool({ name: 'get_reference_set', arguments: { set_id: 'scene-001', version: 1 } });
+  const set = await client.callTool({ name: 'get_reference_set', arguments: { set_id: 'video-streaming-scene', version: 1 } });
   assert.ok(!set.isError);
   assert.equal(set.structuredContent.images.length, 3);
   assert.ok(set.content.every(item => item.type === 'text'));
+  const provisional = await client.callTool({ name: 'get_reference_set', arguments: { set_id: 'service-logs', version: 1 } });
+  assert.ok(!provisional.isError);
+  assert.equal(provisional.structuredContent.images[0].id, 'investigation-selected-request');
+  assert.equal(provisional.structuredContent.selection.satisfaction, 'provisional');
   for (const [setId, imageId, file, expectedHash] of selectedImages) {
     const response = await client.callTool({ name: 'get_reference', arguments: { set_id: setId, version: 1, image_id: imageId } });
     assert.ok(!response.isError, JSON.stringify(response.content.filter(item => item.type === 'text')));
@@ -51,6 +56,10 @@ test('실제 stdio 연결에서 선택 이미지 네 장과 기록을 반환하�
     assert.equal(response.structuredContent.status.implementation_verified, false);
     assert.equal(response.structuredContent.generation.model, null);
     assert.ok(response.structuredContent.prompt_record_text.length > 0);
+    if (setId === 'service-logs') {
+      assert.equal(response.structuredContent.selection.satisfaction, 'provisional');
+      assert.equal(response.structuredContent.selection.user_statement, '100% 만족은 아니지만 일단 등록해주세요.');
+    }
     assert.equal(hash(await readFile(join(referenceRoot, setId, 'v1', file))), expectedHash);
   }
   const minimal = await client.callTool({ name: 'get_reference', arguments: { ...scene, include_context: false } });
@@ -77,8 +86,8 @@ async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'viewgrain-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const root = join(directory, 'references');
-  const set = join(root, 'scene-001', 'v1');
-  await cp(join(referenceRoot, 'scene-001', 'v1'), set, { recursive: true });
+  const set = join(root, 'video-streaming-scene', 'v1');
+  await cp(join(referenceRoot, 'video-streaming-scene', 'v1'), set, { recursive: true });
   return { directory, root, set };
 }
 
