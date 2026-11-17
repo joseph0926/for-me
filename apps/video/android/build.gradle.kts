@@ -28,7 +28,8 @@ android {
     lint {
         warningsAsErrors = true
         // 새 버전 출시는 호환성을 검토해 반영하며, 고정된 빌드의 실패 조건으로 삼지 않는다.
-        informational += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable")
+        // OldTargetApi도 새 Android 출시 알림이다. 대상 SDK 상향은 AGP와 기기 검증을 함께 묶어 진행한다(QA-010).
+        informational += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable", "OldTargetApi")
     }
 }
 

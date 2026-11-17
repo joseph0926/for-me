@@ -1,6 +1,6 @@
 # 동영상 앱 검증 기록
 
-최근 실행은 2026-11-17 [화면 잠금 검증](#2026-11-17-화면-잠금-검증)입니다. 디버그와 릴리스 빌드, 테스트 13개가 통과했으며 Android Lint는 기존 `OldTargetApi` 오류 한 건으로 실패했습니다. Android 17 가상 기기에서 리디자인한 화면, 터치 재생과 화면 잠금을 확인했습니다. 실제 휴대폰 검증과 자막 기능 구현은 수행하지 않았습니다.
+최근 실행은 2026-11-17 [대상 SDK 알림의 Lint 등급 변경](#2026-11-17-대상-sdk-알림의-lint-등급-변경)입니다. 이 Mac에서 Lint, 테스트 13개, 디버그와 릴리스 빌드가 통과했지만, 원래 `OldTargetApi` 실패는 이 Mac에서 재현되지 않아 QA-010은 재검증 대기입니다. 그 전 [화면 잠금 검증](#2026-11-17-화면-잠금-검증)에서는 디버그와 릴리스 빌드, 테스트 13개가 통과했으며 Android Lint는 기존 `OldTargetApi` 오류 한 건으로 실패했습니다. Android 17 가상 기기에서 리디자인한 화면, 터치 재생과 화면 잠금을 확인했습니다. 실제 휴대폰 검증과 자막 기능 구현은 수행하지 않았습니다.
 
 이전 빌드의 실패와 수정, 재검증은 날짜별 기록에 보존합니다. 아래 결과는 각 기록에 명시된 APK와 샘플에 한정합니다.
 
@@ -470,3 +470,16 @@ Viewgrain MCP의 `get_reference_set`으로 두 묶음을 조회하고 `get_refer
 - 세로 회전 뒤 잠금 유지, 터치 시 해제 버튼 표시, 해제 후 조작 복귀를 확인했습니다(`39`~`41`).
 - 회전 설정은 기존 `user_rotation=0`, `accelerometer_rotation=1`로 복구했습니다.
 - 미검증: 실제 기기, TalkBack 실제 사용, 프로세스 종료 후 복원, 백그라운드 복귀와 오류 발생 중 잠금. 자막 기능은 조사만 했으며 구현과 재생 검증은 수행하지 않았습니다.
+
+## 2026-11-17 대상 SDK 알림의 Lint 등급 변경
+
+- 요청: QA-010의 `OldTargetApi`를 정보 등급으로 낮춥니다(사용자 결정). 대상 SDK 36, Android Gradle 플러그인 8.13.2와 Gradle 8.14.3은 유지합니다.
+- 변경: `android/build.gradle.kts`의 `lint.informational`에 `OldTargetApi`를 추가했습니다.
+- 코드: `912fc7f07a6ec5072d814328c2ea27e589564554`에 이번 변경이 추가된 상태입니다.
+- 환경: macOS 27.2.1, JDK 17.0.11, Android SDK Platform 33, 34, 36, Build-Tools 36.0.0, 시스템 이미지 API 34. 앱 0.1.0 / 코드 1.
+- 명령: `./gradlew --no-daemon --offline :android:lintDebug :android:testDebugUnitTest :android:assembleDebug :android:assembleRelease`. 통과했습니다. 단위 테스트 13개는 실패 0개입니다.
+- 디버그 APK SHA-256: `7623bc20568ded08ef3cf6eac097492038a4bab82cc0c9130936c51e45701bf6`. 서명하지 않은 릴리스 APK SHA-256: `a9e34e275e29cf80ae3706ee1c62ecfc75e53d39a9cba3476e45fdb4ac6a1b98`. 기기 설치는 하지 않았습니다.
+- 온라인 Lint 재실행(`:android:lintDebug --rerun-tasks`): 통과. 정보 10개(Gradle과 라이브러리 새 버전 알림)이며 `OldTargetApi`는 보고되지 않았습니다.
+- 대조 실행: 변경을 잠시 되돌린 설정으로 같은 온라인 Lint를 실행해도 `OldTargetApi` 없이 통과했습니다. 실행 후 변경을 다시 적용했습니다. 따라서 이 Mac에서는 원래 실패가 재현되지 않으며, 이번 결과는 변경의 효과를 확인한 것이 아닙니다.
+- 원래 실패 기록의 환경은 JDK 17.0.19와 API 37 가상 기기가 있는 다른 머신입니다. SDK에 설치된 Android 버전에 따라 Lint가 아는 최신 API가 달라지는 것으로 추정하며, 확인하지 않았습니다.
+- 미검증: 원래 실패한 머신에서 `OldTargetApi`가 정보로 표시되고 Lint가 통과하는지. 가상 기기와 실제 기기 동작은 이번 변경과 관계가 없어 실행하지 않았습니다.
