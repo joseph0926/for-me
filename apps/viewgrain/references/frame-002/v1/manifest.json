@@ -1,0 +1,44 @@
+{
+  "format_version": 1,
+  "id": "frame-002",
+  "version": 1,
+  "title": "FRAME 도시의 밤 컬렉션",
+  "registered_at": "2026-11-17",
+  "status": {
+    "generated": true,
+    "selected_by_user": true,
+    "implementation_verified": false,
+    "mcp_delivery_verified": false
+  },
+  "selection": {
+    "date": "2026-11-17",
+    "user_statement": "2번으로",
+    "scope": "추가 수정 후 목록형 컬렉션 상세 화면 한 장. 홈과 재생 화면의 최종 선택은 포함하지 않는다."
+  },
+  "generation": {
+    "source": "user-supplied-generated-images",
+    "model": null,
+    "tool": null,
+    "generated_at": null,
+    "settings": null,
+    "cost": null,
+    "prompt_record": "prompts.md",
+    "exact_submitted_prompts_verified": false,
+    "user_reported_additional_prompt": "썸네일 너비가 너무 넓고 각 회차간의 간격이 너무 좁습니다",
+    "note": "P07은 사용자가 실제 추가 입력으로 보고했다. 전체 입력 기록과 생성 모델은 미확인이다."
+  },
+  "design_notes": "README.md",
+  "images": [
+    {
+      "id": "frame-002-collection-list",
+      "screen": "collection-detail",
+      "orientation": "portrait",
+      "file": "collection-list.png",
+      "source_filename": "도시의 밤 시네마 컬렉션_02.png",
+      "width": 941,
+      "height": 1671,
+      "bytes": 1670001,
+      "sha256": "c84a5371fa9e091ac222e04bfdfaf1f9e1d3f6989034c7119aafb09df0ae346a"
+    }
+  ]
+}
