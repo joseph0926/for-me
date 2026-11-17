@@ -28,7 +28,7 @@ QA 문서는 실제 녹화를 확인하는 단계에서 만듭니다.
 ## 개발 환경
 
 - Rust 1.100.0: `rust-toolchain.toml`이 고정하며, rustup이 없으면 자동으로 받습니다.
-- Node.js와 pnpm: `package.json`의 `packageManager`가 pnpm 버전을 정합니다.
+- Node.js와 pnpm: 이 폴더의 `.node-version`이 Node.js 버전을, `package.json`의 `packageManager`가 pnpm 버전을 정합니다. 버전을 바꾸는 방법은 [개발 절차](../../docs/development.md#node와-pnpm-버전)에 있습니다.
 - Windows: Visual Studio의 C++ 빌드 도구와 WebView2 런타임
 - macOS: 12.3 이상과 Command Line Tools(`xcode-select --install`). 화면 캡처 크레이트가 Swift 코드를 함께 빌드합니다. Homebrew의 `rustup`은 PATH에 걸리지 않으므로 `/opt/homebrew/opt/rustup/bin`을 PATH에 더해 씁니다.
 

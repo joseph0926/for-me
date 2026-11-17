@@ -36,7 +36,7 @@ node src/transfer.mjs import /path/to/adopted-reference frame-collection-adopted
 
 가져온 자료의 `implementation`에는 출처, 표시 조건과 코드 자료의 파일 변경 확인값을 보관합니다. PNG는 기존 MCP로 조회하고, 코드와 독립 실행 HTML은 같은 내보내기 명령으로 받습니다. 원본을 덮어쓰지 않고 같은 내용의 재시도는 중복 등록하지 않습니다. Lab 채택은 실제 기기 검증을 뜻하지 않습니다. Tastepin 설치나 실행은 필요하지 않습니다.
 
-Node.js 24 이상과 Corepack을 사용합니다. 검사 환경은 Node.js 24.22.2, pnpm 12.16.1입니다. 공식 TypeScript SDK를 빌드가 필요 없는 JavaScript 모듈에서 사용합니다. 의존성과 잠금 파일은 이 앱 폴더가 소유합니다.
+Node.js는 이 폴더의 `.node-version`(24.22.3)을, pnpm은 `package.json`의 `packageManager`(12.21.0)를 사용합니다. 버전을 바꾸는 방법은 [개발 절차](../../docs/development.md#node와-pnpm-버전)에 있습니다. 공식 TypeScript SDK를 빌드가 필요 없는 JavaScript 모듈에서 사용합니다. 의존성과 잠금 파일은 이 앱 폴더가 소유합니다. 아래 명령은 Corepack 기준이며, 전역 pnpm을 쓰는 머신에서는 `corepack`을 빼고 실행합니다.
 
 ```sh
 cd apps/viewgrain
