@@ -15,8 +15,11 @@ for-me/
 │   │   ├── android/        Android 모듈
 │   │   └── gradlew 등      이 앱의 Gradle 빌드
 │   ├── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
-│   └── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
+│   ├── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
+│   ├── viewgrain/          고른 UI 레퍼런스를 AI에 전달하는 갤러리와 MCP 서버(Node, pnpm)
+│   └── journal/            사용과 개발 기록 로컬 웹과 CLI(Node, 외부 패키지 없음)
 ├── docs/                   모든 앱에 공통인 개발 절차와 QA 절차
+├── .docs/                  Git 규칙
 ├── AGENTS.md               작업 규칙
 └── .gitattributes 등       모든 앱에 공통인 줄바꿈과 편집기 설정
 ```
@@ -41,6 +44,20 @@ for-me/
 - Windows에서 셸 예시는 Git Bash에서 실행합니다. PowerShell 5.1의 `>` 리디렉션은 출력을 텍스트로 바꾸므로 화면 캡처 같은 바이너리 출력이 깨집니다.
 
 빌드 설정이나 줄바꿈 정책을 바꾸면 양쪽 사본에서 영향받는 앱의 자동 검사를 실행하고, 확인한 운영체제와 확인하지 못한 운영체제를 그 앱의 검증 기록에 구분해 남깁니다.
+
+### Node와 pnpm 버전
+
+- Node.js 버전은 `.node-version`이 정합니다. 저장소 루트와 Node를 쓰는 앱 폴더(`viewgrain`, `screen-gif`, `journal`)에 같은 값을 둡니다.
+- `engines.node`는 최소 버전 기준으로만 둡니다.
+- pnpm 버전은 각 앱 `package.json`의 `packageManager`가 정합니다. 어떤 도구로 pnpm을 실행하든 이 버전이 실행되어야 합니다.
+- 버전을 올릴 때는 `.node-version` 네 개와 `packageManager` 두 개를 한 변경에서 함께 바꾸고, pnpm을 쓰는 앱마다 설치와 자동 검사를 실행합니다. lockfile에서는 pnpm 버전 부분만 바뀌어야 합니다.
+- 새 Node 버전은 개발 머신마다 직접 설치합니다.
+
+Node와 pnpm을 실행하는 도구는 머신마다 다릅니다. 그 머신이 쓰는 도구의 항목을 따릅니다.
+
+- fnm과 전역 pnpm: 새 버전은 `fnm install <버전>`으로 설치하고 pnpm은 `pnpm <명령>`으로 실행합니다. fnm은 앱 폴더의 `package.json`에 `engines.node`가 있으면 상위 폴더의 `.node-version`보다 그 범위를 먼저 쓰므로, 루트 파일 하나로 대신하지 않습니다. 설치하지 않은 버전을 가리키는 `.node-version`이 있으면 fnm이 오류를 내고 기존 버전을 계속 씁니다.
+- asdf와 Corepack: 새 버전은 `asdf install nodejs <버전>`으로 설치하고 pnpm은 `corepack pnpm <명령>`으로 실행합니다. 전역 pnpm과 섞어 쓰지 않습니다.
+- 버전 관리자가 없는 머신(Windows): `.node-version`이 자동으로 적용되지 않으므로 `node -v`가 같은 값인지 직접 확인합니다.
 
 ## 문서별 역할
 
