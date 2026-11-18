@@ -16,7 +16,6 @@ for-me/
 │   │   └── gradlew 등      이 앱의 Gradle 빌드
 │   ├── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
 │   ├── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
-│   ├── viewgrain/          고른 UI 레퍼런스를 AI에 전달하는 갤러리와 MCP 서버(Node, pnpm)
 │   └── journal/            사용과 개발 기록 로컬 웹과 CLI(Node, 외부 패키지 없음)
 ├── docs/                   모든 앱에 공통인 개발 절차와 QA 절차
 ├── .docs/                  Git 규칙
@@ -47,10 +46,10 @@ for-me/
 
 ### Node와 pnpm 버전
 
-- Node.js 버전은 `.node-version`이 정합니다. 저장소 루트와 Node를 쓰는 앱 폴더(`viewgrain`, `screen-gif`, `journal`)에 같은 값을 둡니다.
+- Node.js 버전은 `.node-version`이 정합니다. 저장소 루트와 Node를 쓰는 앱 폴더(`screen-gif`, `journal`)에 같은 값을 둡니다.
 - `engines.node`는 최소 버전 기준으로만 둡니다.
 - pnpm 버전은 각 앱 `package.json`의 `packageManager`가 정합니다. 어떤 도구로 pnpm을 실행하든 이 버전이 실행되어야 합니다.
-- 버전을 올릴 때는 `.node-version` 네 개와 `packageManager` 두 개를 한 변경에서 함께 바꾸고, pnpm을 쓰는 앱마다 설치와 자동 검사를 실행합니다. lockfile에서는 pnpm 버전 부분만 바뀌어야 합니다.
+- 버전을 올릴 때는 `.node-version` 세 개와 `packageManager` 한 개를 한 변경에서 함께 바꾸고, pnpm을 쓰는 앱마다 설치와 자동 검사를 실행합니다. lockfile에서는 pnpm 버전 부분만 바뀌어야 합니다.
 - 새 Node 버전은 개발 머신마다 직접 설치합니다.
 
 Node와 pnpm을 실행하는 도구는 머신마다 다릅니다. 그 머신이 쓰는 도구의 항목을 따릅니다.
