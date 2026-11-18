@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 캡처가 주인공이라 화면 자체는 무채색만 쓴다. 강조는 글자색(ink)을 채워서 표시한다. */
+:root {
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --ink: #121316;
+  --muted: #6c707a;
+  --line: #e3e4e8;
+  --line-strong: #b9bcc4;
+  --hover: #eeeff1;
+  --danger: #c4320a;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0d;
+    --surface: #131417;
+    --ink: #eeeff2;
+    --muted: #8f949f;
+    --line: #24262b;
+    --line-strong: #4a4e57;
+    --hover: #1c1e22;
+    --danger: #ff8a65;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
