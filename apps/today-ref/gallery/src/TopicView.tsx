@@ -160,7 +160,8 @@ function Decision({ topic }: { topic: Topic }) {
           );
         })}
       </ul>
-      <div className="mt-4 flex items-center gap-2 rounded-lg bg-[var(--hover)] py-1.5 pr-1.5 pl-3">
+      <p className="mt-4 text-[12px] text-[var(--muted)]"><code>apps/today-ref</code>에서 실행</p>
+      <div className="mt-1 flex items-center gap-2 rounded-lg bg-[var(--hover)] py-1.5 pr-1.5 pl-3">
         <code className="min-w-0 flex-1 truncate font-mono text-[12px]">{command}</code>
         <button
           type="button"

@@ -17,7 +17,7 @@ export function referenceNumber(reference: Reference): number {
 }
 
 export function runCommand(topic: Topic): string {
-  return `pnpm --dir apps/today-ref --filter ${workPackageName(topic.id)} dev`;
+  return `pnpm --filter ${workPackageName(topic.id)} dev`;
 }
 
 export const statusLabels: Record<Topic["status"], string> = {
