@@ -8,7 +8,6 @@
   --muted: #6b7080;
   --line: #e4e6eb;
   --backdrop: #e9ebef;
-  --bezel: #121316;
   color-scheme: light;
 }
 
@@ -19,7 +18,6 @@
     --muted: #9298a6;
     --line: #23262d;
     --backdrop: #050506;
-    --bezel: #2a2c31;
     color-scheme: dark;
   }
 }
