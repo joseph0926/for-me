@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 숙소 예약 웹은 밝은 화면만 지원한다. 사진과 지도 색이 밝은 배경을 전제로 그려져 있다. */
+:root {
+  --surface: #ffffff;
+  --canvas: #f6f5f2;
+  --ink: #1c1d21;
+  --muted: #676a72;
+  --subtle: #8e9198;
+  --line: #e7e5e0;
+  --line-strong: #d2cfc8;
+  --accent: #1d6a51;
+  --accent-hover: #175a44;
+  --accent-soft: #e9f2ee;
+  --backdrop: #e9ebef;
+  --bezel: #121316;
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 0;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
