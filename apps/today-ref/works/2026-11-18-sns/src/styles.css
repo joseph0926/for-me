@@ -15,9 +15,7 @@
   --fill-strong: #e4e4e4;
   --like: #f0283c;
   --backdrop: #e9ebef;
-  --bezel: #121316;
 
-  /* 데스크톱의 휴대폰 틀에서는 상태 표시줄과 홈 인디케이터 자리를 직접 둔다. */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light;
@@ -37,15 +35,7 @@
     --fill-strong: #2e2e2e;
     --like: #ff3b4e;
     --backdrop: #050506;
-    --bezel: #2a2c31;
     color-scheme: dark;
-  }
-}
-
-@media (min-width: 640px) {
-  :root {
-    --safe-top: 54px;
-    --safe-bottom: 34px;
   }
 }
 

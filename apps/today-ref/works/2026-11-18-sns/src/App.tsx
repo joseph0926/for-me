@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 
-import { HomeIndicator, StatusBar } from "./components/Chrome";
 import { ComposeSheet } from "./components/ComposeSheet";
 import { TabBar } from "./components/TabBar";
 import { TabStack } from "./components/TabStack";
@@ -139,9 +138,7 @@ export function App() {
     <PostActionsContext value={postActions}>
       <ReplyCountsContext value={replyCounts}>
         <div className="relative flex h-full flex-col overflow-hidden bg-surface">
-          <div className="relative z-30 h-[var(--safe-top)] shrink-0 bg-surface">
-            <StatusBar />
-          </div>
+          <div className="h-[var(--safe-top)] shrink-0" aria-hidden="true" />
           <main className="relative min-h-0 flex-1 overflow-hidden">
             {TAB_IDS.map((tab) => (
               <TabStack
@@ -174,7 +171,6 @@ export function App() {
               </motion.div>
             )}
           </AnimatePresence>
-          <HomeIndicator />
         </div>
       </ReplyCountsContext>
     </PostActionsContext>

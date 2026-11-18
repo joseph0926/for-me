@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
 
-// 앱 주제를 데스크톱 브라우저에서 휴대폰 크기로 보여 준다. 좁은 화면에서는 틀 없이 화면 전체를 쓴다.
-// 크기는 iPhone 15/16의 CSS 픽셀(393 x 852) 기준이다.
+import "./PhoneFrame.css";
+
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-[var(--backdrop)] sm:grid sm:place-items-center sm:p-6">
-      <div
-        className="
-          relative isolate h-dvh w-full overflow-hidden bg-[var(--surface)]
-          sm:h-[852px] sm:max-h-[calc(100dvh-48px)] sm:w-[393px] sm:rounded-[48px]
-          sm:shadow-[0_0_0_10px_var(--bezel),0_30px_80px_-20px_rgb(0_0_0/0.45)]
-        "
-      >
-        {children}
+    <div className="phone-stage">
+      <div className="phone-shell">
+        <div className="phone-screen">
+          <div className="phone-status" aria-hidden="true">
+            <span>12:45</span>
+            <span className="phone-camera" />
+            <span className="phone-indicators">
+              <span className="phone-wifi" />
+              <span className="phone-signal" />
+              <span className="phone-battery">85</span>
+            </span>
+          </div>
+          <div className="phone-content">{children}</div>
+          <div className="phone-gesture" aria-hidden="true" />
+        </div>
       </div>
     </div>
   );

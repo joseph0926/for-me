@@ -16,7 +16,6 @@
   --band: #1d2030;
   --band-ink: #f4f5fa;
   --backdrop: #e9ebef;
-  --bezel: #121316;
   color-scheme: light;
 }
 
@@ -36,7 +35,6 @@
     --band: #232742;
     --band-ink: #f4f5fa;
     --backdrop: #050506;
-    --bezel: #2a2c31;
     color-scheme: dark;
   }
 }
