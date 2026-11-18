@@ -1,0 +1,4 @@
+# 실제 제품 화면 캡처는 남의 저작물이라 공개 저장소에 넣지 않는다.
+captures/
+node_modules/
+dist/

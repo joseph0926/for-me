@@ -1,0 +1,21 @@
+{
+  "name": "today-ref",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "gallery": "pnpm --filter today-ref-gallery dev",
+    "check": "node scripts/check.ts",
+    "new-work": "node scripts/new-work.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
+  }
+}
