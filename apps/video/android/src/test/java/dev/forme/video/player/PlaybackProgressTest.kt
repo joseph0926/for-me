@@ -25,6 +25,28 @@ class PlaybackProgressTest {
         assertEquals(10_300, progress.snapshot()!!.positionMs)
     }
 
+    @Test fun delayedTimeAfterBackwardSeekTracksPlaybackWithoutAcceptingTheOldScene() {
+        val progress = PlaybackProgress(0)
+        progress.updateDuration(60_000)
+        progress.acceptTime(43_000)
+        progress.seek(10_000)
+        assertFalse(progress.acceptTime(43_300, elapsedPlayingMs = 2_500))
+        assertFalse(progress.acceptTime(0, elapsedPlayingMs = 2_500))
+        assertTrue(progress.acceptTime(12_500, elapsedPlayingMs = 2_500))
+        assertEquals(ProgressSnapshot(12_500, 60_000), progress.snapshot())
+    }
+
+    @Test fun repeatedDurationKeepsTheSelectedEndpointUntilPlaybackEnds() {
+        val progress = PlaybackProgress(0)
+        progress.updateDuration(60_000)
+        progress.seek(60_000)
+        progress.updateDuration(60_000)
+        assertEquals(60_000L, progress.pendingSeekMs)
+        assertEquals(ProgressSnapshot(60_000, 60_000), progress.snapshot())
+        progress.finish()
+        assertEquals(ProgressSnapshot(0, 60_000), progress.snapshot())
+    }
+
     @Test fun completedVideoStartsAgainAtZero() {
         val progress = PlaybackProgress(0)
         progress.updateDuration(60_000)
