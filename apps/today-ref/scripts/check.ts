@@ -37,21 +37,37 @@ export function checkWorkspace(root: string): TopicReport[] {
 }
 
 function readTopicFile(folder: string, path: string): TopicFile {
-  if (!existsSync(path)) return { folder, readError: "topic.json이 없습니다" };
-  return parseTopicFile(folder, readFileSync(path, "utf8"));
+  let raw: string;
+  try {
+    raw = readFileSync(path, "utf8");
+  } catch (error) {
+    const reason = (error as NodeJS.ErrnoException).code;
+    const readError = reason === "ENOENT" ? "topic.json이 없습니다" : `topic.json을 읽지 못했습니다 (${reason})`;
+    return { folder, readError };
+  }
+  return parseTopicFile(folder, raw);
 }
 
 function checkCapture(path: string, label: string, report: TopicReport) {
-  if (!existsSync(path)) {
-    report.warnings.push(`${label}: 캡처 파일이 이 사본에 없습니다`);
+  let head: Buffer;
+  try {
+    const stat = statSync(path);
+    if (!stat.isFile()) {
+      report.errors.push(`${label}: 일반 파일이 아닙니다`);
+      return;
+    }
+    if (stat.size > limits.captureBytes) {
+      report.errors.push(`${label}: ${limits.captureBytes / 1024 / 1024}MB를 넘습니다`);
+      return;
+    }
+    head = readFileSync(path).subarray(0, 16);
+  } catch (error) {
+    const reason = (error as NodeJS.ErrnoException).code;
+    if (reason === "ENOENT") report.warnings.push(`${label}: 캡처 파일이 이 사본에 없습니다`);
+    else report.errors.push(`${label}: 캡처를 읽지 못했습니다 (${reason})`);
     return;
   }
-  const size = statSync(path).size;
-  if (size > limits.captureBytes) {
-    report.errors.push(`${label}: ${limits.captureBytes / 1024 / 1024}MB를 넘습니다`);
-    return;
-  }
-  const detected = imageType(readFileSync(path).subarray(0, 16));
+  const detected = imageType(head);
   const expected = extname(path).slice(1).replace("jpeg", "jpg");
   if (detected === null) report.errors.push(`${label}: 이미지 파일이 아닙니다`);
   else if (detected !== expected) report.errors.push(`${label}: 실제 형식은 ${detected}입니다`);
