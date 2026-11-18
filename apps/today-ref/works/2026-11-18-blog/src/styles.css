@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+:root {
+  --surface: #ffffff;
+  --sunken: #f4f4f1;
+  --ink: #1b1c1f;
+  --body: #3a3d44;
+  --muted: #80848e;
+  --line: #e8e8e4;
+  --accent: #c2410c;
+  --accent-soft: #fdeee4;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #131416;
+    --sunken: #1c1d21;
+    --ink: #eeeef0;
+    --body: #c9cbd1;
+    --muted: #8b8f99;
+    --line: #2a2c31;
+    --accent: #fb8a4c;
+    --accent-soft: #3a2418;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
