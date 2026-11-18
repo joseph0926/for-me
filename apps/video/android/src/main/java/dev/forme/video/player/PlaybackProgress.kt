@@ -1,6 +1,6 @@
 package dev.forme.video.player
 
-import kotlin.math.abs
+private const val SEEK_TOLERANCE_MS = 1_500L
 
 data class ProgressSnapshot(val positionMs: Long, val durationMs: Long)
 
@@ -16,8 +16,10 @@ class PlaybackProgress(savedPositionMs: Long) {
 
     fun updateDuration(durationMs: Long) {
         if (durationMs <= 0) return
+        // 처음 연 파일의 예전 저장값만 보정한다. 재생 중 고른 끝 위치는 종료 알림까지 유지한다.
+        val restoring = this.durationMs == 0L && !selectedByUser && !receivedTime
         this.durationMs = durationMs
-        if (positionMs >= durationMs) {
+        if (restoring && positionMs >= durationMs) {
             positionMs = 0
             pendingSeekMs = 0
         }
@@ -30,10 +32,15 @@ class PlaybackProgress(savedPositionMs: Long) {
         selectedByUser = true
     }
 
-    fun acceptTime(positionMs: Long): Boolean {
+    fun acceptTime(positionMs: Long, elapsedPlayingMs: Long = 0): Boolean {
         if (positionMs < 0) return false
         // 탐색 완료 전 들어오는 0이나 이전 위치로 이어보기 기록을 덮어쓰지 않는다.
-        pendingSeekMs?.let { if (abs(positionMs - it) > 1_500) return false }
+        pendingSeekMs?.let { target ->
+            val distanceMs = positionMs - target
+            if (distanceMs < -SEEK_TOLERANCE_MS || distanceMs > elapsedPlayingMs + SEEK_TOLERANCE_MS) {
+                return false
+            }
+        }
         pendingSeekMs = null
         selectedByUser = false
         this.positionMs = positionMs

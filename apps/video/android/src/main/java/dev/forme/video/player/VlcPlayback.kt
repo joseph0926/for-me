@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
@@ -59,6 +60,8 @@ class VlcPlayback(
     private var progress = PlaybackProgress(0)
     private var visible = false
     private var closed = false
+    private var needsInitialStart = true
+    private var playRequestedAtMs = 0L
     private var ended = false
     private var lastSaveAtMs = 0L
     private var seekIssuedFor: Long? = null
@@ -106,7 +109,6 @@ class VlcPlayback(
             val mediaPlayer = MediaPlayer(engine)
             player = mediaPlayer
             mediaPlayer.setEventListener { event -> if (!closed) handleEvent(event) }
-            setMedia(mediaPlayer)
             layout?.let(::attachPlayerViews)
             state = state.copy(loading = false)
             playIfRequested()
@@ -167,14 +169,21 @@ class VlcPlayback(
     }
 
     private fun playIfRequested() {
-        if (closed || !visible || layout == null || !wantsToPlay() || state.loading || scrubbing) return
+        if (closed || !visible || layout == null || state.loading || scrubbing) return
         val active = player ?: return
         if (state.error != null && state.error != R.string.audio_focus_failed) return
-        if (audio.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+        if (!wantsToPlay() && !needsInitialStart) return
+        if (wantsToPlay() && audio.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             state = state.copy(error = R.string.audio_focus_failed)
             return
         }
         state = state.copy(error = null)
+        if (needsInitialStart) {
+            // 멈춘 화면을 복원할 때도 start-paused 입력을 열어 첫 장면과 길이를 준비한다.
+            setMedia(active)
+            needsInitialStart = false
+        }
+        playRequestedAtMs = SystemClock.elapsedRealtime()
         if (ended) {
             restartMedia(active)
         } else {
@@ -211,7 +220,7 @@ class VlcPlayback(
     }
 
     private fun applySeek() {
-        if (closed || !visible) return
+        if (closed || !visible || progress.pendingSeekMs == null) return
         val active = player ?: return
         if (ended) restartMedia(active) else restorePosition()
     }
@@ -289,9 +298,10 @@ class VlcPlayback(
                 restorePosition()
             }
             MediaPlayer.Event.TimeChanged -> {
-                if (!ended && !scrubbing && visible && wantsToPlay() && progress.acceptTime(event.timeChanged)) {
+                if (ended || scrubbing || !visible || !wantsToPlay()) return
+                val now = SystemClock.elapsedRealtime()
+                if (progress.acceptTime(event.timeChanged, elapsedPlayingMs = now - playRequestedAtMs)) {
                     state = state.copy(positionMs = progress.positionMs, durationMs = progress.durationMs)
-                    val now = android.os.SystemClock.elapsedRealtime()
                     if (now - lastSaveAtMs >= 2_000) {
                         save()
                         lastSaveAtMs = now
