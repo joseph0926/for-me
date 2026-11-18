@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 게임 메뉴는 기기 설정과 무관하게 어두운 화면 하나로 그린다. */
+:root {
+  --surface: #0a0c11;
+  --panel: #131722;
+  --panel-raised: #1a1f2d;
+  --ink: #eef1f7;
+  --muted: #8d95a8;
+  --line: #252b3b;
+  --accent: #4c8dff;
+  --coin: #f2c14e;
+  --point: #b58cff;
+  --danger: #ff6b6b;
+  --hero: #ff9f43;
+  --rare: #49c6ff;
+  --common: #9aa3b5;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-panel-raised: var(--panel-raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-coin: var(--coin);
+  --color-point: var(--point);
+  --color-danger: var(--danger);
+  --color-hero: var(--hero);
+  --color-rare: var(--rare);
+  --color-common: var(--common);
+}
+
+html,
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgb(76 141 255 / 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgb(181 140 255 / 0.08), transparent 60%),
+    var(--surface);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
