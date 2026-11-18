@@ -165,4 +165,27 @@ describe("검사 명령", () => {
   test("선택을 확정한 주제는 완성작 폴더가 있어야 한다", () => {
     assert.match(byFolder("2026-11-20-feed")?.errors.join() ?? "", /works\/2026-11-20-feed/);
   });
+
+  test("주제나 캡처 경로가 디렉터리여도 다른 주제의 검사 결과가 남는다", () => {
+    const fixture = mkdtempSync(join(root, "read-errors-"));
+    const valid = "2026-11-18-valid";
+    const badCapture = "2026-11-18-bad-capture";
+    const badTopic = "2026-11-18-bad-topic";
+    for (const folder of [valid, badCapture]) {
+      const captures = folder === badCapture ? ["r1-1.png", "r1-2.png"] : [];
+      mkdirSync(join(fixture, "topics", folder), { recursive: true });
+      writeFileSync(join(fixture, "topics", folder, "topic.json"), JSON.stringify(
+        topic({ id: folder, references: [reference("r1", captures)] }),
+      ));
+    }
+    mkdirSync(join(fixture, "topics", badTopic, "topic.json"), { recursive: true });
+    mkdirSync(join(fixture, "captures", badCapture, "r1-1.png"), { recursive: true });
+
+    const result = checkWorkspace(fixture);
+    assert.deepEqual(result.find((item) => item.folder === valid), { folder: valid, errors: [], warnings: [] });
+    assert.match(result.find((item) => item.folder === badTopic)?.errors.join() ?? "", /topic\.json/);
+    const captureReport = result.find((item) => item.folder === badCapture);
+    assert.match(captureReport?.errors.join() ?? "", /r1-1\.png/);
+    assert.match(captureReport?.warnings.join() ?? "", /r1-2\.png/);
+  });
 });
