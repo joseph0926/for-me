@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+:root {
+  --surface: #ffffff;
+  --panel: #f3f4f6;
+  --ink: #16181d;
+  --muted: #6b7080;
+  --faint: #b4b8c2;
+  --line: #e7e8ec;
+  --accent: #4c5fd5;
+  --accent-soft: #e9ecfd;
+  --expense: #e5484d;
+  --income: #2b6cde;
+  --warn: #c98200;
+  --band: #1d2030;
+  --band-ink: #f4f5fa;
+  --backdrop: #e9ebef;
+  --bezel: #121316;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0f1013;
+    --panel: #1a1c21;
+    --ink: #eceef2;
+    --muted: #9298a6;
+    --faint: #555a66;
+    --line: #25282f;
+    --accent: #8d9bff;
+    --accent-soft: #232846;
+    --expense: #ff6b6f;
+    --income: #6ea2ff;
+    --warn: #f0b13c;
+    --band: #232742;
+    --band-ink: #f4f5fa;
+    --backdrop: #050506;
+    --bezel: #2a2c31;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
