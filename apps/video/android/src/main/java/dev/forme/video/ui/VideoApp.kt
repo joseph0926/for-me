@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -24,6 +25,7 @@ fun VideoApp(model: VideoViewModel) {
     val recent by model.recent.collectAsStateWithLifecycle()
     val notice by model.notice.collectAsStateWithLifecycle()
     val saveFailed by model.repository.saveFailed.collectAsStateWithLifecycle()
+    val libraryState = rememberSaveableStateHolder()
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { model.select(it, fromPicker = true) }
     }
@@ -46,8 +48,10 @@ fun VideoApp(model: VideoViewModel) {
                         openFile, Modifier.weight(1f))
                 }
             } else {
-                LibraryScreen(recent, openFile, Modifier.weight(1f)) { record ->
-                    model.select(record.uri.toUri(), fromPicker = false)
+                libraryState.SaveableStateProvider("library") {
+                    LibraryScreen(recent, openFile, Modifier.weight(1f)) { record ->
+                        model.select(record.uri.toUri(), fromPicker = false)
+                    }
                 }
             }
         }
