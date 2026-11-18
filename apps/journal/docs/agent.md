@@ -15,7 +15,7 @@
 
 ## 명령
 
-저장소 루트 기준입니다. `read`, `backup`, `export`, `connections`는 읽기 전용입니다. `init`은 파일이 없는 경우에만 네 앱을 초기 등록합니다. 기존 파일이 손상되거나 저장 형식이 다르면 중단합니다.
+저장소 루트 기준입니다. `read`, `backup`, `export`, `connections`는 읽기 전용입니다. `init`은 파일이 없는 경우에만 세 앱을 초기 등록합니다. 기존 파일이 손상되거나 저장 형식이 다르면 중단합니다.
 
 ```sh
 node apps/journal/src/cli.mjs init

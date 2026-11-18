@@ -105,7 +105,7 @@ export function initialState() {
     schemaVersion: 1, revision: 0,
     apps: [
       ['video', '동영상', 'Android'], ['screen-gif', '화면 녹화 GIF', 'Windows / macOS'],
-      ['termkeys', 'TermKeys', 'macOS'], ['viewgrain', 'Viewgrain', 'AI 레퍼런스'],
+      ['termkeys', 'TermKeys', 'macOS'],
     ].map(([id, name, platform]) => ({ id, name, platform, folder: `apps/${id}`, status: 'unknown' })),
     records: [], history: [], operations: [],
   };
