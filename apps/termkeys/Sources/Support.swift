@@ -97,7 +97,13 @@ func launchctl(_ arguments: [String]) throws {
     }
 }
 
-func isLoaded(_ locations: Locations) throws -> Bool {
-    // The text of `launchctl print` is explicitly not a stable API. Only use its exit status.
-    try run("/bin/launchctl", ["print", locations.target]).code == 0
+func isLoaded(_ target: String) throws -> Bool {
+    let result = try run("/bin/launchctl", ["print", target])
+    switch result.code {
+    case 0: return true
+    // launchctl error 113: Could not find specified service.
+    case 113: return false
+    default:
+        throw TermKeysError("서비스 등록 상태를 확인하지 못했습니다 (launchctl print, 오류 \(result.code)).")
+    }
 }

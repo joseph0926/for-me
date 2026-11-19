@@ -74,7 +74,7 @@ struct TermKeys {
         try data.write(to: locations.agent, options: .atomic)
         try launchctl(["enable", locations.target])
         let started = Date()
-        if try !isLoaded(locations) {
+        if try !isLoaded(locations.target) {
             try launchctl(["bootstrap", "gui/\(getuid())", locations.agent.path])
         }
         try launchctl(["kickstart", locations.target])
@@ -90,8 +90,8 @@ struct TermKeys {
     private static func turnOff(_ locations: Locations) throws {
         try assertOwnedAgent(locations)
         try launchctl(["disable", locations.target])
-        if try isLoaded(locations) { try launchctl(["bootout", locations.target]) }
-        guard try !isLoaded(locations) else { throw TermKeysError("종료가 확인되지 않았습니다. status로 확인하세요.") }
+        if try isLoaded(locations.target) { try launchctl(["bootout", locations.target]) }
+        guard try !isLoaded(locations.target) else { throw TermKeysError("종료가 확인되지 않았습니다. status로 확인하세요.") }
         print("꺼짐. 다음 로그인에서도 자동 실행하지 않습니다.")
     }
 
@@ -101,7 +101,7 @@ struct TermKeys {
     }
 
     private static func showStatus(_ locations: Locations) throws {
-        guard try isLoaded(locations) else {
+        guard try isLoaded(locations.target) else {
             print("꺼짐 또는 미등록. 켜려면 termkeys on을 실행하세요.")
             return
         }
@@ -131,7 +131,7 @@ struct TermKeys {
             print("이미 설치된 앱입니다.")
             return
         }
-        guard try !isLoaded(locations) else {
+        guard try !isLoaded(locations.target) else {
             throw TermKeysError("업데이트 전에 termkeys off로 실행 중인 앱을 꺼 주세요.")
         }
         let appExists = manager.fileExists(atPath: locations.app.path)
