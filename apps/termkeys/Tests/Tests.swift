@@ -76,6 +76,12 @@ struct Tests {
         expect(!snapshot.isFresh(at: now.addingTimeInterval(-1)), "Clock rollback detected")
         let roundTrip = try JSONDecoder().decode(AgentStatus.self, from: JSONEncoder().encode(snapshot))
         expect(roundTrip.state == "permission-required", "Permission state survives serialization")
+        expect(roundTrip.lastLinkResult == nil, "Status files without a click result can still be read")
+        var clicked = snapshot
+        clicked.lastLinkResult = LinkClickResult.noTarget.rawValue
+        let encoded = try JSONEncoder().encode(clicked)
+        let decoded = try JSONDecoder().decode(AgentStatus.self, from: encoded)
+        expect(decoded.lastLinkResult == LinkClickResult.noTarget.rawValue, "Latest click result survives serialization")
 
         let locations = Locations(home: URL(fileURLWithPath: "/tmp/Test User"))
         let bytes = try PropertyListSerialization.data(fromPropertyList: locations.agentDefinition, format: .xml, options: 0)
@@ -83,6 +89,7 @@ struct Tests {
         expect(plist["ProgramArguments"] as? [String] == ["/tmp/Test User/Applications/TermKeys.app/Contents/MacOS/termkeys", "agent"], "Path with spaces remains one argument")
         expect(plist["KeepAlive"] as? Bool == true, "Agent restarts after exit")
         expect(plist["LimitLoadToSessionType"] as? String == "Aqua", "Only graphical login session")
+        try checkLinkClicks(expect: expect)
         try checkAccessibility(expect: expect)
         print("PASS: \(checks) checks")
     }
