@@ -13,16 +13,16 @@ struct TermKeys {
             switch command {
             case "help", "--help", "-h":
                 print("""
-                termkeys \(appVersion) — 기본 터미널에서 ⌘←/⌘→로 줄 처음과 끝 이동
+                termkeys \(appVersion) — 기본 터미널에서 ⌘←/⌘→로 줄 이동, ⌘ 클릭으로 웹 주소 열기
 
                   install   현재 빌드를 ~/Applications와 ~/.local/bin에 설치
                   on        켜기 + 다음 로그인부터 자동 실행
                   off       끄기 + 자동 실행 해제
-                  status    실행 상태와 권한 확인
+                  status    실행 상태와 권한, 마지막 링크 클릭 결과 확인
                   version   버전 출력
 
                 최초 실행에는 TermKeys의 손쉬운 사용 권한이 필요합니다.
-                두 단축키를 직접 등록하는 실험 버전입니다. 보안 입력 지원은 실제 이동 검증이 필요합니다.
+                웹 주소를 판별할 때 클릭 주변의 글자를 잠시 읽으며 내용은 저장하지 않습니다.
                 Vim, tmux 등에서는 Ctrl+A/E가 다른 동작일 수 있습니다.
                 """)
             case "version", "--version": print(appVersion)
@@ -111,6 +111,11 @@ struct TermKeys {
         }
         print("\(snapshot.detail) [\(snapshot.state)]")
         print("버전 \(snapshot.version), PID \(snapshot.pid)")
+        if let result = snapshot.lastLinkResult {
+            print("마지막 ⌘ 클릭: \(result)")
+        } else if snapshot.version == appVersion {
+            print("이번 실행에서 받은 ⌘ 클릭이 없습니다.")
+        }
         if let secure = snapshot.secureInput, let received = snapshot.hotKeyEvents, let sent = snapshot.sentPairs {
             print("보안 입력: \(secure ? "켜짐" : "꺼짐"), 단축키 통지: \(received)회, 이동 키 전송 요청: \(sent)회")
         }
@@ -153,9 +158,9 @@ struct TermKeys {
         var backup: URL?
         do {
             if appExists {
-                let backups = locations.data.appendingPathComponent("backups")
+                let backups = locations.data.appendingPathComponent("backups.noindex")
                 try privateDirectory(backups)
-                let destination = backups.appendingPathComponent("TermKeys-\(UUID().uuidString).app")
+                let destination = backups.appendingPathComponent("TermKeys-\(UUID().uuidString).app-backup")
                 try manager.moveItem(at: locations.app, to: destination)
                 backup = destination
             }
