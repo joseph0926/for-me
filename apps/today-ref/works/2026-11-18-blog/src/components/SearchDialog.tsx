@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { formatDate, posts, type Post } from "../data";
 import { hrefFor } from "../route";
@@ -29,13 +29,12 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
   const results = trimmed === "" ? [] : posts.filter((post) => matches(post, trimmed));
   const active = Math.min(activeIndex, Math.max(0, results.length - 1));
 
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
 
   const open = (post: Post) => {
     window.location.hash = hrefFor({ page: "post", slug: post.slug });
@@ -43,13 +42,15 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 px-4 pt-[12vh] backdrop-blur-[2px]"
+    <dialog ref={dialogRef} aria-label="글 검색" onCancel={onClose}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) {
+          const box = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onClose();
+        }
       }}
+      className="fixed inset-x-0 top-[12vh] mx-auto w-[min(36rem,calc(100%-2rem))] border border-line bg-surface text-ink shadow-xl backdrop:bg-black/45"
     >
-      <div role="dialog" aria-modal="true" aria-label="글 검색" className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
         <div className="flex items-center gap-3 border-b border-line px-4">
           <Icon name="search" className="size-5 text-muted" />
           <input
@@ -102,7 +103,6 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
             ))}
           </ul>
         )}
-      </div>
-    </div>
+    </dialog>
   );
 }

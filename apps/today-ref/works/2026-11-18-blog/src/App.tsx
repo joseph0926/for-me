@@ -75,8 +75,16 @@ export function App() {
 
   const post = route.page === "post" ? postBySlug(route.slug) : undefined;
 
+  useEffect(() => {
+    document.title = post ? `${post.title} | 오후의 서랍` : route.page === "home" && route.category ? `${route.category} | 오후의 서랍` : "오후의 서랍";
+  }, [post, route]);
+
   return (
     <div className="min-h-dvh">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-3 focus:z-50 focus:bg-surface focus:p-3" onClick={(event) => {
+        event.preventDefault();
+        document.getElementById("main-content")?.focus();
+      }}>본문으로 이동</a>
       {route.page === "post" && post ? (
         <PostPage
           key={post.slug}
@@ -93,7 +101,7 @@ export function App() {
         <>
           <SiteHeader category={route.page === "home" ? route.category : null} onSearch={() => setSearchOpen(true)} onSubscribe={goToSubscribe} />
           {route.page === "post" ? (
-            <main className="mx-auto max-w-xl px-5 py-24 text-center">
+            <main id="main-content" tabIndex={-1} className="mx-auto max-w-xl px-5 py-24 text-center">
               <h1 className="text-2xl font-extrabold">글을 찾지 못했습니다</h1>
               <p className="mt-2 text-muted">주소가 바뀌었거나 지워진 글입니다.</p>
               <a href="#/" className="mt-6 inline-block rounded-xl bg-ink px-5 py-3 font-semibold text-surface">

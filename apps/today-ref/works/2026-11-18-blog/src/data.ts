@@ -9,18 +9,16 @@ export const blog = {
 export const categories = ["개발", "디자인", "기록"] as const;
 export type Category = (typeof categories)[number];
 
-// 표지 그림. 사진 대신 색과 도형으로 그린다.
-export interface CoverArt {
+export interface FigureArt {
   hue: number;
-  // keypad, compare, layers는 본문 그림 전용으로, 그림 설명이 말하는 장면을 그린다.
-  shape: "circles" | "stripes" | "window" | "steps" | "keypad" | "compare" | "layers";
+  shape: "keypad" | "compare" | "layers";
 }
 
 export type Block =
   | { type: "p"; text: string }
   | { type: "h2"; text: string }
   | { type: "quote"; text: string }
-  | { type: "figure"; art: CoverArt; title: string; caption: string }
+  | { type: "figure"; art: FigureArt; title: string; caption: string }
   | { type: "code"; code: string }
   | { type: "list"; items: string[] };
 
@@ -40,7 +38,6 @@ export interface Post {
   date: string;
   views: number;
   likes: number;
-  cover: CoverArt;
   featured?: boolean;
   series?: { id: string; part: number };
   blocks: Block[];
@@ -55,7 +52,6 @@ export const posts: Post[] = [
     date: "2026-11-16",
     views: 4820,
     likes: 132,
-    cover: { hue: 28, shape: "steps" },
     featured: true,
     series: { id: "small-app", part: 3 },
     blocks: [
@@ -77,7 +73,6 @@ export const posts: Post[] = [
     date: "2026-11-02",
     views: 3910,
     likes: 98,
-    cover: { hue: 200, shape: "window" },
     series: { id: "small-app", part: 2 },
     blocks: [
       { type: "p", text: "처음 적은 기능 목록은 스물세 줄이었습니다. 예산, 통계, 반복 지출, 영수증 사진, 가족 공유까지. 하나씩 지우다 보니 매일 여는 이유는 세 가지뿐이었습니다." },
@@ -97,7 +92,6 @@ export const posts: Post[] = [
     date: "2026-10-19",
     views: 5230,
     likes: 141,
-    cover: { hue: 150, shape: "circles" },
     series: { id: "small-app", part: 1 },
     blocks: [
       { type: "p", text: "가계부 앱을 다섯 개쯤 깔았다가 모두 지웠습니다. 은행 연결을 요구하거나, 첫 화면에 그래프가 너무 많거나, 광고가 입력 버튼 옆에 붙어 있었습니다." },
@@ -115,7 +109,6 @@ export const posts: Post[] = [
     date: "2026-11-09",
     views: 6120,
     likes: 187,
-    cover: { hue: 260, shape: "stripes" },
     featured: true,
     blocks: [
       { type: "p", text: "빈 화면은 만드는 사람이 가장 늦게 보는 화면입니다. 개발하는 동안에는 늘 가짜 데이터가 채워져 있기 때문입니다." },
@@ -134,7 +127,6 @@ export const posts: Post[] = [
     date: "2026-10-26",
     views: 2870,
     likes: 76,
-    cover: { hue: 340, shape: "steps" },
     blocks: [
       { type: "p", text: "앱의 글자 크기를 모두 세어 보니 열한 가지였습니다. 13px과 14px, 15px이 비슷한 자리에서 번갈아 쓰이고 있었습니다." },
       { type: "h2", text: "역할로 이름 붙이기" },
@@ -151,7 +143,6 @@ export const posts: Post[] = [
     date: "2026-11-12",
     views: 3340,
     likes: 120,
-    cover: { hue: 95, shape: "circles" },
     featured: true,
     blocks: [
       { type: "p", text: "달력에서 날짜를 고르면 가끔 하루 전 내역이 보였습니다. 세 시간 동안 코드를 읽었지만 찾지 못했습니다." },
@@ -169,7 +160,6 @@ export const posts: Post[] = [
     date: "2026-11-05",
     views: 1980,
     likes: 54,
-    cover: { hue: 45, shape: "stripes" },
     blocks: [
       { type: "p", text: "이번 달에는 화면 설계보다 글쓰기에 관한 글을 많이 읽었습니다. 블로그를 다시 시작하면서 생긴 관심입니다." },
       { type: "list", items: ["짧은 문장이 긴 문장보다 어려운 이유", "제목에 숫자를 넣을 때 생각할 것", "독자가 멈추는 곳을 찾는 법", "초고를 버리는 용기"] },
@@ -185,7 +175,6 @@ export const posts: Post[] = [
     date: "2026-10-12",
     views: 4410,
     likes: 109,
-    cover: { hue: 220, shape: "stripes" },
     blocks: [
       { type: "p", text: "밝은 화면에서 쓰던 회색 선을 그대로 어둡게 뒤집었더니 카드와 배경이 한 덩어리가 됐습니다." },
       { type: "h2", text: "선 대신 면으로" },

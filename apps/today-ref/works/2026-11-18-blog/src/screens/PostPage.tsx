@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { ArticleFigure } from "../components/ArticleFigure";
 import { CoverArt } from "../components/CoverArt";
 import { Icon } from "../components/Icon";
 import { CategoryBadge } from "../components/PostMeta";
@@ -49,13 +50,13 @@ export function PostPage({
   const progress = useReadingProgress(articleRef);
   const seriesEntry = post.series ? seriesById(post.series.id) : undefined;
   const likeCount = post.likes + (liked ? 1 : 0);
-  const related = posts.filter((other) => other.category === post.category && other.slug !== post.slug && other.series?.id !== post.series?.id).slice(0, 2);
+  const related = posts.filter((other) => other.category === post.category && other.slug !== post.slug && (!post.series || other.series?.id !== post.series.id)).slice(0, 2);
 
   return (
     <>
       <div className="sticky top-0 z-30 border-b border-line/70 bg-surface/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-8">
-          <a href={hrefFor({ page: "home", category: null })} className="flex shrink-0 items-center gap-1 text-[15px] font-extrabold">
+          <a href={hrefFor({ page: "home", category: null })} aria-label="블로그 홈으로" className="flex min-h-11 min-w-11 shrink-0 items-center gap-1 text-[15px] font-extrabold">
             <Icon name="back" className="size-4 text-muted" />
             <span className="hidden sm:inline">{blog.name}</span>
           </a>
@@ -76,14 +77,14 @@ export function PostPage({
             onClick={onToggleLike}
             aria-pressed={liked}
             aria-label={liked ? "좋아요 취소" : "좋아요"}
-            className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums transition ${
+            className={`flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold tabular-nums transition ${
               liked ? "bg-accent-soft text-accent" : "text-muted hover:bg-sunken hover:text-ink"
             }`}
           >
             <Icon name="heart" filled={liked} className="size-[18px]" />
             {likeCount}
           </button>
-          <button type="button" onClick={onShare} aria-label="링크 복사" className="grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink">
+          <button type="button" onClick={onShare} aria-label="링크 복사" className="grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-sunken hover:text-ink">
             <Icon name="share" className="size-[18px]" />
           </button>
         </div>
@@ -92,19 +93,15 @@ export function PostPage({
         </div>
       </div>
 
-      <main className="px-5 pb-24 sm:px-8">
-        <article ref={articleRef} className="mx-auto max-w-[680px] pt-8 sm:pt-12">
-          <CoverArt art={post.cover} className="aspect-[16/9] rounded-3xl" />
-          <div className="mt-8">
+      <main id="main-content" tabIndex={-1} className="px-5 pb-24 sm:px-8">
+        <article ref={articleRef} className="reader">
+          <header className="reader-head">
             <CategoryBadge post={post} />
-          </div>
-          <h1 className="mt-3 text-[30px] leading-tight font-extrabold sm:text-[40px]">{post.title}</h1>
-          <p className="mt-5 text-[16px] font-semibold">{blog.author}</p>
-          <p className="mt-1 text-[14px] text-muted">
-            {formatDate(post.date)}, {readingMinutes(post)}분 분량
-          </p>
-
-          <div className="mt-10 space-y-6 text-[17px] leading-[1.85] text-body">
+            <h1>{post.title}</h1>
+            <p className="reader-byline"><strong>{blog.author}</strong><time dateTime={post.date}>{formatDate(post.date)}</time><span>{readingMinutes(post)}분 분량</span></p>
+          </header>
+          <CoverArt slug={post.slug} className="reader-cover" />
+          <div className="reader-body">
             {post.blocks.map((block, index) => (
               <BlockView key={index} block={block} />
             ))}
@@ -134,7 +131,7 @@ export function PostPage({
                 {related.map((other) => (
                   <li key={other.slug}>
                     <a href={hrefFor({ page: "post", slug: other.slug })} className="group block">
-                      <CoverArt art={other.cover} className="aspect-[16/9] rounded-2xl" />
+                      <CoverArt slug={other.slug} thumbnail sizes="(max-width: 639px) 100vw, 320px" className="aspect-[16/9]" />
                       <span className="mt-3 block text-[15px] leading-snug font-semibold group-hover:underline">{other.title}</span>
                       <span className="mt-1 block text-[13px] text-muted">{formatDate(other.date)}</span>
                     </a>
@@ -155,7 +152,7 @@ function BlockView({ block }: { block: Block }) {
     case "p":
       return <p>{block.text}</p>;
     case "h2":
-      return <h2 className="pt-6 text-[23px] leading-snug font-bold text-ink">{block.text}</h2>;
+      return <h2 className="pt-6 text-base leading-snug font-[650] text-ink">{block.text}</h2>;
     case "quote":
       return <blockquote className="border-l-[3px] border-ink py-1 pl-5 font-semibold text-ink">{block.text}</blockquote>;
     case "list":
@@ -175,9 +172,9 @@ function BlockView({ block }: { block: Block }) {
     case "figure":
       return (
         <figure className="py-2">
-          <div className="rounded-3xl bg-sunken p-4 sm:p-5">
+          <div className="bg-sunken p-4 sm:p-5">
             <p className="border-b border-line pb-3 text-[15px] font-semibold text-ink">{block.title}</p>
-            <CoverArt art={block.art} className="mt-4 aspect-[16/9] rounded-xl" />
+            <ArticleFigure art={block.art} className="mt-4 aspect-[16/9] rounded-xl" />
           </div>
           <figcaption className="mt-3 text-center text-[13px] text-muted">{block.caption}</figcaption>
         </figure>
@@ -195,7 +192,7 @@ function SeriesNav({ post }: { post: Post }) {
   if (!entry) return null;
 
   return (
-    <section className="rounded-2xl border border-line p-5 sm:p-6">
+    <section className="border-y border-line py-5 sm:py-6">
       <div className="flex items-center gap-2">
         {entry.ongoing ? <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-surface">연재 중</span> : null}
         <h2 className="text-[16px] font-bold">{entry.name}</h2>
