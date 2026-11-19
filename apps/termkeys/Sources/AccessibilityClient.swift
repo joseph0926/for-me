@@ -4,6 +4,8 @@ import ApplicationServices
 struct AccessibilityClient {
     var setTimeout: (AXUIElement, Float) -> AXError = AXUIElementSetMessagingTimeout
     var copyAttribute: (AXUIElement, CFString, UnsafeMutablePointer<CFTypeRef?>) -> AXError = AXUIElementCopyAttributeValue
+    var copyParameter: (AXUIElement, CFString, CFTypeRef, UnsafeMutablePointer<CFTypeRef?>) -> AXError = AXUIElementCopyParameterizedAttributeValue
+    var elementAtPosition: (AXUIElement, Float, Float, UnsafeMutablePointer<AXUIElement?>) -> AXError = AXUIElementCopyElementAtPosition
     var createObserver: (pid_t, AXObserverCallback, UnsafeMutablePointer<AXObserver?>) -> AXError = AXObserverCreate
     var addNotification: (AXObserver, AXUIElement, CFString, UnsafeMutableRawPointer?) -> AXError = AXObserverAddNotification
     var removeNotification: (AXObserver, AXUIElement, CFString) -> AXError = AXObserverRemoveNotification
@@ -14,6 +16,21 @@ struct AccessibilityClient {
         var value: CFTypeRef?
         guard copyAttribute(element, name as CFString, &value) == .success else { return nil }
         return value
+    }
+
+    func parameter(_ element: AXUIElement, _ name: String, _ argument: CFTypeRef) -> CFTypeRef? {
+        guard setTimeout(element, 0.05) == .success else { return nil }
+        var value: CFTypeRef?
+        guard copyParameter(element, name as CFString, argument, &value) == .success else { return nil }
+        return value
+    }
+
+    func hitTest(_ point: CGPoint) -> AXUIElement? {
+        let system = AXUIElementCreateSystemWide()
+        guard setTimeout(system, 0.05) == .success else { return nil }
+        var hit: AXUIElement?
+        guard elementAtPosition(system, Float(point.x), Float(point.y), &hit) == .success else { return nil }
+        return hit
     }
 
     func subscribe(_ observer: AXObserver, application: AXUIElement, context: UnsafeMutableRawPointer) -> Bool {
