@@ -9,15 +9,13 @@ function GemStack({ count }: { count: number }) {
         const column = index % 3;
         const row = Math.floor(index / 3);
         return (
-          <svg
+          <img
             key={index}
-            viewBox="0 0 16 16"
-            className="absolute size-7 drop-shadow-[0_2px_4px_rgb(0_0_0/0.5)]"
+            src="/images/gem.webp"
+            alt=""
+            className="absolute size-7 object-contain grayscale"
             style={{ left: `${column * 28 + row * 6}%`, bottom: `${row * 30 + (column === 1 ? 8 : 0)}%` }}
-          >
-            <path d="M8 1l6 4.5L8 15 2 5.5z" fill="var(--point)" />
-            <path d="M2 5.5h12M8 1v14" stroke="#5b3a9c" strokeWidth="1" fill="none" />
-          </svg>
+          />
         );
       })}
     </div>
@@ -30,7 +28,7 @@ export function TopUp({ onBuy }: { onBuy: (bundle: PointBundle) => void }) {
       {pointBundles.map((bundle, index) => (
         <div key={bundle.id} className="relative flex items-center gap-4 rounded-2xl border border-line bg-panel p-4">
           {bundle.badge ? (
-            <span className="absolute -top-2 left-3 -rotate-3 rounded-md bg-hero px-2 py-0.5 text-[11px] font-extrabold text-[#2a1206] shadow-lg">
+            <span className="absolute -top-2 left-3 rounded-md bg-hero px-2 py-0.5 text-[11px] font-extrabold text-surface shadow-lg">
               {bundle.badge}
             </span>
           ) : null}
@@ -44,7 +42,7 @@ export function TopUp({ onBuy }: { onBuy: (bundle: PointBundle) => void }) {
           <button
             type="button"
             onClick={() => onBuy(bundle)}
-            className="h-11 min-w-28 rounded-xl bg-point px-4 text-sm font-extrabold text-[#1d1235] tabular transition hover:brightness-110"
+            className="h-11 min-w-28 rounded-xl bg-point px-4 text-sm font-extrabold text-surface tabular transition hover:brightness-110"
           >
             {formatWon(bundle.priceWon)}
           </button>

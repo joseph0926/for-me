@@ -78,7 +78,7 @@ export function PurchaseConfirm({
             {currencyWith[cost.currency].subject} {formatNumber(shortfall)} 부족합니다.
           </p>
           {cost.currency === "point" ? (
-            <button type="button" onClick={onGoTopUp} className="mt-3 h-9 rounded-xl bg-point px-4 text-[13px] font-bold text-[#1d1235]">
+            <button type="button" onClick={onGoTopUp} className="mt-3 h-9 rounded-xl bg-point px-4 text-[13px] font-bold text-surface">
               포인트 충전하러 가기
             </button>
           ) : (
@@ -126,7 +126,7 @@ function PackSummary({
   return (
     <>
       <div className="flex gap-3">
-        <PackArt style={pack.style} size={pack.size} className="aspect-[4/3] w-28 shrink-0 rounded-xl" />
+        <PackArt pack={pack} className="aspect-[4/3] w-28 shrink-0 rounded-xl" />
         <div className="min-w-0">
           <p className="font-bold">{pack.name}</p>
           <p className="mt-1 text-[13px] text-muted">{packContents(pack)}</p>
@@ -212,7 +212,7 @@ function Actions({
         autoFocus={!disabled}
         disabled={disabled}
         onClick={onConfirm}
-        className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-accent text-[15px] font-bold text-white transition hover:brightness-110 disabled:bg-panel-raised disabled:text-muted"
+        className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110 disabled:bg-panel-raised disabled:text-muted"
       >
         {confirmLabel}
         {confirmContent ? <span className="rounded-lg bg-black/20 px-2 py-0.5 text-[13px]">{confirmContent}</span> : null}

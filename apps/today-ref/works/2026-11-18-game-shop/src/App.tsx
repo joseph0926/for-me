@@ -3,7 +3,7 @@ import { useReducer, useState } from "react";
 
 import { CardReveal } from "./components/CardReveal";
 import { WalletChip } from "./components/Currency";
-import { Icon, type IconName } from "./components/Icon";
+import { Icon } from "./components/Icon";
 import { Modal } from "./components/Modal";
 import { PurchaseConfirm, type PurchaseItem } from "./components/PurchaseConfirm";
 import { freePack, packs, passRewards, passTiers, type CurrencyId, type Pack, type PassTier, type Player, type PointBundle } from "./data";
@@ -17,12 +17,12 @@ import { createInitialState, drawCards, passUpgradeCost, remainingPurchases, sho
 
 type SectionId = "featured" | "packs" | "topup" | "pass" | "history";
 
-const sections: { id: SectionId; label: string; icon: IconName }[] = [
-  { id: "featured", label: "추천", icon: "featured" },
-  { id: "packs", label: "팩", icon: "packs" },
-  { id: "topup", label: "포인트 충전", icon: "topup" },
-  { id: "pass", label: "시즌 패스", icon: "pass" },
-  { id: "history", label: "구매 내역", icon: "history" },
+const sections: { id: SectionId; label: string }[] = [
+  { id: "featured", label: "추천" },
+  { id: "packs", label: "팩" },
+  { id: "topup", label: "포인트 충전" },
+  { id: "pass", label: "시즌 패스" },
+  { id: "history", label: "구매 내역" },
 ];
 
 type Dialog =
@@ -99,69 +99,38 @@ export function App() {
   const closeDialog = () => setDialog(null);
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[104px_minmax(0,1fr)]">
-      <nav aria-label="상점 구역" className="sticky top-0 hidden h-dvh flex-col items-center gap-1 border-r border-line bg-surface/60 py-5 md:flex">
-        <span className="mb-5 grid size-11 place-items-center rounded-xl bg-ink text-[13px] font-black tracking-tight text-surface">KL</span>
-        {sections.map((entry) => {
-          const selected = entry.id === sectionId;
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => selectSection(entry.id)}
-              aria-current={selected ? "page" : undefined}
-              className={`group relative flex w-[84px] flex-col items-center gap-1.5 rounded-2xl py-2.5 text-[11px] font-semibold transition ${
-                selected ? "text-ink" : "text-muted hover:text-ink"
-              }`}
-            >
-              {selected ? <span className="absolute top-3 -left-2.5 h-8 w-1 rounded-full bg-accent" /> : null}
-              <span
-                className={`grid size-11 place-items-center rounded-xl transition ${
-                  selected ? "bg-accent text-white shadow-[0_6px_20px_rgb(76_141_255/0.4)]" : "bg-panel group-hover:bg-panel-raised"
-                }`}
-              >
-                <Icon name={entry.icon} />
-              </span>
-              {entry.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="min-w-0">
-        <header className="sticky top-0 z-20 border-b border-line bg-surface/85 backdrop-blur-md">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="min-w-0">
-              <p className="hidden text-[11px] font-bold tracking-[0.18em] text-muted sm:block">KICKLINE 27 상점</p>
-              <h1 className="truncate text-lg font-extrabold sm:text-xl">{section.label}</h1>
+    <div className="min-h-dvh">
+      <a href="#shop-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:p-3 focus:text-black">상점 본문으로 이동</a>
+      <div>
+        <header className="nav border-b border-line bg-surface">
+          <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+            <div className="flex min-h-16 items-center justify-between gap-2 border-b border-line sm:min-h-20">
+              <p className="shrink-0 text-[clamp(17px,4.5vw,32px)] leading-none font-black tracking-[-.06em] italic">
+                KICKLINE<span className="ml-1 text-accent">27</span>
+              </p>
+              <div className="flex items-center gap-1 sm:gap-3">
+                <WalletChip currency="coin" amount={state.wallet.coin} />
+                <WalletChip currency="point" amount={state.wallet.point} onAdd={() => goTo("topup")} />
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <WalletChip currency="coin" amount={state.wallet.coin} />
-              <WalletChip currency="point" amount={state.wallet.point} onAdd={() => goTo("topup")} />
-            </div>
-          </div>
-          <nav aria-label="상점 구역" className="no-scrollbar flex gap-1 overflow-x-auto px-3 pb-2 md:hidden">
-            {sections.map((entry) => {
-              const selected = entry.id === sectionId;
-              return (
+            <nav aria-label="상점 구역" className="flex justify-between gap-1 sm:justify-start sm:gap-7">
+              {sections.map((entry) => (
                 <button
                   key={entry.id}
                   type="button"
                   onClick={() => selectSection(entry.id)}
-                  aria-current={selected ? "page" : undefined}
-                  className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold ${
-                    selected ? "bg-accent text-white" : "text-muted"
-                  }`}
+                  aria-current={entry.id === sectionId ? "page" : undefined}
+                  className="h-12 min-w-11 border-b-2 border-transparent px-1 text-[13px] font-semibold text-muted transition-colors hover:text-ink aria-[current=page]:border-accent aria-[current=page]:text-ink sm:px-2 sm:text-sm"
                 >
-                  <Icon name={entry.icon} className="size-4" />
                   {entry.label}
                 </button>
-              );
-            })}
-          </nav>
+              ))}
+            </nav>
+          </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <main id="shop-content" tabIndex={-1} className="wrap mx-auto w-[calc(100%-1.5rem)] max-w-[76rem] pt-4 pb-10 sm:w-[calc(100%-3rem)] sm:pt-6 lg:w-[calc(100%-4rem)]">
+          {sectionId !== "featured" && <h1 className="mb-5 text-3xl font-extrabold tracking-tight">{section.label}</h1>}
           {sectionId === "featured" ? (
             <Featured
               state={state}
@@ -210,7 +179,7 @@ export function App() {
               <CardReveal title={dialog.title} cards={dialog.cards} onDone={closeDialog} />
             ) : (
               <div className="p-6 text-center">
-                <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-white">
+                <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-surface">
                   <Icon name="check" className="size-7" />
                 </span>
                 <h2 className="mt-4 text-xl font-extrabold">{dialog.title}</h2>
@@ -221,7 +190,7 @@ export function App() {
                       type="button"
                       autoFocus
                       onClick={() => dialog.resume && setDialog({ step: "confirm", item: dialog.resume })}
-                      className="h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-white transition hover:brightness-110"
+                      className="h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110"
                     >
                       {itemName(dialog.resume)} 구매 계속
                     </button>
@@ -234,7 +203,7 @@ export function App() {
                     type="button"
                     autoFocus
                     onClick={closeDialog}
-                    className="mt-6 h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-white transition hover:brightness-110"
+                    className="mt-6 h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110"
                   >
                     확인
                   </button>

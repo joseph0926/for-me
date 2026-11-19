@@ -1,26 +1,25 @@
 @import "tailwindcss";
-@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 /* 게임 메뉴는 기기 설정과 무관하게 어두운 화면 하나로 그린다. */
 :root {
-  --surface: #0a0c11;
-  --panel: #131722;
-  --panel-raised: #1a1f2d;
-  --ink: #eef1f7;
-  --muted: #8d95a8;
-  --line: #252b3b;
-  --accent: #4c8dff;
-  --coin: #f2c14e;
-  --point: #b58cff;
+  --surface: #000000;
+  --panel: #0d0d0d;
+  --panel-raised: #202427;
+  --ink: #ffffff;
+  --muted: #acb1b4;
+  --line: #363a3d;
+  --accent: #93f1f7;
+  --coin: #dadfe2;
+  --point: #8dd4df;
   --danger: #ff6b6b;
-  --hero: #ff9f43;
-  --rare: #49c6ff;
-  --common: #9aa3b5;
+  --hero: #93f1f7;
+  --rare: #a6bac9;
+  --common: #888f93;
   color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: "Helvetica Neue", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --color-surface: var(--surface);
   --color-panel: var(--panel);
   --color-panel-raised: var(--panel-raised);
@@ -38,11 +37,7 @@
 
 html,
 body {
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgb(76 141 255 / 0.12), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgb(181 140 255 / 0.08), transparent 60%),
-    var(--surface);
-  background-attachment: fixed;
+  background: var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -59,4 +54,57 @@ body {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.store-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: end;
+  min-height: clamp(26rem, calc(100svh - 9.6rem), 54rem);
+  background: #111416;
+}
+.store-hero > img {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 auto;
+  width: 66%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% 28%;
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+}
+.store-hero-copy { width: 48%; padding: clamp(1.5rem, 3.6vw, 3.75rem); }
+.store-hero h1 {
+  max-width: 6em;
+  margin-block: 1.15rem;
+  font-size: clamp(3rem, 5.4vw, 5.5rem);
+  line-height: .99;
+  letter-spacing: -.065em;
+  font-weight: 800;
+}
+@media (max-width: 699px) {
+  .store-hero { min-height: auto; }
+  .store-hero > img {
+    position: static;
+    width: 100%;
+    height: clamp(12rem, 52vw, 19rem);
+    object-position: 70% 22%;
+    clip-path: none;
+  }
+  .store-hero-copy { width: 100%; padding: 1.4rem 1.25rem 1.5rem; }
+  .store-hero h1 { max-width: none; font-size: clamp(2.15rem, 9vw, 3rem); margin-block: .55rem .8rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .store-hero[data-enter] img { animation: match-enter .55s ease-out both; }
+  @keyframes match-enter { from { opacity: .6; } to { opacity: 1; } }
+  button:not(:disabled):active { translate: 0 1px; }
+  article:hover .pack-photo { scale: 1.025; }
+  .pack-photo { transition: scale .28s ease-out; }
 }

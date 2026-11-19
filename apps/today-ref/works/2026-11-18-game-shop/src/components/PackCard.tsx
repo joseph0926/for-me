@@ -30,8 +30,8 @@ export function PackCard({
   const prices = (Object.entries(pack.price) as [CurrencyId, number][]).filter(([, amount]) => amount !== undefined);
 
   return (
-    <article className={`flex flex-col overflow-hidden rounded-2xl border border-line bg-panel ${soldOut ? "opacity-60" : ""}`}>
-      <PackArt style={pack.style} size={pack.size} className="aspect-[16/9]" />
+    <article className={`flex flex-col overflow-hidden border-t border-line bg-panel ${soldOut ? "opacity-60" : ""}`}>
+      <PackArt pack={pack} className="aspect-[16/9]" />
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -43,7 +43,7 @@ export function PackCard({
             onClick={onToggleFavorite}
             aria-pressed={favorite}
             aria-label={favorite ? `${pack.name} 즐겨찾기 해제` : `${pack.name} 즐겨찾기`}
-            className={`-mt-1 -mr-1 grid size-9 shrink-0 place-items-center rounded-full transition hover:bg-panel-raised ${favorite ? "text-coin" : "text-muted"}`}
+            className={`-mt-1 -mr-1 grid size-11 shrink-0 place-items-center rounded-full transition hover:bg-panel-raised ${favorite ? "text-coin" : "text-muted"}`}
           >
             <Icon name="star" filled={favorite} className="size-[18px]" />
           </button>
@@ -70,7 +70,7 @@ export function PackCard({
 
         <div className="mt-auto flex gap-2">
           {soldOut ? (
-            <span className="flex h-10 flex-1 items-center justify-center rounded-xl bg-panel-raised text-sm font-semibold text-muted">
+            <span className="flex h-11 flex-1 items-center justify-center rounded-sm bg-panel-raised text-sm font-semibold text-muted">
               구매 완료
             </span>
           ) : (
@@ -82,10 +82,10 @@ export function PackCard({
                   type="button"
                   onClick={() => onBuy(currency)}
                   aria-label={`${pack.name} 구매, ${currencyLabel[currency]} ${formatNumber(amount)}`}
-                  className={`flex h-10 flex-1 items-center justify-center rounded-xl border text-sm font-bold transition ${
+                  className={`flex h-11 flex-1 items-center justify-center rounded-sm border text-sm font-bold transition ${
                     short
                       ? "border-line bg-transparent text-muted hover:border-danger/60"
-                      : "border-transparent bg-panel-raised hover:bg-accent hover:text-white"
+                      : "border-transparent bg-panel-raised hover:bg-accent hover:text-surface"
                   }`}
                 >
                   <CurrencyAmount currency={currency} amount={amount} className={short ? "text-danger/90" : ""} />

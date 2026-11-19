@@ -19,6 +19,7 @@ export type Rarity = "common" | "rare" | "hero";
 export const rarityLabel: Record<Rarity, string> = { common: "일반", rare: "희귀", hero: "영웅" };
 
 export interface Player {
+  portrait: string;
   name: string;
   position: string;
   rating: number;
@@ -26,34 +27,32 @@ export interface Player {
 }
 
 export const playerPool: Player[] = [
-  { name: "한도윤", position: "ST", rating: 89, rarity: "hero" },
-  { name: "R. 오카포", position: "CB", rating: 88, rarity: "hero" },
-  { name: "L. 페레이라", position: "CAM", rating: 90, rarity: "hero" },
-  { name: "M. 쿠르츠", position: "GK", rating: 87, rarity: "hero" },
-  { name: "S. 나카무라", position: "RW", rating: 83, rarity: "rare" },
-  { name: "J. 볼드윈", position: "CM", rating: 81, rarity: "rare" },
-  { name: "T. 에스포지토", position: "LB", rating: 80, rarity: "rare" },
-  { name: "A. 실바", position: "ST", rating: 82, rarity: "rare" },
-  { name: "K. 베르헤이", position: "CDM", rating: 79, rarity: "rare" },
-  { name: "이서준", position: "LW", rating: 78, rarity: "rare" },
-  { name: "P. 노바크", position: "CB", rating: 77, rarity: "rare" },
-  { name: "D. 마르셀", position: "RB", rating: 74, rarity: "common" },
-  { name: "박지훈", position: "CM", rating: 72, rarity: "common" },
-  { name: "F. 오르테가", position: "ST", rating: 73, rarity: "common" },
-  { name: "G. 하르트만", position: "GK", rating: 71, rarity: "common" },
-  { name: "N. 아데예미", position: "LM", rating: 70, rarity: "common" },
-  { name: "C. 로시", position: "CB", rating: 72, rarity: "common" },
-  { name: "최민재", position: "RW", rating: 69, rarity: "common" },
-  { name: "B. 쿠퍼", position: "CAM", rating: 71, rarity: "common" },
-  { name: "V. 이바노프", position: "LB", rating: 68, rarity: "common" },
-  { name: "정우성", position: "CDM", rating: 70, rarity: "common" },
-  { name: "E. 마르티네스", position: "RM", rating: 69, rarity: "common" },
-  { name: "H. 요한손", position: "CB", rating: 71, rarity: "common" },
-  { name: "O. 디알로", position: "ST", rating: 72, rarity: "common" },
-  { name: "W. 피셔", position: "CM", rating: 68, rarity: "common" },
+  { portrait: "han-doyun", name: "한도윤", position: "ST", rating: 89, rarity: "hero" },
+  { portrait: "okafor", name: "R. 오카포", position: "CB", rating: 88, rarity: "hero" },
+  { portrait: "pereira", name: "L. 페레이라", position: "CAM", rating: 90, rarity: "hero" },
+  { portrait: "kurz", name: "M. 쿠르츠", position: "GK", rating: 87, rarity: "hero" },
+  { portrait: "nakamura", name: "S. 나카무라", position: "RW", rating: 83, rarity: "rare" },
+  { portrait: "baldwin", name: "J. 볼드윈", position: "CM", rating: 81, rarity: "rare" },
+  { portrait: "esposito", name: "T. 에스포지토", position: "LB", rating: 80, rarity: "rare" },
+  { portrait: "silva", name: "A. 실바", position: "ST", rating: 82, rarity: "rare" },
+  { portrait: "verheij", name: "K. 베르헤이", position: "CDM", rating: 79, rarity: "rare" },
+  { portrait: "lee-seojun", name: "이서준", position: "LW", rating: 78, rarity: "rare" },
+  { portrait: "nowak", name: "P. 노바크", position: "CB", rating: 77, rarity: "rare" },
+  { portrait: "marcel", name: "D. 마르셀", position: "RB", rating: 74, rarity: "common" },
+  { portrait: "park-jihoon", name: "박지훈", position: "CM", rating: 72, rarity: "common" },
+  { portrait: "ortega", name: "F. 오르테가", position: "ST", rating: 73, rarity: "common" },
+  { portrait: "hartmann", name: "G. 하르트만", position: "GK", rating: 71, rarity: "common" },
+  { portrait: "adeyemi", name: "N. 아데예미", position: "LM", rating: 70, rarity: "common" },
+  { portrait: "rossi", name: "C. 로시", position: "CB", rating: 72, rarity: "common" },
+  { portrait: "choi-minjae", name: "최민재", position: "RW", rating: 69, rarity: "common" },
+  { portrait: "cooper", name: "B. 쿠퍼", position: "CAM", rating: 71, rarity: "common" },
+  { portrait: "ivanov", name: "V. 이바노프", position: "LB", rating: 68, rarity: "common" },
+  { portrait: "jung-woosung", name: "정우성", position: "CDM", rating: 70, rarity: "common" },
+  { portrait: "martinez", name: "E. 마르티네스", position: "RM", rating: 69, rarity: "common" },
+  { portrait: "johansson", name: "H. 요한손", position: "CB", rating: 71, rarity: "common" },
+  { portrait: "diallo", name: "O. 디알로", position: "ST", rating: 72, rarity: "common" },
+  { portrait: "fischer", name: "W. 피셔", position: "CM", rating: 68, rarity: "common" },
 ];
-
-export type PackStyle = "bronze" | "gold" | "rare" | "hero" | "free";
 
 export interface Pack {
   id: string;
@@ -69,7 +68,6 @@ export interface Pack {
   limit?: number;
   endsLabel?: string;
   limited: boolean;
-  style: PackStyle;
 }
 
 export const packs: Pack[] = [
@@ -84,7 +82,6 @@ export const packs: Pack[] = [
     limit: 1,
     endsLabel: "3일 4시간 남음",
     limited: true,
-    style: "hero",
   },
   {
     id: "gold",
@@ -95,7 +92,6 @@ export const packs: Pack[] = [
     guaranteed: "rare",
     price: { coin: 25_000, point: 300 },
     limited: false,
-    style: "gold",
   },
   {
     id: "basic",
@@ -105,7 +101,6 @@ export const packs: Pack[] = [
     odds: { rare: 6, hero: 0.5 },
     price: { coin: 7_500, point: 100 },
     limited: false,
-    style: "bronze",
   },
   {
     id: "rare-trio",
@@ -117,7 +112,6 @@ export const packs: Pack[] = [
     price: { point: 750 },
     limit: 3,
     limited: false,
-    style: "rare",
   },
   {
     id: "season-start",
@@ -130,7 +124,6 @@ export const packs: Pack[] = [
     limit: 1,
     endsLabel: "23일 남음",
     limited: true,
-    style: "gold",
   },
   {
     id: "weekend",
@@ -142,7 +135,6 @@ export const packs: Pack[] = [
     limit: 2,
     endsLabel: "1일 9시간 남음",
     limited: true,
-    style: "gold",
   },
 ];
 
@@ -155,7 +147,6 @@ export const freePack: Pack = {
   odds: { rare: 5, hero: 0 },
   price: {},
   limited: false,
-  style: "free",
 };
 
 export interface PointBundle {

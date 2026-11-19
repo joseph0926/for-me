@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { freePack } from "../data";
 import { formatCountdown } from "../format";
 import type { FreeSlot } from "../shop";
 import { Icon } from "./Icon";
@@ -16,50 +17,53 @@ function useNow(intervalMs: number): number {
 
 export function FreeSlots({ slots, onClaim }: { slots: FreeSlot[]; onClaim: (index: number) => void }) {
   const now = useNow(1000);
-  const readyCount = slots.filter((slot) => slot.kind === "timer" && slot.readyAt <= now).length;
+  const timers = slots.flatMap((slot, index) => slot.kind === "timer" ? [{ index, readyAt: slot.readyAt }] : []);
+  timers.sort((a, b) => a.readyAt - b.readyAt);
+  const ready = timers.filter((slot) => slot.readyAt <= now);
+  const waiting = timers.filter((slot) => slot.readyAt > now);
+  const next = ready[0];
 
   return (
-    <section className="rounded-2xl border border-line bg-panel p-4 sm:p-5">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-bold">무료 보상</h2>
-        <span className="text-[12px] text-muted tabular">{readyCount > 0 ? `${readyCount}개 열 수 있음` : "다음 보상을 기다리는 중"}</span>
+    <section aria-labelledby="free-rewards" className="min-w-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="free-rewards" className="text-xl font-bold">무료 보상</h2>
+        <span role="status" className="text-xs font-semibold text-muted">수령 가능 {ready.length}팩</span>
       </div>
-      <ul className="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
-        {slots.map((slot, index) => {
-          if (slot.kind === "locked") {
-            return (
-              <li key={index} className="flex flex-col items-center gap-2">
-                <span className="grid aspect-square w-full max-w-20 place-items-center rounded-full border border-dashed border-line text-muted">
-                  <Icon name="lock" className="size-6" />
-                </span>
-                <span className="text-[12px] text-muted">단계 {slot.unlockLevel}</span>
-              </li>
-            );
-          }
-          const ready = slot.readyAt <= now;
-          return (
-            <li key={index} className="flex flex-col items-center gap-2">
-              {ready ? (
-                <button
-                  type="button"
-                  onClick={() => onClaim(index)}
-                  aria-label="무료 보상 팩 열기"
-                  className="relative grid aspect-square w-full max-w-20 place-items-center rounded-full bg-accent text-sm font-bold text-white shadow-[0_0_24px_rgb(76_141_255/0.55)] transition hover:brightness-110"
-                >
-                  <span className="absolute inset-0 animate-ping rounded-full bg-accent/30 [animation-duration:2s]" />
-                  <span className="relative">열기</span>
-                </button>
-              ) : (
-                <span className="grid aspect-square w-full max-w-20 place-items-center rounded-full border border-line bg-panel-raised text-muted">
-                  <Icon name="clock" className="size-6" />
-                </span>
-              )}
-              <span className={`text-[12px] tabular ${ready ? "font-semibold text-accent" : "text-muted"}`}>
-                {ready ? "받을 수 있음" : formatCountdown(slot.readyAt - now)}
-              </span>
-            </li>
-          );
-        })}
+      <div className={`mt-3 flex min-h-14 items-stretch border-l-2 ${next ? "border-accent bg-panel text-ink" : "border-line bg-panel text-muted"}`}>
+        <div className="grid w-12 shrink-0 place-items-center text-muted">
+          <Icon name="packs" className="size-6" />
+        </div>
+        <div className="flex flex-1 items-center justify-between gap-2 px-3">
+          <span className="text-sm font-bold">선수 카드 {freePack.size}장</span>
+          {next ? (
+            <button
+              type="button"
+              aria-label="무료 보상 팩 열기"
+              onClick={() => onClaim(next.index)}
+              className="h-11 bg-accent px-5 text-sm font-bold text-surface transition hover:bg-white"
+            >
+              팩 열기
+            </button>
+          ) : (
+            <span className="text-xs font-semibold text-muted">대기 중</span>
+          )}
+        </div>
+      </div>
+      <ul className="mt-2 divide-y divide-line">
+        {waiting.map((slot, index) => (
+          <li key={slot.index} className="flex min-h-8 items-center justify-between gap-3 text-xs">
+            <span className="inline-flex items-center gap-2 text-muted">
+              <Icon name="clock" className="size-3.5" />{index === 0 ? "다음 팩" : "대기 팩"}
+            </span>
+            <span className="font-mono font-medium text-ink tabular">{formatCountdown(slot.readyAt - now)}</span>
+          </li>
+        ))}
+        {slots.map((slot, index) => slot.kind === "locked" && (
+          <li key={`lock-${index}`} className="flex min-h-8 items-center justify-between gap-3 text-xs text-muted">
+            <span className="inline-flex items-center gap-2"><Icon name="lock" className="size-3.5" />잠긴 팩</span>
+            <span>단계 {slot.unlockLevel}에 열림</span>
+          </li>
+        ))}
       </ul>
     </section>
   );

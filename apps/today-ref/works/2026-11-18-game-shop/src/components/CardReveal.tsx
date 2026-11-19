@@ -4,9 +4,9 @@ import { rarityLabel, type Player, type Rarity } from "../data";
 import { summarizeCards } from "../shop";
 
 const frame: Record<Rarity, string> = {
-  hero: "border-hero bg-[linear-gradient(160deg,#ffb76b,#7a2a12)] shadow-[0_0_28px_rgb(255_159_67/0.55)]",
-  rare: "border-rare bg-[linear-gradient(160deg,#5fd0ff,#0d3a5c)] shadow-[0_0_18px_rgb(73_198_255/0.35)]",
-  common: "border-common/60 bg-[linear-gradient(160deg,#3a4255,#171b25)]",
+  hero: "border-hero bg-panel-raised",
+  rare: "border-rare bg-panel-raised",
+  common: "border-common/60 bg-panel-raised",
 };
 
 // 높은 등급이 먼저 보이도록 정렬하고, 한 장씩 뒤집어 보여 준다.
@@ -25,12 +25,14 @@ export function CardReveal({ title, cards, onDone }: { title: string; cards: Pla
         {sorted.map((card, index) => (
           <motion.li
             key={index}
-            className={`flex aspect-[3/4] w-[calc((100%-1rem)/3)] flex-col justify-between rounded-xl border-2 p-2 text-white sm:w-[calc((100%-3.75rem)/6)] ${frame[card.rarity]}`}
+            className={`relative isolate flex aspect-[3/4] w-[calc((100%-1rem)/3)] flex-col justify-between overflow-hidden rounded-xl border-2 p-2 text-white sm:w-[calc((100%-3.75rem)/6)] ${frame[card.rarity]}`}
             initial={{ rotateY: 90, opacity: 0, y: 10 }}
             animate={{ rotateY: 0, opacity: 1, y: 0 }}
             transition={{ delay: 0.15 + index * stagger, duration: 0.35 }}
             style={{ transformPerspective: 600 }}
           >
+            <img src={`/images/players/${card.portrait}.webp`} alt="" className="absolute inset-0 -z-20 size-full object-cover" />
+            <div className="absolute inset-0 -z-10 bg-[linear-gradient(150deg,#0009,transparent_36%),linear-gradient(0deg,#080a10_0%,transparent_51%)]" />
             <div className="leading-none">
               <span className="block text-2xl font-black tabular">{card.rating}</span>
               <span className="text-[11px] font-bold opacity-80">{card.position}</span>
@@ -46,7 +48,7 @@ export function CardReveal({ title, cards, onDone }: { title: string; cards: Pla
         type="button"
         autoFocus
         onClick={onDone}
-        className="mt-5 h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-white transition hover:brightness-110"
+        className="mt-5 h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110"
       >
         확인
       </button>

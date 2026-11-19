@@ -59,7 +59,7 @@ export function Pass({ current, onBuy }: { current: PassTier; onBuy: (tier: Excl
                         <button
                           type="button"
                           onClick={() => onBuy(paidTier)}
-                          className="h-9 w-full rounded-xl bg-accent px-1 text-[12px] font-bold text-white transition hover:brightness-110"
+                          className="h-9 w-full rounded-xl bg-accent px-1 text-[12px] font-bold text-surface transition hover:brightness-110"
                         >
                           {upgrade ? "올리기" : "구매"}
                           {upgrade ? <span className="hidden sm:inline"> (차액 {cost.toLocaleString("ko-KR")})</span> : null}
@@ -82,7 +82,7 @@ export function Pass({ current, onBuy }: { current: PassTier; onBuy: (tier: Excl
                   return (
                     <td key={tier.id} className={`p-2 text-center sm:p-4 ${tier.id === current ? "bg-accent/10" : ""}`}>
                       {value === true ? (
-                        <span className="inline-grid size-6 place-items-center rounded-full bg-accent text-white">
+                        <span className="inline-grid size-6 place-items-center rounded-full bg-accent text-surface">
                           <Icon name="check" className="size-4" />
                           <span className="sr-only">포함</span>
                         </span>
