@@ -2,7 +2,7 @@ import Foundation
 import Darwin
 
 let serviceID = "dev.for-me.termkeys"
-let appVersion = "0.2.1"
+let appVersion = "0.4.3"
 
 struct TermKeysError: LocalizedError {
     let message: String
@@ -38,6 +38,7 @@ struct AgentStatus: Codable {
     var secureInput: Bool? = nil
     var hotKeyEvents: Int? = nil
     var sentPairs: Int? = nil
+    var lastLinkResult: String? = nil
 
     func isFresh(at date: Date = Date()) -> Bool {
         let age = date.timeIntervalSince(updated)
