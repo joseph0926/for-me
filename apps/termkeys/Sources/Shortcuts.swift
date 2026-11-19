@@ -22,6 +22,12 @@ struct InputFocus {
     }
 }
 
+enum ShortcutDelivery {
+    case movementRequested
+    case focusChanged
+    case postUnavailable
+}
+
 /// A failed second registration must release the first shortcut too.
 final class ShortcutRegistration<Handle> {
     private(set) var handles: [Handle] = []
@@ -34,17 +40,46 @@ final class ShortcutRegistration<Handle> {
         self.unregister = unregister
     }
 
-    func update(target: Int32?) throws {
-        guard target != pid else { return }
+    @discardableResult
+    func update(target: Int32?, canPost: Bool) throws -> Bool {
+        guard canPost, let target else {
+            clear()
+            return false
+        }
+        guard target != pid else { return true }
         clear()
-        guard let target else { return }
         do {
             for shortcut in LineShortcut.allCases { handles.append(try register(shortcut)) }
             pid = target
+            return true
         } catch {
             clear()
             throw error
         }
+    }
+
+    func deliver(_ shortcut: LineShortcut, focus: InputFocus?, canPost: Bool,
+                 frontmostPID: () -> Int32?, post: (CGEvent, Int32) -> Void) -> ShortcutDelivery {
+        guard canPost else {
+            clear()
+            return .postUnavailable
+        }
+        if let focus, focus.allowsShortcuts, pid == focus.pid {
+            guard let events = keyPair(key: shortcut.controlKey, flags: .maskControl, character: shortcut.controlCharacter) else {
+                clear()
+                return .postUnavailable
+            }
+            if frontmostPID() == focus.pid {
+                for event in events { post(event, focus.pid) }
+                return .movementRequested
+            }
+        }
+
+        clear()
+        guard let events = keyPair(key: shortcut.arrow, flags: .maskCommand),
+              let target = frontmostPID() else { return .focusChanged }
+        for event in events { post(event, target) }
+        return .focusChanged
     }
 
     func clear() {

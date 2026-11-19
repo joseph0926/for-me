@@ -129,7 +129,10 @@ final class Agent {
         }
         let listening = links.listen(to: focus.pid)
         do {
-            try shortcuts.update(target: focus.pid)
+            guard try shortcuts.update(target: focus.pid, canPost: CGPreflightPostEventAccess()) else {
+                reportPostUnavailable()
+                return
+            }
             if listening {
                 report("registered", "줄 이동 단축키와 웹 주소 클릭 입력을 기다립니다.")
             } else {
@@ -216,33 +219,30 @@ final class Agent {
             return OSStatus(eventNotHandledErr)
         }
         received += 1
-        guard let app = NSWorkspace.shared.frontmostApplication else {
-            shortcuts.clear()
-            return noErr
+        let app = NSWorkspace.shared.frontmostApplication
+        let focus: InputFocus?
+        if !suspended, AXIsProcessTrusted(), let app, app.bundleIdentifier == "com.apple.Terminal" {
+            focus = readFocus(app)
+        } else {
+            focus = nil
         }
-        let focus = readFocus(app)
-        guard AXIsProcessTrusted(), !suspended, focus.allowsShortcuts, shortcuts.pid == focus.pid else {
-            // A focus change can race its notification. Release the reservation and
-            // return the original shortcut to the currently focused app.
-            shortcuts.clear()
-            if let events = keyPair(key: shortcut.arrow, flags: .maskCommand),
-               NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier {
-                for event in events { event.postToPid(app.processIdentifier) }
-            }
+        let delivery = shortcuts.deliver(shortcut, focus: focus, canPost: CGPreflightPostEventAccess(),
+                                         frontmostPID: { NSWorkspace.shared.frontmostApplication?.processIdentifier },
+                                         post: { $0.postToPid($1) })
+        switch delivery {
+        case .focusChanged:
             refresh()
-            return noErr
+        case .postUnavailable:
+            reportPostUnavailable()
+        case .movementRequested:
+            sent += 1
+            report("registered", "두 단축키 등록됨. 키 전송을 요청했습니다. 실제 이동 성공 여부는 별도 확인이 필요합니다.", force: true)
         }
-        guard CGPreflightPostEventAccess(),
-              let events = keyPair(key: shortcut.controlKey, flags: .maskControl, character: shortcut.controlCharacter) else {
-            shortcuts.clear()
-            report("post-unavailable", "이동 키 전송 권한을 확인하지 못했습니다. 손쉬운 사용 권한을 확인하세요.", force: true)
-            return noErr
-        }
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == focus.pid else { return noErr }
-        for event in events { event.postToPid(focus.pid) }
-        sent += 1
-        report("registered", "두 단축키 등록됨. 키 전송을 요청했습니다. 실제 이동 성공 여부는 별도 확인이 필요합니다.", force: true)
         return noErr
+    }
+
+    private func reportPostUnavailable() {
+        report("post-unavailable", "이동 키를 전송할 수 없어 줄 이동 단축키를 해제했습니다. 손쉬운 사용 권한을 확인하세요.")
     }
 
     private func report(_ state: String, _ detail: String, force: Bool = false) {
