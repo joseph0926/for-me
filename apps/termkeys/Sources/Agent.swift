@@ -6,6 +6,9 @@ final class Agent {
     private static let signature: OSType = 0x544B4559 // TKEY
     private let locations: Locations
     private let accessibility: AccessibilityClient
+    private lazy var links = LinkClicks(resolve: { [weak self] pid, point in
+        self?.webAddress(pid: pid, point: point)
+    }, open: { url in NSWorkspace.shared.open(url) })
     private var handler: EventHandlerRef?
     private var observer: AXObserver?
     private var observedPID: pid_t?
@@ -18,6 +21,7 @@ final class Agent {
     private var sent = 0
     private var lastWrite = Date.distantPast
     private var lastState = ""
+    private var lastReportedLinkResult: LinkClickResult?
     private var lastError: String?
     private var setupError: String?
 
@@ -58,6 +62,7 @@ final class Agent {
                      NSWorkspace.didTerminateApplicationNotification] {
             notifications.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 guard let self else { return }
+                self.links.stop()
                 self.shortcuts.clear()
                 self.refresh()
             })
@@ -83,11 +88,13 @@ final class Agent {
 
     private func refresh() {
         if let setupError {
+            links.stop()
             shortcuts.clear()
             report("unavailable", setupError)
             return
         }
         guard AXIsProcessTrusted() else {
+            links.stop()
             shortcuts.clear()
             removeObserver()
             if !didPrompt {
@@ -100,12 +107,14 @@ final class Agent {
         }
         guard !suspended, let app = NSWorkspace.shared.frontmostApplication,
               app.bundleIdentifier == "com.apple.Terminal" else {
+            links.stop()
             shortcuts.clear()
             removeObserver()
             report("waiting-terminal", "실행 중. 기본 터미널을 사용할 때만 두 단축키를 등록합니다.")
             return
         }
         guard observe(app.processIdentifier) else {
+            links.stop()
             shortcuts.clear()
             report("focus-unavailable", "터미널의 초점 또는 메뉴 감시를 시작할 수 없어 단축키를 등록하지 않았습니다.")
             return
@@ -113,13 +122,19 @@ final class Agent {
         let focus = readFocus(app)
         guard focus.allowsShortcuts,
               NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else {
+            links.stop()
             shortcuts.clear()
             report("waiting-input", "실행 중. 터미널 입력 영역을 기다립니다.")
             return
         }
+        let listening = links.listen(to: focus.pid)
         do {
             try shortcuts.update(target: focus.pid)
-            report("registered", "두 단축키 등록됨. 보안 입력 상태에서도 통지를 기다립니다. 실제 이동은 별도 확인이 필요합니다.")
+            if listening {
+                report("registered", "줄 이동 단축키와 웹 주소 클릭 입력을 기다립니다.")
+            } else {
+                report("link-listener-unavailable", "줄 이동 단축키는 등록됐으나 마우스 입력을 받을 수 없습니다. 손쉬운 사용 권한을 확인하세요.")
+            }
         } catch {
             report("registration-failed", error.localizedDescription)
         }
@@ -134,6 +149,7 @@ final class Agent {
             let agent = Unmanaged<Agent>.fromOpaque(context).takeUnretainedValue()
             if notification as String == kAXMenuOpenedNotification { agent.menuOpen = true }
             if notification as String == kAXMenuClosedNotification { agent.menuOpen = false }
+            agent.links.cancel()
             agent.shortcuts.clear()
             agent.refresh()
         }, &candidate)
@@ -177,6 +193,21 @@ final class Agent {
         accessibility.attribute(element, name) as? String
     }
 
+    private func webAddress(pid: pid_t, point: CGPoint) -> URL? {
+        guard AXIsProcessTrusted(), !suspended, !menuOpen, observedPID == pid,
+              let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier == pid,
+              app.bundleIdentifier == "com.apple.Terminal" else { return nil }
+        let application = AXUIElementCreateApplication(pid)
+        guard let input = elementAttribute(application, kAXFocusedUIElementAttribute),
+              let hit = accessibility.hitTest(point),
+              stringAttribute(input, kAXRoleAttribute) == kAXTextAreaRole,
+              let window = elementAttribute(input, kAXWindowAttribute),
+              stringAttribute(window, kAXSubroleAttribute) == kAXStandardWindowSubrole,
+              let url = accessibility.webAddress(at: point, in: input, hit: hit),
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return nil }
+        return url
+    }
+
     private func handle(_ event: EventRef) -> OSStatus {
         var id = EventHotKeyID()
         guard GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID),
@@ -215,13 +246,16 @@ final class Agent {
     }
 
     private func report(_ state: String, _ detail: String, force: Bool = false) {
-        guard force || state != lastState || Date().timeIntervalSince(lastWrite) >= 1 else { return }
+        let linkResult = links.lastResult
+        guard force || state != lastState || linkResult != lastReportedLinkResult || Date().timeIntervalSince(lastWrite) >= 1 else { return }
         do {
             let snapshot = AgentStatus(version: appVersion, pid: getpid(), updated: Date(), state: state, detail: detail,
-                                       secureInput: IsSecureEventInputEnabled(), hotKeyEvents: received, sentPairs: sent)
+                                       secureInput: IsSecureEventInputEnabled(), hotKeyEvents: received, sentPairs: sent,
+                                       lastLinkResult: linkResult?.rawValue)
             try JSONEncoder().encode(snapshot).write(to: locations.status, options: .atomic)
             lastWrite = Date()
             lastState = state
+            lastReportedLinkResult = linkResult
             lastError = nil
         } catch {
             let message = "상태 파일 기록 실패: \(error.localizedDescription)"
