@@ -17,8 +17,10 @@ export type WindowTarget = {
 
 export type Target = { kind: "region"; rect: ScreenRect } | { kind: "window"; id: number };
 
+export type ViewSession = { id: number; error: string | null };
+export const viewSession = () => invoke<ViewSession | null>("view_session");
 export const listWindows = () => invoke<WindowTarget[]>("list_windows");
-export const cancelSelection = () => invoke<void>("cancel_selection");
-export const startRecording = (target: Target) => invoke<void>("start_recording", { target });
-export const stopRecording = () => invoke<string>("stop_recording");
-export const cancelRecording = () => invoke<void>("cancel_recording");
+export const cancelSelection = (id: number) => invoke<void>("cancel_selection", { id });
+export const startRecording = (id: number, target: Target) => invoke<void>("start_recording", { id, target });
+export const stopRecording = (id: number) => invoke<string>("stop_recording", { id });
+export const cancelRecording = (id: number) => invoke<void>("cancel_recording", { id });

@@ -19,7 +19,7 @@ const DRAG_THRESHOLD = 4;
 
 type Gesture = { kind: "idle" } | { kind: "pressing"; start: Point } | { kind: "dragging"; start: Point; current: Point };
 
-export function Overlay() {
+export function Overlay({ id }: { id: number }) {
   const [frame, setFrame] = useState<OverlayFrame | null>(null);
   const [targets, setTargets] = useState<WindowTarget[]>([]);
   const [cursor, setCursor] = useState<Point | null>(null);
@@ -48,11 +48,11 @@ export function Overlay() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") void cancelSelection();
+      if (event.key === "Escape") void cancelSelection(id);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [id]);
 
   const windows = frame ? targets.map((target) => ({ id: target.id, box: toLocal(target.bounds, frame) })) : [];
   const hovered = gesture.kind === "dragging" || !cursor ? undefined : windows.find((w) => contains(w.box, cursor));
@@ -60,7 +60,7 @@ export function Overlay() {
 
   const begin = (target: Target) => {
     setError(null);
-    startRecording(target).catch((reason) => setError(String(reason)));
+    startRecording(id, target).catch((reason) => setError(String(reason)));
   };
 
   const onPointerDown = (event: PointerEvent) => {

@@ -6,18 +6,11 @@ mod frame_queue;
 mod recording;
 mod targets;
 
-use std::{
-    path::Path,
-    sync::{
-        Mutex,
-        atomic::{AtomicU64, Ordering},
-    },
-    time::Duration,
-};
+use std::{path::Path, sync::Mutex, time::Duration};
 
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, RunEvent, WebviewUrl,
-    WebviewWindowBuilder, Wry,
+    WebviewWindow, WebviewWindowBuilder, Wry,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
@@ -38,10 +31,46 @@ const FRAME_THICKNESS: f64 = 2.0;
 const FRAME_FOLLOW_INTERVAL: Duration = Duration::from_millis(100);
 
 struct AppState {
-    recording: Mutex<Option<Recording>>,
-    /// 녹화를 시작할 때마다 늘린다. 창을 따라가는 스레드가 이전 녹화의 테두리를 움직이지 않게 한다.
-    recording_id: AtomicU64,
+    session: Mutex<Session>,
     tray: TrayItems,
+}
+
+#[derive(Default)]
+struct Session {
+    id: u64,
+    phase: Phase,
+}
+
+#[derive(Default)]
+enum Phase {
+    #[default]
+    Idle,
+    Selecting,
+    Recording(Recording),
+    SaveFailed(String),
+}
+
+#[derive(serde::Serialize)]
+struct ViewSession {
+    id: u64,
+    error: Option<String>,
+}
+
+impl Session {
+    fn view(&self, label: &str) -> Option<ViewSession> {
+        let error = match (&self.phase, label) {
+            (Phase::Selecting, OVERLAY) | (Phase::Recording(_), TOOLBAR) => None,
+            (Phase::SaveFailed(message), TOOLBAR) => Some(message.clone()),
+            _ => return None,
+        };
+        Some(ViewSession { id: self.id, error })
+    }
+}
+
+fn notify_session_changed(app: &AppHandle) {
+    if let Err(error) = app.emit("session-changed", ()) {
+        eprintln!("화면 상태를 알릴 수 없습니다: {error}");
+    }
 }
 
 struct TrayItems {
@@ -83,12 +112,12 @@ fn main() {
                             }
                         }
                         "stop" => {
-                            if let Err(error) = stop(&app) {
-                                let _ = app.emit_to(TOOLBAR, "stop-failed", error);
+                            if let Err(error) = stop(&app, None) {
+                                eprintln!("녹화를 저장할 수 없습니다: {error}");
                             }
                         }
                         "quit" => {
-                            cancel(&app);
+                            cancel(&app, None);
                             app.exit(0);
                         }
                         _ => {}
@@ -99,8 +128,7 @@ fn main() {
             }
             tray.build(app)?;
             app.manage(AppState {
-                recording: Mutex::new(None),
-                recording_id: AtomicU64::new(0),
+                session: Mutex::new(Session::default()),
                 tray: TrayItems {
                     record,
                     stop: stop_item,
@@ -109,6 +137,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            view_session,
             list_windows,
             cancel_selection,
             start_recording,
@@ -128,36 +157,41 @@ fn main() {
         });
 }
 
+// 매 녹화에서 같은 네이티브 창을 쓴다. 이전 창의 닫힘 통지와 다음 창의 생성이 겹치지 않는다.
+fn recording_window(app: &AppHandle, label: &str, title: &str) -> tauri::Result<WebviewWindow> {
+    let window = match app.get_webview_window(label) {
+        Some(window) => window,
+        None => WebviewWindowBuilder::new(
+            app,
+            label,
+            WebviewUrl::App(format!("index.html?view={label}").into()),
+        )
+        .title(title)
+        .decorations(false)
+        .transparent(label != TOOLBAR)
+        .shadow(label == TOOLBAR)
+        .focused(label == OVERLAY)
+        .accept_first_mouse(label == TOOLBAR)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .visible(false)
+        .build()?,
+    };
+    window.set_content_protected(true)?;
+    Ok(window)
+}
+
 fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
     let state = app.state::<AppState>();
-    if state.recording.lock().unwrap().is_some() {
+    let mut session = state.session.lock().unwrap();
+    if matches!(session.phase, Phase::Recording(_)) {
         return Ok(());
-    }
-    if let Some(window) = app.get_webview_window(OVERLAY) {
-        return window.set_focus();
     }
     let cursor = app.cursor_position()?;
-    let Some(monitor) = targets::monitor_at(cursor.x as i32, cursor.y as i32) else {
-        return Ok(());
-    };
-
-    // 화면 쪽은 이 창의 실제 위치와 배율로 좌표를 바꾼다. macOS는 창을 메뉴 막대 아래로 옮겨 놓아
-    // 여기서 정한 위치와 실제 위치가 다를 수 있다(QA-003).
-    let window = WebviewWindowBuilder::new(
-        app,
-        OVERLAY,
-        WebviewUrl::App("index.html?view=overlay".into()),
-    )
-    .title("screen-gif 선택")
-    .decorations(false)
-    .transparent(true)
-    .shadow(false)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .resizable(false)
-    .visible(false)
-    .build()?;
-    window.set_content_protected(true)?;
+    let monitor = targets::monitor_at(cursor.x as i32, cursor.y as i32)
+        .ok_or_else(|| std::io::Error::other("선택 화면을 띄울 모니터가 없습니다"))?;
+    let window = recording_window(app, OVERLAY, "screen-gif 선택")?;
     window.set_position(PhysicalPosition::new(
         monitor.bounds.left,
         monitor.bounds.top,
@@ -167,16 +201,23 @@ fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
         monitor.bounds.height as u32,
     ))?;
     window.show()?;
+    if !matches!(session.phase, Phase::Selecting) {
+        if matches!(session.phase, Phase::SaveFailed(_)) {
+            hide_window(app, TOOLBAR);
+        }
+        session.id += 1;
+        session.phase = Phase::Selecting;
+    }
+    notify_session_changed(app);
     window.set_focus()
 }
 
 fn open_toolbar(app: &AppHandle, anchor: ScreenRect) -> tauri::Result<()> {
-    let Some(monitor) = targets::monitor_at(
+    let monitor = targets::monitor_at(
         anchor.left + anchor.width / 2,
         anchor.top + anchor.height / 2,
-    ) else {
-        return Ok(());
-    };
+    )
+    .ok_or_else(|| std::io::Error::other("조작 막대를 띄울 모니터가 없습니다"))?;
     let scale = scale_of(app, &monitor)?;
     let width = (TOOLBAR_SIZE.0 * scale).round() as i32;
     let height = (TOOLBAR_SIZE.1 * scale).round() as i32;
@@ -196,20 +237,7 @@ fn open_toolbar(app: &AppHandle, anchor: ScreenRect) -> tauri::Result<()> {
     };
     let left = (anchor.left + anchor.width / 2 - width / 2).clamp(area.left, area.right() - width);
 
-    let window = WebviewWindowBuilder::new(
-        app,
-        TOOLBAR,
-        WebviewUrl::App("index.html?view=toolbar".into()),
-    )
-    .title("screen-gif 녹화")
-    .decorations(false)
-    .focused(false)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .resizable(false)
-    .visible(false)
-    .build()?;
-    window.set_content_protected(true)?;
+    let window = recording_window(app, TOOLBAR, "screen-gif 녹화")?;
     window.set_position(PhysicalPosition::new(left, top))?;
     window.set_size(PhysicalSize::new(width as u32, height as u32))?;
     window.show()
@@ -217,19 +245,7 @@ fn open_toolbar(app: &AppHandle, anchor: ScreenRect) -> tauri::Result<()> {
 
 /// 녹화 범위를 알리는 테두리 창. 클릭은 아래 창으로 통과시키고, 녹화 결과에서는 빠진다.
 fn open_frame(app: &AppHandle, target: ScreenRect) -> tauri::Result<()> {
-    let window =
-        WebviewWindowBuilder::new(app, FRAME, WebviewUrl::App("index.html?view=frame".into()))
-            .title("screen-gif 녹화 범위")
-            .decorations(false)
-            .transparent(true)
-            .shadow(false)
-            .focused(false)
-            .always_on_top(true)
-            .skip_taskbar(true)
-            .resizable(false)
-            .visible(false)
-            .build()?;
-    window.set_content_protected(true)?;
+    let window = recording_window(app, FRAME, "screen-gif 녹화 범위")?;
     window.set_ignore_cursor_events(true)?;
     place_frame(app, &window, target)?;
     window.show()
@@ -264,9 +280,12 @@ fn follow_window(app: AppHandle, id: WindowId, recording_id: u64, mut last: Scre
     std::thread::spawn(move || {
         loop {
             std::thread::sleep(FRAME_FOLLOW_INTERVAL);
-            let current_id = app.state::<AppState>().recording_id.load(Ordering::SeqCst);
-            let frame = app.get_webview_window(FRAME);
-            let (Some(frame), true) = (frame, current_id == recording_id) else {
+            let state = app.state::<AppState>();
+            let session = state.session.lock().unwrap();
+            if session.id != recording_id || !matches!(session.phase, Phase::Recording(_)) {
+                break;
+            }
+            let Some(frame) = app.get_webview_window(FRAME) else {
                 break;
             };
             if let Some(bounds) = targets::window_bounds(id)
@@ -300,31 +319,56 @@ fn scale_of(_app: &AppHandle, monitor: &MonitorArea) -> tauri::Result<f64> {
     Ok(targets::display_scale(monitor.id))
 }
 
-fn close_window(app: &AppHandle, label: &str) {
-    if let Some(window) = app.get_webview_window(label) {
-        let _ = window.destroy();
+fn hide_window(app: &AppHandle, label: &str) {
+    if let Some(window) = app.get_webview_window(label)
+        && let Err(error) = window.hide()
+    {
+        eprintln!("{label} 창을 숨길 수 없습니다: {error}");
     }
 }
 
-fn stop(app: &AppHandle) -> Result<String, String> {
+fn stop(app: &AppHandle, expected: Option<u64>) -> Result<String, String> {
     let state = app.state::<AppState>();
-    let recording = state.recording.lock().unwrap().take();
+    let mut session = state.session.lock().unwrap();
+    if expected.is_some_and(|id| id != session.id) {
+        return Err("이미 끝난 녹화입니다".into());
+    }
+    let recording = match std::mem::take(&mut session.phase) {
+        Phase::Recording(recording) => recording,
+        other => {
+            session.phase = other;
+            return Err("녹화 중이 아닙니다".into());
+        }
+    };
+    hide_window(app, FRAME);
+    let result = recording.stop();
+    match &result {
+        Ok(path) => {
+            hide_window(app, TOOLBAR);
+            reveal_in_file_manager(path);
+        }
+        Err(error) => session.phase = Phase::SaveFailed(error.clone()),
+    }
     state.tray.set_recording(false);
-    close_window(app, FRAME);
-    let path = recording.ok_or("녹화 중이 아닙니다")?.stop()?;
-    close_window(app, TOOLBAR);
-    reveal_in_file_manager(&path);
-    Ok(path.display().to_string())
+    notify_session_changed(app);
+    result.map(|path| path.display().to_string())
 }
 
-fn cancel(app: &AppHandle) {
+fn cancel(app: &AppHandle, expected: Option<u64>) {
     let state = app.state::<AppState>();
-    if let Some(recording) = state.recording.lock().unwrap().take() {
+    let mut session = state.session.lock().unwrap();
+    if let Some(id) = expected
+        && (id != session.id || session.view(TOOLBAR).is_none())
+    {
+        return;
+    }
+    if let Phase::Recording(recording) = std::mem::take(&mut session.phase) {
         recording.cancel();
     }
+    hide_window(app, FRAME);
+    hide_window(app, TOOLBAR);
     state.tray.set_recording(false);
-    close_window(app, FRAME);
-    close_window(app, TOOLBAR);
+    notify_session_changed(app);
 }
 
 /// 저장한 파일을 고른 상태로 파일 탐색기(macOS는 Finder)를 연다.
@@ -346,17 +390,29 @@ fn list_windows() -> Result<Vec<WindowTarget>, String> {
 }
 
 #[tauri::command]
-fn cancel_selection(app: AppHandle) {
-    close_window(&app, OVERLAY);
+async fn view_session(window: WebviewWindow) -> Result<Option<ViewSession>, String> {
+    let state = window.state::<AppState>();
+    Ok(state.session.lock().unwrap().view(window.label()))
 }
 
-// 창을 만들고 닫는 명령은 async로 둔다. Windows에서 동기 명령 안에서 창을 만들면 화면 스레드가
-// 교착 상태가 된다(Tauri WebviewWindowBuilder::new 문서의 알려진 문제, QA-001).
 #[tauri::command]
-async fn start_recording(app: AppHandle, target: Target) -> Result<(), String> {
+async fn cancel_selection(app: AppHandle, id: u64) {
     let state = app.state::<AppState>();
-    if state.recording.lock().unwrap().is_some() {
-        return Err("이미 녹화 중입니다".to_string());
+    let mut session = state.session.lock().unwrap();
+    if session.id == id && matches!(session.phase, Phase::Selecting) {
+        hide_window(&app, OVERLAY);
+        session.phase = Phase::Idle;
+        notify_session_changed(&app);
+    }
+}
+
+// 창을 만드는 명령은 Windows에서도 메인 스레드를 막지 않아야 한다(QA-001).
+#[tauri::command]
+async fn start_recording(app: AppHandle, id: u64, target: Target) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let mut session = state.session.lock().unwrap();
+    if session.id != id || !matches!(session.phase, Phase::Selecting) {
+        return Err("선택이 끝났습니다".into());
     }
     let anchor = match target {
         Target::Region { rect } => rect,
@@ -367,35 +423,36 @@ async fn start_recording(app: AppHandle, target: Target) -> Result<(), String> {
         .home_dir()
         .map_err(|e| format!("사용자 폴더를 찾을 수 없습니다: {e}"))?
         .join(".screen-gif");
-
-    // 오버레이가 화면을 어둡게 덮고 있으므로 숨긴 뒤 녹화를 시작한다. 실패하면 다시 보여 오류를 알린다.
-    let overlay = app.get_webview_window(OVERLAY);
-    if let Some(overlay) = &overlay {
-        let _ = overlay.hide();
-    }
-    let recording = match Recording::start(target, &save_dir) {
+    let overlay = app
+        .get_webview_window(OVERLAY)
+        .ok_or("선택 화면을 찾을 수 없습니다")?;
+    overlay.hide().map_err(|e| e.to_string())?;
+    let start = || {
+        let recording = Recording::start(target, &save_dir)?;
+        if let Err(error) = open_toolbar(&app, anchor) {
+            recording.cancel();
+            hide_window(&app, TOOLBAR);
+            return Err(format!("조작 막대를 띄울 수 없습니다: {error}"));
+        }
+        Ok(recording)
+    };
+    let recording = match start() {
         Ok(recording) => recording,
         Err(error) => {
-            if let Some(overlay) = &overlay {
-                let _ = overlay.show();
-            }
+            overlay
+                .show()
+                .and_then(|()| overlay.set_focus())
+                .map_err(|e| format!("{error}. 선택 화면을 다시 표시할 수 없습니다: {e}"))?;
             return Err(error);
         }
     };
-    *state.recording.lock().unwrap() = Some(recording);
-    let recording_id = state.recording_id.fetch_add(1, Ordering::SeqCst) + 1;
+    session.phase = Phase::Recording(recording);
     state.tray.set_recording(true);
-    close_window(&app, OVERLAY);
-    // 조작 막대 없이 녹화만 이어지면 멈출 방법이 트레이밖에 없으므로 녹화를 취소한다.
-    if let Err(error) = open_toolbar(&app, anchor) {
-        cancel(&app);
-        return Err(format!("조작 막대를 띄울 수 없습니다: {error}"));
-    }
-    // 테두리는 위치를 알려 주는 보조 표시라, 띄우지 못해도 녹화는 이어 간다.
+    notify_session_changed(&app);
     match open_frame(&app, anchor) {
         Ok(()) => {
-            if let Target::Window { id } = target {
-                follow_window(app.clone(), id, recording_id, anchor);
+            if let Target::Window { id: window } = target {
+                follow_window(app.clone(), window, id, anchor);
             }
         }
         Err(error) => eprintln!("녹화 범위 테두리를 띄울 수 없습니다: {error}"),
@@ -404,11 +461,11 @@ async fn start_recording(app: AppHandle, target: Target) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn stop_recording(app: AppHandle) -> Result<String, String> {
-    stop(&app)
+async fn stop_recording(app: AppHandle, id: u64) -> Result<String, String> {
+    stop(&app, Some(id))
 }
 
 #[tauri::command]
-async fn cancel_recording(app: AppHandle) {
-    cancel(&app);
+async fn cancel_recording(app: AppHandle, id: u64) {
+    cancel(&app, Some(id));
 }

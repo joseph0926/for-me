@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState, type ButtonHTMLAttributes } from "react";
 
@@ -9,17 +8,19 @@ const SAVING_LABEL_DELAY_MS = 300;
 
 type Phase = { kind: "recording" } | { kind: "saving" } | { kind: "failed"; message: string };
 
-export function Toolbar() {
+export function Toolbar({ id, saveError }: { id: number; saveError: string | null }) {
   const [startedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phase, setPhase] = useState<Phase>({ kind: "recording" });
   const [showSavingLabel, setShowSavingLabel] = useState(false);
 
+  const failure = saveError ?? (phase.kind === "failed" ? phase.message : null);
+
   useEffect(() => {
-    if (phase.kind !== "recording") return;
+    if (failure || phase.kind !== "recording") return;
     const timer = window.setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 250);
     return () => window.clearInterval(timer);
-  }, [phase.kind, startedAt]);
+  }, [failure, phase.kind, startedAt]);
 
   useEffect(() => {
     if (phase.kind !== "saving") return;
@@ -27,18 +28,10 @@ export function Toolbar() {
     return () => window.clearTimeout(timer);
   }, [phase.kind]);
 
-  // 트레이 메뉴의 정지가 실패하면 Rust가 이 창으로 알린다.
-  useEffect(() => {
-    const unlisten = listen<string>("stop-failed", (event) => setPhase({ kind: "failed", message: event.payload }));
-    return () => {
-      void unlisten.then((stop) => stop());
-    };
-  }, []);
-
   const onStop = () => {
     setPhase({ kind: "saving" });
     // 성공하면 Rust가 이 창을 닫고 저장한 폴더를 연다.
-    stopRecording().catch((reason) => {
+    stopRecording(id).catch((reason) => {
       setShowSavingLabel(false);
       setPhase({ kind: "failed", message: String(reason) });
     });
@@ -52,19 +45,19 @@ export function Toolbar() {
       transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
     >
       <div className="min-w-0 flex-1 truncate">
-        {phase.kind === "failed" ? (
-          <span className="text-[14px] text-danger" title={phase.message}>
-            {phase.message}
+        {failure ? (
+          <span className="text-[14px] text-danger" title={failure}>
+            {failure}
           </span>
         ) : (
           <Rolling text={formatElapsed(elapsedSeconds)} className="text-[15px] font-semibold tabular-nums" />
         )}
       </div>
-      <ToolbarButton variant="secondary" onClick={() => void cancelRecording()}>
-        {phase.kind === "failed" ? "닫기" : "취소"}
+      <ToolbarButton variant="secondary" onClick={() => void cancelRecording(id)} disabled={!failure && phase.kind === "saving"}>
+        {failure ? "닫기" : "취소"}
       </ToolbarButton>
-      <ToolbarButton variant="primary" onClick={onStop} disabled={phase.kind !== "recording"}>
-        <SwapLabel labels={STOP_LABELS} current={showSavingLabel ? "저장 중" : "정지"} />
+      <ToolbarButton variant="primary" onClick={onStop} disabled={!!failure || phase.kind !== "recording"}>
+        <SwapLabel labels={STOP_LABELS} current={!failure && showSavingLabel ? "저장 중" : "정지"} />
       </ToolbarButton>
     </motion.div>
   );
