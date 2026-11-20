@@ -13,7 +13,8 @@ use windows::Win32::{
     },
     UI::WindowsAndMessaging::{
         EnumWindows, GWL_EXSTYLE, GetClassNameW, GetWindowLongW, GetWindowTextLengthW,
-        GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, WS_EX_TOOLWINDOW,
+        GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, WS_EX_LAYERED,
+        WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
     },
 };
 use windows::core::BOOL;
@@ -62,6 +63,12 @@ fn describe_window(hwnd: HWND, own_process_id: u32) -> Option<WindowTarget> {
         }
         let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
         if ex_style & WS_EX_TOOLWINDOW.0 != 0 {
+            return None;
+        }
+        // 클릭이 아래 창으로 통과하는 창은 사용자가 누를 수 없다. 화면 위에 그리는 다른 앱의 투명한
+        // 전체 화면 창이 맨 위 후보가 되어 그 아래 창을 고를 수 없게 하므로 뺀다(QA-016).
+        let click_through = WS_EX_LAYERED.0 | WS_EX_TRANSPARENT.0;
+        if ex_style & click_through == click_through {
             return None;
         }
         let mut process_id = 0u32;
