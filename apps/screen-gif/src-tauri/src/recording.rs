@@ -233,16 +233,15 @@ fn finish(
         .flush()
         .map_err(|e| format!("GIF를 쓸 수 없습니다: {e}"))?;
     drop(writer);
-
-    // 같은 이름의 파일을 덮어쓰지 않도록, 비어 있는 이름을 먼저 차지한 뒤 그 자리로 옮긴다.
-    let final_path = reserve_name(save_dir)?;
-    fs::rename(part_path, &final_path)
-        .map_err(|e| format!("GIF 파일 이름을 바꿀 수 없습니다: {e}"))?;
-    Ok(final_path)
+    move_to_free_name(part_path, save_dir, &local_timestamp())
 }
 
-fn reserve_name(save_dir: &Path) -> Result<PathBuf, String> {
-    let stamp = local_timestamp();
+/// 완성한 `.part`를 날짜와 시각 이름으로 옮긴다. 같은 이름의 파일은 덮어쓰지 않고 뒤에 번호를 붙인다.
+///
+/// 빈 파일로 이름을 먼저 차지한 뒤 그 위로 덮어 옮기면, 직후에 연 Windows 탐색기가 새 파일을 고르지
+/// 못한다(QA-017). 하드 링크는 이름이 이미 있으면 실패하므로, 덮어쓰지 않으면서 완성된 파일이 한 번에
+/// 새 이름으로 나타난다.
+fn move_to_free_name(part_path: &Path, save_dir: &Path, stamp: &str) -> Result<PathBuf, String> {
     for attempt in 1..1000 {
         let name = if attempt == 1 {
             format!("screen-gif-{stamp}.gif")
@@ -250,10 +249,17 @@ fn reserve_name(save_dir: &Path) -> Result<PathBuf, String> {
             format!("screen-gif-{stamp}-{attempt}.gif")
         };
         let path = save_dir.join(name);
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(_) => return Ok(path),
+        match fs::hard_link(part_path, &path) {
+            Ok(()) => {
+                // 저장은 끝났으므로 `.part`를 지우지 못해도 실패로 돌리지 않는다. 같은 내용을 가리키는
+                // 링크라 디스크를 더 쓰지 않는다.
+                if let Err(error) = fs::remove_file(part_path) {
+                    eprintln!("임시 파일을 지울 수 없습니다: {error}");
+                }
+                return Ok(path);
+            }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(error) => return Err(format!("저장할 파일을 만들 수 없습니다: {error}")),
+            Err(error) => return Err(format!("GIF 파일을 저장할 수 없습니다: {error}")),
         }
     }
     Err("저장할 파일 이름을 정할 수 없습니다".to_string())
@@ -291,7 +297,7 @@ mod tests {
         time::Duration,
     };
 
-    use super::{CapturedFrame, Interruption, fit_into, spawn_converter};
+    use super::{CapturedFrame, Interruption, fit_into, move_to_free_name, spawn_converter};
     use crate::frame_queue::FrameQueue;
 
     fn image(width: usize, height: usize, value: u8) -> Vec<u8> {
@@ -340,6 +346,31 @@ mod tests {
             presented_at: Duration::ZERO,
         });
         assert!(queue.pop().is_none());
+    }
+
+    #[test]
+    fn saving_keeps_an_existing_file_with_the_same_name_and_removes_the_part_file() {
+        let dir = std::env::temp_dir().join(format!(
+            "screen-gif-test-{}-{}",
+            std::process::id(),
+            super::unix_millis()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let existing = dir.join("screen-gif-20261120-120000.gif");
+        fs::write(&existing, b"earlier").unwrap();
+        let part = dir.join(".screen-gif-1.gif.part");
+        fs::write(&part, b"recorded").unwrap();
+
+        let saved = move_to_free_name(&part, &dir, "20261120-120000");
+        let existing_after = fs::read(&existing).unwrap();
+        let part_left = part.exists();
+        let saved_content = saved.as_ref().ok().map(|path| fs::read(path).unwrap());
+        let _ = fs::remove_dir_all(&dir);
+
+        assert_eq!(saved, Ok(dir.join("screen-gif-20261120-120000-2.gif")));
+        assert_eq!(saved_content, Some(b"recorded".to_vec()));
+        assert_eq!(existing_after, b"earlier");
+        assert!(!part_left);
     }
 
     #[test]
