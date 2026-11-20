@@ -104,6 +104,8 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
         onPauseOrDispose {}
     }
     LaunchedEffect(revision) {
+        // 첫 조회는 화면이 resume될 때 시작한다. 진입 직후 resume으로 같은 목록을 두 번 읽지 않는다.
+        if (revision == 0) return@LaunchedEffect
         failed = false
         try {
             val read = withContext(Dispatchers.IO) { readVideoFolder(resolver, tree, directoryId) }
