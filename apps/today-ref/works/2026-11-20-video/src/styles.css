@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 영상이 돋보이도록 기기 설정과 상관없이 어두운 화면 하나만 쓴다. 강조색은 하늘색 하나다. */
+:root {
+  --surface: #0d0e11;
+  --raised: #17191e;
+  --raised-2: #20232a;
+  --ink: #eef0f4;
+  --muted: #8d93a1;
+  --faint: #5b616e;
+  --line: #262931;
+  --accent: #8ab4ff;
+  --accent-ink: #0b1630;
+  --backdrop: #050506;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-raised-2: var(--raised-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 시간 숫자는 고정폭 서체 대신 같은 서체의 같은 폭 숫자를 쓴다. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
