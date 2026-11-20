@@ -17,6 +17,25 @@ class SrtSubtitlesTest {
         assertEquals("하나\n두 줄", subtitles.textAt(1100))
     }
 
+    @Test fun skipsUnusableCuesInsteadOfRejectingTheFile() {
+        val input = "1\n00:00:01,000 --> 00:00:02,000\n하나\n \n \n" +
+            "2\n00:00:03,000 --> 00:00:04,000\n\n" +
+            "3\n00:00:05,000 --> 00:00:05,000\n길이 없음\n\n" +
+            "4\n00:00:06,000 --> 00:00:07,000\n넷"
+        val subtitles = SrtSubtitles.read(input.byteInputStream())
+        assertEquals("하나", subtitles.textAt(1500))
+        assertEquals("", subtitles.textAt(3500))
+        assertEquals("", subtitles.textAt(5000))
+        assertEquals("넷", subtitles.textAt(6500))
+    }
+
+    @Test fun removesFontAndPositionTags() {
+        val input = "1\n00:00:01,000 --> 00:00:02,000\n" +
+            "{\\an8}<font color=\"#ffff00\">노란</font> <FONT face='굴림'>글자</FONT>\n" +
+            "<font color=red>\n둘째 줄</font>"
+        assertEquals("노란 글자\n둘째 줄", SrtSubtitles.read(input.byteInputStream()).textAt(1000))
+    }
+
     @Test fun rejectsUnreadableSubtitlesAndAllowsTheExactByteLimit() {
         val cue = "1\n00:00:00,000 --> 00:00:01,000\nA"
         val full = cue.padEnd(MAX_SRT_BYTES)
