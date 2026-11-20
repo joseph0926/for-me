@@ -8,13 +8,17 @@ const SAVING_LABEL_DELAY_MS = 300;
 
 type Phase = { kind: "recording" } | { kind: "saving" } | { kind: "failed"; message: string };
 
-export function Toolbar({ id, saveError }: { id: number; saveError: string | null }) {
-  const [startedAt] = useState(() => Date.now());
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+/**
+ * `error`는 저장 실패나 녹화가 도중에 멈춘 이유다. `initialElapsedMs`는 막대가 처음 그려질 때까지 녹화가
+ * 이미 진행된 시간이며, 이후 값은 막대가 직접 센다.
+ */
+export function Toolbar({ id, error, initialElapsedMs }: { id: number; error: string | null; initialElapsedMs: number }) {
+  const [startedAt] = useState(() => Date.now() - initialElapsedMs);
+  const [elapsedSeconds, setElapsedSeconds] = useState(() => Math.floor(initialElapsedMs / 1000));
   const [phase, setPhase] = useState<Phase>({ kind: "recording" });
   const [showSavingLabel, setShowSavingLabel] = useState(false);
 
-  const failure = saveError ?? (phase.kind === "failed" ? phase.message : null);
+  const failure = error ?? (phase.kind === "failed" ? phase.message : null);
 
   useEffect(() => {
     if (failure || phase.kind !== "recording") return;

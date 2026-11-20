@@ -8,8 +8,9 @@ use std::{sync::Arc, time::Instant};
 
 use screencapturekit::cm::SCFrameStatus;
 use screencapturekit::prelude::*;
+use screencapturekit::stream::ErrorHandler;
 
-use super::{CapturedFrame, FRAME_INTERVAL, Target, fit_into};
+use super::{CapturedFrame, FRAME_INTERVAL, Interruption, Target, fit_into};
 use crate::{
     frame_queue::FrameQueue,
     targets::{self, ScreenRect, WindowId},
@@ -36,6 +37,7 @@ impl Capture {
         target: Target,
         started: Instant,
         queue: Arc<FrameQueue<CapturedFrame>>,
+        interruption: Interruption,
     ) -> Result<Self, String> {
         let content = SCShareableContent::get().map_err(|e| {
             format!("화면 정보를 읽을 수 없습니다. 화면 기록 권한을 확인해 주세요: {e}")
@@ -56,8 +58,13 @@ impl Capture {
             configuration = configuration.with_source_rect(crop);
         }
 
-        let mut stream =
-            SCStream::new(&source.filter, &configuration).map_err(|e| e.to_string())?;
+        // 녹화하던 창이 닫히거나 모니터가 빠지거나 권한이 회수되면 스트림이 스스로 멈춘다.
+        // 요청한 정지는 여기로 오지 않는다.
+        let on_stopped = ErrorHandler::new(move |error| {
+            interruption.report(format!("화면 캡처가 멈춰 녹화를 끝냈습니다: {error}"));
+        });
+        let mut stream = SCStream::new_with_delegate(&source.filter, &configuration, on_stopped)
+            .map_err(|e| e.to_string())?;
         let handler = FrameHandler {
             started,
             queue,
@@ -76,8 +83,7 @@ impl Capture {
 }
 
 fn region_source(content: &SCShareableContent, rect: ScreenRect) -> Result<Source, String> {
-    let monitor = targets::monitor_at(rect.left + rect.width / 2, rect.top + rect.height / 2)
-        .ok_or("영역이 놓인 모니터를 찾을 수 없습니다")?;
+    let monitor = targets::monitor_of(&rect).ok_or("영역이 놓인 모니터를 찾을 수 없습니다")?;
     let area = rect
         .intersect(&monitor.bounds)
         .ok_or("영역이 모니터 밖에 있습니다")?;

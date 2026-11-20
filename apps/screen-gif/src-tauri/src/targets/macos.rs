@@ -5,8 +5,10 @@
 //! 같은 방식으로 바꿔 Tauri의 창 위치와 맞춘다. 배율이 다른 모니터가 섞이면 이렇게 만든 물리 픽셀
 //! 좌표가 모니터 경계에서 어긋날 수 있는데, tao의 모니터 위치와 같은 한계다.
 
+use objc2::MainThreadMarker;
+use objc2_app_kit::NSScreen;
 use objc2_core_foundation::{
-    CFArray, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGRect, Type,
+    CFArray, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGPoint, CGRect, Type,
 };
 use objc2_core_graphics::{
     CGDisplayBounds, CGDisplayCopyDisplayMode, CGDisplayMode, CGError, CGGetActiveDisplayList,
@@ -25,6 +27,10 @@ pub type MonitorId = u32;
 
 /// 화면 기록 권한이 없을 때 선택 오버레이에 보이는 안내
 const PERMISSION_MESSAGE: &str = "화면 기록 권한이 필요합니다. 시스템 설정의 개인정보 보호 및 보안 > 화면 및 시스템 오디오 녹음에서 screen-gif를 허용한 뒤 앱을 다시 실행해 주세요. 터미널에서 실행했다면 그 터미널 앱을 허용합니다.";
+
+/// 시스템 설정의 화면 및 시스템 오디오 녹음 화면
+const SCREEN_CAPTURE_SETTINGS_URL: &str =
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
 
 /// 일반 앱 창이 놓이는 층. 메뉴 막대, Dock, 알림처럼 다른 층의 창은 녹화 대상으로 고르지 않는다.
 const NORMAL_WINDOW_LAYER: i64 = 0;
@@ -98,6 +104,59 @@ fn to_physical(rect: CGRect, scale: f64) -> ScreenRect {
         width: right - left,
         height: bottom - top,
     }
+}
+
+/// Dock과 메뉴 막대를 뺀 모니터 범위(물리 픽셀). 모니터 범위와 같은 방식으로 물리 픽셀로 바꾼다.
+///
+/// AppKit은 주 모니터의 왼쪽 아래가 원점이고 위로 갈수록 커지는 포인트 좌표를 쓴다. CoreGraphics처럼
+/// 주 모니터 왼쪽 위가 원점인 좌표로 뒤집어 같은 모니터를 찾는다.
+pub fn usable_bounds(id: MonitorId, mtm: MainThreadMarker) -> Option<ScreenRect> {
+    let screens = NSScreen::screens(mtm);
+    // 첫 번째 화면이 메뉴 막대가 있는 주 모니터이고, AppKit 좌표의 원점이다.
+    let primary_height = screens.firstObject()?.frame().size.height;
+    let display_frame = CGDisplayBounds(id);
+    let screen = screens
+        .iter()
+        .find(|screen| same_rect(flip(screen.frame(), primary_height), display_frame))?;
+    Some(to_physical(
+        flip(screen.visibleFrame(), primary_height),
+        display_scale(id),
+    ))
+}
+
+fn flip(rect: CGRect, primary_height: f64) -> CGRect {
+    CGRect::new(
+        CGPoint::new(
+            rect.origin.x,
+            primary_height - rect.origin.y - rect.size.height,
+        ),
+        rect.size,
+    )
+}
+
+fn same_rect(a: CGRect, b: CGRect) -> bool {
+    (a.origin.x - b.origin.x).abs() < 0.5
+        && (a.origin.y - b.origin.y).abs() < 0.5
+        && (a.size.width - b.size.width).abs() < 0.5
+        && (a.size.height - b.size.height).abs() < 0.5
+}
+
+/// 화면 기록 권한이 있는지 확인한다. 없으면 권한을 요청하고 시스템 설정의 해당 화면을 연다.
+///
+/// 처음 요청할 때는 시스템 확인 창이 뜨고 이 앱이 설정 목록에 올라간다. 한 번 거절한 뒤에는 확인 창이
+/// 뜨지 않으므로 설정 화면을 직접 연다. 허용한 뒤 앱을 다시 열라는 안내는 macOS가 설정 화면에서 띄운다.
+pub fn ensure_capture_permission() -> bool {
+    if CGPreflightScreenCaptureAccess() {
+        return true;
+    }
+    CGRequestScreenCaptureAccess();
+    if let Err(error) = std::process::Command::new("open")
+        .arg(SCREEN_CAPTURE_SETTINGS_URL)
+        .spawn()
+    {
+        eprintln!("화면 기록 권한 설정을 열 수 없습니다: {error}");
+    }
+    false
 }
 
 /// 포인트 단위 점이 속한 모니터. 어느 모니터에도 없으면 가장 가까운 모니터를 고른다.

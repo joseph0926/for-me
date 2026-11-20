@@ -14,7 +14,7 @@ use windows_capture::{
     window::Window,
 };
 
-use super::{CapturedFrame, FRAME_INTERVAL, Target, fit_into};
+use super::{CapturedFrame, FRAME_INTERVAL, Interruption, Target, fit_into};
 use crate::{
     frame_queue::FrameQueue,
     targets::{self, ScreenRect},
@@ -31,12 +31,12 @@ impl Capture {
         target: Target,
         started: Instant,
         queue: Arc<FrameQueue<CapturedFrame>>,
+        interruption: Interruption,
     ) -> Result<Self, String> {
         let started_capture = match target {
             Target::Region { rect } => {
                 let monitor =
-                    targets::monitor_at(rect.left + rect.width / 2, rect.top + rect.height / 2)
-                        .ok_or("영역이 놓인 모니터를 찾을 수 없습니다")?;
+                    targets::monitor_of(&rect).ok_or("영역이 놓인 모니터를 찾을 수 없습니다")?;
                 let area = rect
                     .intersect(&monitor.bounds)
                     .ok_or("영역이 모니터 밖에 있습니다")?;
@@ -50,6 +50,7 @@ impl Capture {
                     started,
                     crop: Some(crop),
                     queue,
+                    interruption,
                 };
                 Recorder::start_free_threaded(settings(
                     Monitor::from_raw_hmonitor(monitor.id.0),
@@ -61,6 +62,7 @@ impl Capture {
                     started,
                     crop: None,
                     queue,
+                    interruption,
                 };
                 let window = Window::from_raw_hwnd(id as *mut std::ffi::c_void);
                 Recorder::start_free_threaded(settings(window, flags))
@@ -122,6 +124,7 @@ struct RecorderFlags {
     /// 모니터 프레임에서 잘라 낼 영역. 창 녹화면 `None`.
     crop: Option<ScreenRect>,
     queue: Arc<FrameQueue<CapturedFrame>>,
+    interruption: Interruption,
 }
 
 /// 캡처 스레드에서 프레임을 받아 복사한 뒤 변환 큐에 넣는다.
@@ -129,6 +132,7 @@ struct Recorder {
     started: Instant,
     crop: Option<ScreenRect>,
     queue: Arc<FrameQueue<CapturedFrame>>,
+    interruption: Interruption,
     /// 첫 프레임의 크기. 이후 프레임을 이 크기에 맞춘다.
     size: Option<(u32, u32)>,
     unpadded: Vec<u8>,
@@ -144,16 +148,33 @@ impl GraphicsCaptureApiHandler for Recorder {
             started: flags.started,
             crop: flags.crop,
             queue: flags.queue,
+            interruption: flags.interruption,
             size: None,
             unpadded: Vec::new(),
         })
     }
 
+    /// 오류를 돌려주면 windows-capture가 캡처 스레드를 끝내므로, 그 전에 녹화가 멈췄다고 알린다.
     fn on_frame_arrived(
         &mut self,
         frame: &mut Frame,
         _capture_control: InternalCaptureControl,
     ) -> Result<(), Self::Error> {
+        self.copy_frame(frame).inspect_err(|error| {
+            self.interruption
+                .report(format!("화면을 읽지 못해 녹화를 끝냈습니다: {error}"));
+        })
+    }
+
+    fn on_closed(&mut self) -> Result<(), Self::Error> {
+        self.interruption
+            .report("녹화하던 창이 닫혀 녹화를 끝냈습니다".to_string());
+        Ok(())
+    }
+}
+
+impl Recorder {
+    fn copy_frame(&mut self, frame: &mut Frame) -> Result<(), BoxError> {
         let presented_at = self.started.elapsed();
         let buffer = match self.crop {
             Some(crop) => {

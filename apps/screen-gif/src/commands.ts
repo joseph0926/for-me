@@ -17,7 +17,8 @@ export type WindowTarget = {
 
 export type Target = { kind: "region"; rect: ScreenRect } | { kind: "window"; id: number };
 
-export type ViewSession = { id: number; error: string | null };
+/** `elapsedMs`는 녹화 중일 때 Rust가 잰 녹화 경과 시간이다. */
+export type ViewSession = { id: number; error: string | null; elapsedMs: number | null };
 export const viewSession = () => invoke<ViewSession | null>("view_session");
 export const listWindows = () => invoke<WindowTarget[]>("list_windows");
 export const cancelSelection = (id: number) => invoke<void>("cancel_selection", { id });

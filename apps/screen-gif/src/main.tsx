@@ -62,7 +62,7 @@ function SessionWindow({ view }: { view: "overlay" | "toolbar" }) {
   if (!session) return null;
   return view === "overlay"
     ? <Overlay key={session.id} id={session.id} />
-    : <Toolbar key={session.id} id={session.id} saveError={session.error} />;
+    : <Toolbar key={session.id} id={session.id} error={session.error} initialElapsedMs={session.elapsedMs ?? 0} />;
 }
 
 function OutsideApp() {

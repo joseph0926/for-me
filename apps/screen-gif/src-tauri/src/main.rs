@@ -15,7 +15,7 @@ use tauri::{
     tray::TrayIconBuilder,
 };
 
-use recording::{Recording, Target};
+use recording::{Interruption, Recording, Target};
 use targets::{MonitorArea, ScreenRect, WindowId, WindowTarget};
 
 const OVERLAY: &str = "overlay";
@@ -29,6 +29,9 @@ const TOOLBAR_GAP: f64 = 12.0;
 const FRAME_THICKNESS: f64 = 2.0;
 /// 창을 녹화할 때 테두리가 창 위치를 다시 확인하는 간격
 const FRAME_FOLLOW_INTERVAL: Duration = Duration::from_millis(100);
+/// 메인 스레드에 맡긴 화면 정보 조회를 기다리는 최대 시간
+#[cfg(target_os = "macos")]
+const MAIN_THREAD_TIMEOUT: Duration = Duration::from_secs(1);
 
 struct AppState {
     session: Mutex<Session>,
@@ -47,23 +50,32 @@ enum Phase {
     Idle,
     Selecting,
     Recording(Recording),
-    SaveFailed(String),
+    /// 녹화는 끝났고 조작 막대에 저장 실패나 도중에 멈춘 이유를 보여 주는 중
+    Ended(String),
 }
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ViewSession {
     id: u64,
     error: Option<String>,
+    /// 조작 막대가 경과 시간을 이어서 세도록 알려 주는 녹화 경과 시간
+    elapsed_ms: Option<u64>,
 }
 
 impl Session {
     fn view(&self, label: &str) -> Option<ViewSession> {
-        let error = match (&self.phase, label) {
-            (Phase::Selecting, OVERLAY) | (Phase::Recording(_), TOOLBAR) => None,
-            (Phase::SaveFailed(message), TOOLBAR) => Some(message.clone()),
+        let (error, elapsed) = match (&self.phase, label) {
+            (Phase::Selecting, OVERLAY) => (None, None),
+            (Phase::Recording(recording), TOOLBAR) => (None, Some(recording.elapsed())),
+            (Phase::Ended(message), TOOLBAR) => (Some(message.clone()), None),
             _ => return None,
         };
-        Some(ViewSession { id: self.id, error })
+        Some(ViewSession {
+            id: self.id,
+            error,
+            elapsed_ms: elapsed.map(|elapsed| elapsed.as_millis() as u64),
+        })
     }
 }
 
@@ -112,7 +124,7 @@ fn main() {
                             }
                         }
                         "stop" => {
-                            if let Err(error) = stop(&app, None) {
+                            if let Err(error) = stop(&app, None, None) {
                                 eprintln!("녹화를 저장할 수 없습니다: {error}");
                             }
                         }
@@ -188,6 +200,10 @@ fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
     if matches!(session.phase, Phase::Recording(_)) {
         return Ok(());
     }
+    // 선택 화면은 모니터 전체를 덮는 항상 위 창이라, 권한 없이 띄우면 권한을 줄 시스템 설정을 가린다(QA-014).
+    if !targets::ensure_capture_permission() {
+        return Ok(());
+    }
     let cursor = app.cursor_position()?;
     let monitor = targets::monitor_at(cursor.x as i32, cursor.y as i32)
         .ok_or_else(|| std::io::Error::other("선택 화면을 띄울 모니터가 없습니다"))?;
@@ -202,7 +218,7 @@ fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
     ))?;
     window.show()?;
     if !matches!(session.phase, Phase::Selecting) {
-        if matches!(session.phase, Phase::SaveFailed(_)) {
+        if matches!(session.phase, Phase::Ended(_)) {
             hide_window(app, TOOLBAR);
         }
         session.id += 1;
@@ -213,19 +229,30 @@ fn open_overlay(app: &AppHandle) -> tauri::Result<()> {
 }
 
 fn open_toolbar(app: &AppHandle, anchor: ScreenRect) -> tauri::Result<()> {
-    let monitor = targets::monitor_at(
-        anchor.left + anchor.width / 2,
-        anchor.top + anchor.height / 2,
-    )
-    .ok_or_else(|| std::io::Error::other("조작 막대를 띄울 모니터가 없습니다"))?;
+    let monitor = targets::monitor_of(&anchor)
+        .ok_or_else(|| std::io::Error::other("조작 막대를 띄울 모니터가 없습니다"))?;
     let scale = scale_of(app, &monitor)?;
     let width = (TOOLBAR_SIZE.0 * scale).round() as i32;
     let height = (TOOLBAR_SIZE.1 * scale).round() as i32;
     let gap = (TOOLBAR_GAP * scale).round() as i32;
-    let area = monitor.bounds;
+    let (left, top) = toolbar_position(anchor, usable_area(app, &monitor), (width, height), gap);
 
-    // 녹화 대상 아래에 두고, 자리가 없으면 위에, 그래도 없으면 대상 안쪽 아래에 둔다.
-    // 조작 막대는 녹화 결과에서 빠지므로 대상과 겹쳐도 GIF에는 나오지 않는다.
+    let window = recording_window(app, TOOLBAR, "screen-gif 녹화")?;
+    window.set_position(PhysicalPosition::new(left, top))?;
+    window.set_size(PhysicalSize::new(width as u32, height as u32))?;
+    window.show()
+}
+
+/// 조작 막대의 왼쪽 위 위치. 녹화 대상 아래에 두고, 자리가 없으면 위에, 그래도 없으면 대상 안쪽 아래에
+/// 둔다. 조작 막대는 녹화 결과에서 빠지므로 대상과 겹쳐도 GIF에는 나오지 않는다. 어느 자리든 `area`를
+/// 벗어나지 않게 끌어들여, 대상이 화면 밖이나 Dock 뒤까지 이어져도 막대는 보인다(QA-011, QA-015).
+fn toolbar_position(
+    anchor: ScreenRect,
+    area: ScreenRect,
+    size: (i32, i32),
+    gap: i32,
+) -> (i32, i32) {
+    let (width, height) = size;
     let below = anchor.bottom() + gap;
     let above = anchor.top - gap - height;
     let top = if below + height <= area.bottom() {
@@ -233,14 +260,41 @@ fn open_toolbar(app: &AppHandle, anchor: ScreenRect) -> tauri::Result<()> {
     } else if above >= area.top {
         above
     } else {
-        anchor.bottom() - gap - height
+        anchor.bottom().min(area.bottom()) - gap - height
     };
-    let left = (anchor.left + anchor.width / 2 - width / 2).clamp(area.left, area.right() - width);
+    let top = top.min(area.bottom() - height).max(area.top);
+    let left = (anchor.left + anchor.width / 2 - width / 2)
+        .min(area.right() - width)
+        .max(area.left);
+    (left, top)
+}
 
-    let window = recording_window(app, TOOLBAR, "screen-gif 녹화")?;
-    window.set_position(PhysicalPosition::new(left, top))?;
-    window.set_size(PhysicalSize::new(width as u32, height as u32))?;
-    window.show()
+/// 조작 막대를 놓을 수 있는 모니터 범위. 작업 표시줄은 항상 위 창인 막대를 덮으므로 뺀다(QA-015).
+#[cfg(windows)]
+fn usable_area(_app: &AppHandle, monitor: &MonitorArea) -> ScreenRect {
+    targets::usable_bounds(monitor.id).unwrap_or(monitor.bounds)
+}
+
+/// 조작 막대를 놓을 수 있는 모니터 범위. Dock과 메뉴 막대는 항상 위 창인 막대보다 높은 층이라
+/// 막대를 덮으므로 뺀다(QA-015).
+#[cfg(target_os = "macos")]
+fn usable_area(app: &AppHandle, monitor: &MonitorArea) -> ScreenRect {
+    // NSScreen은 메인 스레드에서만 읽을 수 있다. 이 함수는 명령 스레드에서 불리고 메인 스레드는
+    // 세션 잠금을 잡지 않아 기다려도 막히지 않지만, 응답이 없으면 모니터 전체 범위로 물러선다.
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let id = monitor.id;
+    let requested = app.run_on_main_thread(move || {
+        let bounds = objc2::MainThreadMarker::new().and_then(|mtm| targets::usable_bounds(id, mtm));
+        let _ = sender.send(bounds);
+    });
+    let usable = requested
+        .ok()
+        .and_then(|()| receiver.recv_timeout(MAIN_THREAD_TIMEOUT).ok())
+        .flatten();
+    usable.unwrap_or_else(|| {
+        eprintln!("Dock과 메뉴 막대를 뺀 범위를 읽지 못해 모니터 전체 범위를 씁니다");
+        monitor.bounds
+    })
 }
 
 /// 녹화 범위를 알리는 테두리 창. 클릭은 아래 창으로 통과시키고, 녹화 결과에서는 빠진다.
@@ -256,10 +310,7 @@ fn place_frame(
     window: &tauri::WebviewWindow,
     target: ScreenRect,
 ) -> tauri::Result<()> {
-    let Some(monitor) = targets::monitor_at(
-        target.left + target.width / 2,
-        target.top + target.height / 2,
-    ) else {
+    let Some(monitor) = targets::monitor_of(&target) else {
         return Ok(());
     };
     let thickness = (FRAME_THICKNESS * scale_of(app, &monitor)?).round() as i32;
@@ -327,7 +378,12 @@ fn hide_window(app: &AppHandle, label: &str) {
     }
 }
 
-fn stop(app: &AppHandle, expected: Option<u64>) -> Result<String, String> {
+/// 녹화를 멈추고 저장한다. `interrupted`는 사용자가 멈추기 전에 캡처나 변환이 멈춘 이유다.
+fn stop(
+    app: &AppHandle,
+    expected: Option<u64>,
+    interrupted: Option<String>,
+) -> Result<String, String> {
     let state = app.state::<AppState>();
     let mut session = state.session.lock().unwrap();
     if expected.is_some_and(|id| id != session.id) {
@@ -342,12 +398,18 @@ fn stop(app: &AppHandle, expected: Option<u64>) -> Result<String, String> {
     };
     hide_window(app, FRAME);
     let result = recording.stop();
-    match &result {
-        Ok(path) => {
+    match (&result, interrupted) {
+        (Ok(path), None) => {
             hide_window(app, TOOLBAR);
             reveal_in_file_manager(path);
         }
-        Err(error) => session.phase = Phase::SaveFailed(error.clone()),
+        // 도중에 멈춘 녹화는 저장한 뒤에도 조작 막대에 그 사실을 남긴다.
+        (Ok(path), Some(reason)) => {
+            reveal_in_file_manager(path);
+            session.phase = Phase::Ended(format!("{reason}. 멈춘 곳까지 저장했습니다"));
+        }
+        (Err(error), None) => session.phase = Phase::Ended(error.clone()),
+        (Err(error), Some(reason)) => session.phase = Phase::Ended(format!("{reason}. {error}")),
     }
     state.tray.set_recording(false);
     notify_session_changed(app);
@@ -374,9 +436,14 @@ fn cancel(app: &AppHandle, expected: Option<u64>) {
 /// 저장한 파일을 고른 상태로 파일 탐색기(macOS는 Finder)를 연다.
 fn reveal_in_file_manager(path: &Path) {
     #[cfg(windows)]
-    let _ = std::process::Command::new("explorer")
-        .arg(format!("/select,{}", path.display()))
-        .spawn();
+    {
+        use std::os::windows::process::CommandExt;
+        // explorer는 명령줄을 직접 해석해, 경로에 공백이 있을 때 Rust가 인자 전체에 씌운 따옴표를
+        // 읽지 못하고 기본 폴더를 연다. 경로만 따옴표로 감싸 넘긴다.
+        let _ = std::process::Command::new("explorer")
+            .raw_arg(format!("/select,\"{}\"", path.display()))
+            .spawn();
+    }
     #[cfg(target_os = "macos")]
     let _ = std::process::Command::new("open")
         .arg("-R")
@@ -427,8 +494,20 @@ async fn start_recording(app: AppHandle, id: u64, target: Target) -> Result<(), 
         .get_webview_window(OVERLAY)
         .ok_or("선택 화면을 찾을 수 없습니다")?;
     overlay.hide().map_err(|e| e.to_string())?;
+    let interruption = {
+        let app = app.clone();
+        Interruption::new(move |reason| {
+            let app = app.clone();
+            // 캡처나 변환 스레드에서 불린다. 정지는 그 스레드가 끝나기를 기다리므로 새 스레드에서 한다.
+            std::thread::spawn(move || {
+                if let Err(error) = stop(&app, Some(id), Some(reason)) {
+                    eprintln!("멈춘 녹화를 저장할 수 없습니다: {error}");
+                }
+            });
+        })
+    };
     let start = || {
-        let recording = Recording::start(target, &save_dir)?;
+        let recording = Recording::start(target, &save_dir, interruption)?;
         if let Err(error) = open_toolbar(&app, anchor) {
             recording.cancel();
             hide_window(&app, TOOLBAR);
@@ -462,10 +541,65 @@ async fn start_recording(app: AppHandle, id: u64, target: Target) -> Result<(), 
 
 #[tauri::command]
 async fn stop_recording(app: AppHandle, id: u64) -> Result<String, String> {
-    stop(&app, Some(id))
+    stop(&app, Some(id), None)
 }
 
 #[tauri::command]
 async fn cancel_recording(app: AppHandle, id: u64) {
     cancel(&app, Some(id));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::toolbar_position;
+    use crate::targets::ScreenRect;
+
+    fn rect(left: i32, top: i32, width: i32, height: i32) -> ScreenRect {
+        ScreenRect {
+            left,
+            top,
+            width,
+            height,
+        }
+    }
+
+    /// 막대 전체가 쓸 수 있는 범위 안에 있는지
+    fn inside(area: ScreenRect, (left, top): (i32, i32), (width, height): (i32, i32)) -> bool {
+        left >= area.left
+            && top >= area.top
+            && left + width <= area.right()
+            && top + height <= area.bottom()
+    }
+
+    const SIZE: (i32, i32) = (528, 136);
+    const GAP: i32 = 24;
+
+    #[test]
+    fn a_full_screen_region_keeps_the_toolbar_above_the_dock() {
+        // 2940x1912 화면에서 메뉴 막대(66)와 Dock(160)을 뺀 범위, 영역은 메뉴 막대 아래부터 화면 끝까지
+        let area = rect(0, 66, 2940, 1912 - 66 - 160);
+        let region = rect(0, 66, 2940, 1912 - 66);
+
+        let position = toolbar_position(region, area, SIZE, GAP);
+
+        assert!(inside(area, position, SIZE), "{position:?}");
+    }
+
+    #[test]
+    fn a_window_taller_than_the_screen_keeps_the_toolbar_on_screen() {
+        let area = rect(0, 66, 2940, 1846);
+        let window = rect(400, 70, 1200, 2400);
+
+        let position = toolbar_position(window, area, SIZE, GAP);
+
+        assert!(inside(area, position, SIZE), "{position:?}");
+    }
+
+    #[test]
+    fn a_small_region_still_gets_the_toolbar_below_it() {
+        let area = rect(0, 66, 2940, 1846);
+        let region = rect(1000, 500, 400, 300);
+
+        assert_eq!(toolbar_position(region, area, SIZE, GAP), (936, 824));
+    }
 }

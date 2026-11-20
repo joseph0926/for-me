@@ -40,7 +40,7 @@ fn paint(pixels: &mut [u8], left: usize, top: usize, width: usize, height: usize
 fn encode(frames: &[(&[u8], Duration)], ended_at: Duration, quality: Quality) -> Vec<u8> {
     let mut encoder = GifEncoder::new(Vec::new(), W as u16, H as u16, quality).unwrap();
     for (pixels, at) in frames {
-        encoder.add_frame(pixels, *at).unwrap();
+        encoder.add_frame(pixels.to_vec(), *at).unwrap();
     }
     encoder.finish(ended_at).unwrap()
 }
@@ -134,8 +134,8 @@ fn a_large_changed_area_is_reproduced_exactly() {
 
     let mut encoder =
         GifEncoder::new(Vec::new(), WIDTH as u16, HEIGHT as u16, Quality::Standard).unwrap();
-    encoder.add_frame(&first, ms(0)).unwrap();
-    encoder.add_frame(&second, ms(100)).unwrap();
+    encoder.add_frame(first, ms(0)).unwrap();
+    encoder.add_frame(second.clone(), ms(100)).unwrap();
     let gif = encoder.finish(ms(200)).unwrap();
 
     let shown = play_sized(&gif, WIDTH, HEIGHT);
@@ -272,7 +272,7 @@ fn a_replaced_frame_that_returns_to_the_previous_screen_keeps_the_timing() {
 fn rejects_a_buffer_of_the_wrong_size() {
     let mut encoder = GifEncoder::new(Vec::new(), W as u16, H as u16, Quality::Standard).unwrap();
 
-    let error = encoder.add_frame(&[0; 12], ms(0)).unwrap_err();
+    let error = encoder.add_frame(vec![0; 12], ms(0)).unwrap_err();
 
     assert!(
         matches!(error, EncodeError::FrameSize { expected, actual: 12 } if expected == W * H * 4)
@@ -282,9 +282,9 @@ fn rejects_a_buffer_of_the_wrong_size() {
 #[test]
 fn rejects_a_timestamp_earlier_than_the_previous_frame() {
     let mut encoder = GifEncoder::new(Vec::new(), W as u16, H as u16, Quality::Standard).unwrap();
-    encoder.add_frame(&solid([0, 0, 0]), ms(100)).unwrap();
+    encoder.add_frame(solid([0, 0, 0]), ms(100)).unwrap();
 
-    let error = encoder.add_frame(&solid([9, 9, 9]), ms(50)).unwrap_err();
+    let error = encoder.add_frame(solid([9, 9, 9]), ms(50)).unwrap_err();
 
     assert!(matches!(error, EncodeError::TimestampWentBackwards { .. }));
 }

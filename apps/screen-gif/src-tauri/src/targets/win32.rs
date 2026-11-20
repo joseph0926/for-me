@@ -149,6 +149,22 @@ pub fn monitor_at(x: i32, y: i32) -> Option<MonitorArea> {
     }
 }
 
+/// 작업 표시줄을 뺀 모니터 범위
+pub fn usable_bounds(id: MonitorId) -> Option<ScreenRect> {
+    let mut info = MONITORINFO {
+        cbSize: size_of::<MONITORINFO>() as u32,
+        ..Default::default()
+    };
+    unsafe { GetMonitorInfoW(id, &mut info) }
+        .as_bool()
+        .then(|| rect_from_win32(info.rcWork))
+}
+
+/// Windows의 화면 캡처는 따로 권한을 받지 않는다.
+pub fn ensure_capture_permission() -> bool {
+    true
+}
+
 /// 창 핸들이 가리키는 창의 현재 화면 범위
 pub fn window_bounds(id: WindowId) -> Option<ScreenRect> {
     let mut rect = RECT::default();

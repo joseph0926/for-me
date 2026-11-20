@@ -11,9 +11,15 @@ mod macos;
 mod win32;
 
 #[cfg(target_os = "macos")]
-pub use macos::{MonitorId, WindowId, display_scale, monitor_at, visible_windows, window_bounds};
+pub use macos::{
+    MonitorId, WindowId, display_scale, ensure_capture_permission, monitor_at, usable_bounds,
+    visible_windows, window_bounds,
+};
 #[cfg(windows)]
-pub use win32::{MonitorId, WindowId, monitor_at, visible_windows, window_bounds};
+pub use win32::{
+    MonitorId, WindowId, ensure_capture_permission, monitor_at, usable_bounds, visible_windows,
+    window_bounds,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScreenRect {
@@ -30,6 +36,10 @@ impl ScreenRect {
 
     pub fn bottom(&self) -> i32 {
         self.top + self.height
+    }
+
+    pub fn center(&self) -> (i32, i32) {
+        (self.left + self.width / 2, self.top + self.height / 2)
     }
 
     /// 두 사각형이 겹치는 부분. 겹치지 않으면 `None`.
@@ -59,6 +69,12 @@ pub struct WindowTarget {
 pub struct MonitorArea {
     pub id: MonitorId,
     pub bounds: ScreenRect,
+}
+
+/// 녹화 대상이 놓인 모니터. 캡처, 조작 막대와 녹화 범위 테두리가 같은 모니터를 고르도록 모두 이 함수로 찾는다.
+pub fn monitor_of(rect: &ScreenRect) -> Option<MonitorArea> {
+    let (x, y) = rect.center();
+    monitor_at(x, y)
 }
 
 #[cfg(test)]

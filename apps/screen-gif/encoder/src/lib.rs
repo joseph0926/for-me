@@ -130,7 +130,8 @@ impl<W: Write> GifEncoder<W> {
     }
 
     /// `rgba`는 불투명한 RGBA 픽셀이고, `presented_at`은 녹화 시작부터 이 화면이 보인 시각이다.
-    pub fn add_frame(&mut self, rgba: &[u8], presented_at: Duration) -> Result<(), EncodeError> {
+    /// 프레임은 다음 프레임이 올 때까지 보관하므로, 복사하지 않도록 버퍼를 넘겨받는다.
+    pub fn add_frame(&mut self, rgba: Vec<u8>, presented_at: Duration) -> Result<(), EncodeError> {
         let expected = self.width * self.height * 4;
         if rgba.len() != expected {
             return Err(EncodeError::FrameSize {
@@ -142,7 +143,7 @@ impl<W: Write> GifEncoder<W> {
 
         let Some(pending) = self.pending.as_mut() else {
             self.pending = Some(PendingFrame {
-                pixels: rgba.to_vec(),
+                pixels: rgba,
                 presented_at,
                 start_centis,
             });
@@ -154,17 +155,17 @@ impl<W: Write> GifEncoder<W> {
                 current: presented_at,
             });
         }
-        if rgba == pending.pixels.as_slice() {
+        if rgba == pending.pixels {
             return Ok(());
         }
         if start_centis - pending.start_centis < MIN_DELAY_CENTIS {
-            pending.pixels.copy_from_slice(rgba);
+            pending.pixels = rgba;
             return Ok(());
         }
 
         let delay = start_centis - pending.start_centis;
         let finished = self.pending.replace(PendingFrame {
-            pixels: rgba.to_vec(),
+            pixels: rgba,
             presented_at,
             start_centis,
         });

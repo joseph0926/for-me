@@ -19,7 +19,10 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{BufWriter, Write},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     thread::JoinHandle,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -62,6 +65,33 @@ pub struct Recording {
     save_dir: PathBuf,
 }
 
+/// 사용자가 멈추기 전에 녹화가 끝났음을 알린다. 캡처와 변환이 함께 실패해도 처음 한 번만 알린다.
+///
+/// 캡처 스레드와 변환 스레드에서 불리므로, 알림을 받는 쪽은 그 스레드의 종료를 기다리는 정지를
+/// 다른 스레드에서 해야 한다.
+#[derive(Clone)]
+pub struct Interruption(Arc<InterruptionState>);
+
+struct InterruptionState {
+    reported: AtomicBool,
+    notify: Box<dyn Fn(String) + Send + Sync>,
+}
+
+impl Interruption {
+    pub fn new(notify: impl Fn(String) + Send + Sync + 'static) -> Self {
+        Self(Arc::new(InterruptionState {
+            reported: AtomicBool::new(false),
+            notify: Box::new(notify),
+        }))
+    }
+
+    pub fn report(&self, reason: String) {
+        if !self.0.reported.swap(true, Ordering::AcqRel) {
+            (self.0.notify)(reason);
+        }
+    }
+}
+
 /// 캡처한 화면 한 장. 불투명한 RGBA 픽셀이고, 크기는 첫 프레임 크기로 맞춰져 있다.
 struct CapturedFrame {
     pixels: Vec<u8>,
@@ -71,7 +101,12 @@ struct CapturedFrame {
 }
 
 impl Recording {
-    pub fn start(target: Target, save_dir: &Path) -> Result<Self, String> {
+    /// 녹화를 시작한다. 캡처나 변환이 도중에 멈추면 `interruption`으로 이유를 알린다.
+    pub fn start(
+        target: Target,
+        save_dir: &Path,
+        interruption: Interruption,
+    ) -> Result<Self, String> {
         fs::create_dir_all(save_dir).map_err(|e| format!("저장 폴더를 만들 수 없습니다: {e}"))?;
         let part_path = save_dir.join(format!(".screen-gif-{}.gif.part", unix_millis()));
         let part_file = OpenOptions::new()
@@ -81,12 +116,9 @@ impl Recording {
             .map_err(|e| format!("임시 파일을 만들 수 없습니다: {e}"))?;
 
         let queue = Arc::new(FrameQueue::new(QUEUE_CAPACITY));
-        let converter = {
-            let queue = Arc::clone(&queue);
-            std::thread::spawn(move || convert(&queue, part_file))
-        };
+        let converter = spawn_converter(Arc::clone(&queue), part_file, interruption.clone());
         let started = Instant::now();
-        match Capture::start(target, started, Arc::clone(&queue)) {
+        match Capture::start(target, started, Arc::clone(&queue), interruption) {
             Ok(capture) => Ok(Self {
                 capture,
                 queue,
@@ -104,10 +136,19 @@ impl Recording {
         }
     }
 
+    /// 녹화를 시작한 뒤 지난 시간
+    pub fn elapsed(&self) -> Duration {
+        self.started.elapsed()
+    }
+
     /// 녹화를 멈추고 GIF를 저장한 경로를 돌려준다.
     pub fn stop(self) -> Result<PathBuf, String> {
         let ended_at = self.started.elapsed();
-        let stopped = self.capture.stop();
+        // 캡처 오류는 그 뒤의 화면을 받지 못했다는 뜻일 뿐이고, 그때까지 변환한 GIF는 온전하므로 저장한다.
+        // 도중에 멈춘 사실은 `Interruption`이 알린다.
+        if let Err(error) = self.capture.stop() {
+            eprintln!("화면 캡처를 멈추는 중 오류가 났습니다: {error}");
+        }
         // 캡처가 멈춘 뒤 큐를 닫아, 변환 스레드가 남은 프레임까지 변환하고 끝나게 한다.
         self.queue.close();
         let converted = self
@@ -118,13 +159,10 @@ impl Recording {
         if dropped > 0 {
             eprintln!("변환이 밀려 버린 프레임: {dropped}");
         }
-        let result = match (stopped, converted) {
-            (Err(error), _) => Err(format!("녹화를 멈추는 중 오류가 났습니다: {error}")),
-            (Ok(()), Err(error)) => Err(error),
-            (Ok(()), Ok(None)) => Err("녹화된 화면이 없습니다".to_string()),
-            (Ok(()), Ok(Some(encoder))) => {
-                finish(encoder, ended_at, &self.part_path, &self.save_dir)
-            }
+        let result = match converted {
+            Err(error) => Err(error),
+            Ok(None) => Err("녹화된 화면이 없습니다".to_string()),
+            Ok(Some(encoder)) => finish(encoder, ended_at, &self.part_path, &self.save_dir),
         };
         if result.is_err() {
             let _ = fs::remove_file(&self.part_path);
@@ -141,7 +179,24 @@ impl Recording {
     }
 }
 
-/// 변환 스레드. 큐가 닫힐 때까지 프레임을 꺼내 GIF로 쓴다. 취소되면 `None`.
+/// 변환 스레드를 띄운다. 변환에 실패하면 큐를 중단하고 녹화가 멈췄다고 알린다.
+fn spawn_converter(
+    queue: Arc<FrameQueue<CapturedFrame>>,
+    file: File,
+    interruption: Interruption,
+) -> JoinHandle<Result<Option<GifFile>, String>> {
+    std::thread::spawn(move || {
+        let converted = convert(&queue, file);
+        if converted.is_err() {
+            // 변환을 이어 갈 수 없으므로 캡처한 프레임을 더 쌓지 않는다.
+            queue.abort();
+            interruption.report("GIF 변환에 실패해 녹화를 멈췄습니다".to_string());
+        }
+        converted
+    })
+}
+
+/// 큐가 닫힐 때까지 프레임을 꺼내 GIF로 쓴다. 취소되면 `None`.
 fn convert(queue: &FrameQueue<CapturedFrame>, file: File) -> Result<Option<GifFile>, String> {
     let mut file = Some(file);
     let mut encoder: Option<GifFile> = None;
@@ -161,7 +216,7 @@ fn convert(queue: &FrameQueue<CapturedFrame>, file: File) -> Result<Option<GifFi
             }
         };
         encoder
-            .add_frame(&frame.pixels, frame.presented_at)
+            .add_frame(frame.pixels, frame.presented_at)
             .map_err(|e| e.to_string())?;
     }
     Ok(encoder)
@@ -230,10 +285,70 @@ fn fit_into(pixels: &[u8], from: (u32, u32), to: (u32, u32), out: &mut Vec<u8>) 
 
 #[cfg(test)]
 mod tests {
-    use super::fit_into;
+    use std::{
+        fs::{self, File},
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
+
+    use super::{CapturedFrame, Interruption, fit_into, spawn_converter};
+    use crate::frame_queue::FrameQueue;
 
     fn image(width: usize, height: usize, value: u8) -> Vec<u8> {
         vec![value; width * height * 4]
+    }
+
+    fn recorded_reasons() -> (Interruption, Arc<Mutex<Vec<String>>>) {
+        let reasons = Arc::new(Mutex::new(Vec::new()));
+        let interruption = {
+            let reasons = Arc::clone(&reasons);
+            Interruption::new(move |reason| reasons.lock().unwrap().push(reason))
+        };
+        (interruption, reasons)
+    }
+
+    #[test]
+    fn a_conversion_failure_stops_the_queue_and_reports_once_while_recording() {
+        let part_path = std::env::temp_dir().join(format!(
+            "screen-gif-test-{}-{}.gif.part",
+            std::process::id(),
+            super::unix_millis()
+        ));
+        let file = File::create(&part_path).unwrap();
+        let queue = Arc::new(FrameQueue::new(4));
+        let (interruption, reasons) = recorded_reasons();
+        let converter = spawn_converter(Arc::clone(&queue), file, interruption);
+
+        // 1x1 프레임이라면서 픽셀은 3바이트뿐이라 인코더가 거절한다.
+        queue.push(CapturedFrame {
+            pixels: vec![0; 3],
+            width: 1,
+            height: 1,
+            presented_at: Duration::ZERO,
+        });
+        // 큐를 닫지 않아도 변환 스레드가 스스로 끝나야 녹화 중에 알릴 수 있다.
+        let converted = converter.join().unwrap();
+        let _ = fs::remove_file(&part_path);
+
+        assert!(converted.is_err());
+        assert_eq!(reasons.lock().unwrap().len(), 1);
+        // 중단된 큐는 캡처가 넣는 프레임을 더 받지 않는다.
+        queue.push(CapturedFrame {
+            pixels: image(1, 1, 0),
+            width: 1,
+            height: 1,
+            presented_at: Duration::ZERO,
+        });
+        assert!(queue.pop().is_none());
+    }
+
+    #[test]
+    fn capture_and_conversion_failing_together_report_only_the_first_reason() {
+        let (interruption, reasons) = recorded_reasons();
+        interruption.clone().report("캡처".to_string());
+        interruption.report("변환".to_string());
+
+        assert_eq!(*reasons.lock().unwrap(), vec!["캡처".to_string()]);
     }
 
     #[test]
