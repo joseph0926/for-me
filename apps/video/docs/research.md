@@ -150,3 +150,9 @@ libVLC의 `FileDescriptor` 입력으로 시스템 선택기에서 받은 파일�
 3.7.7 Java API에는 실시간 자막 크기 setter가 없습니다. `--freetype-rel-fontsize` 생성 옵션을 검증하고, 크기를 바꿀 때 재생기 재생성과 함께 위치, 재생 의도, 자막 선택과 싱크를 복원하는 방안을 검토합니다. ASS의 자체 스타일과 이미지 자막에 같은 설정이 적용된다고 보장하지 않습니다. [공식 VLC 옵션 구현](https://github.com/videolan/vlc-android/blob/master/application/resources/src/main/java/org/videolan/resources/VLCOptions.kt), [VLC 3 ASS 디코더](https://github.com/videolan/vlc/blob/3.0.x/modules/codec/libass.c).
 
 첫 검증은 한글 UTF-8 SRT와 다중 내장 자막으로 시작합니다. 이후 ASS/SSA, SMI/SAMI, WebVTT, CP949/EUC-KR과 이미지 자막 샘플을 추가합니다. 선택 취소, 권한 거절, 파일 이동과 삭제, 회전, 재생 종료 후 다시 열기와 업데이트 후 보존을 확인합니다. 자막 실패 때문에 영상 자체를 사용할 수 없게 만들지 않습니다.
+
+## 2026-11-20 자막 구현 결정
+
+내장 자막은 libVLC 3.7.7이 제공한 트랙 ID로 고릅니다. MKV를 avformat으로 먼저 열었을 때 SubRip 트랙은 목록에 나왔지만 코덱을 식별하지 못해 글자가 나오지 않았습니다. 같은 샘플에서 `:demux=mkv,avformat,any`로 바꾸니 한글과 영어가 표시됐습니다.
+
+외부 UTF-8 SRT는 시스템 선택기가 내준 주소에서 읽기 전용으로 열고, 재생 시각에서 사용자가 정한 지연값을 뺀 시각의 문장을 표시합니다. 이 방식은 재생기를 다시 만들지 않고 외부 자막의 글자 크기를 바꿀 수 있습니다. 읽기 권한을 유지할 수 있을 때 영상별로 원본 주소를 저장합니다. 자막 설정은 재생 기록 데이터베이스 밖에 보관하며, 원본 영상과 자막에는 쓰지 않습니다.

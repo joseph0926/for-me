@@ -1,0 +1,963 @@
+--- a/apps/video/README.md
++++ b/apps/video/README.md
+@@ -9,11 +9,11 @@
+ 2026-11-20 기준으로 Android 시제품을 개발 중입니다.
+ 
+ - 시스템 파일 선택기로 영상을 열고, 재생 위치를 저장해 이어봅니다.
+-- Viewgrain의 SCENE과 FRAME 레퍼런스로 홈, 보관함과 재생 화면을 리디자인했습니다. Viewgrain은 이후 [폐기](../../docs/retired-viewgrain.md)했습니다. 실제 파일의 썸네일과 최근 20개 기록을 표시하며, 보관함에서 제목을 검색합니다.
++- 홈에서 마지막으로 본 영상의 장면과 멈춘 시간을 확인하고 바로 이어봅니다. 그 아래에는 다른 최근 영상과 등록한 폴더가 나옵니다. 보관함에서는 최근에 연 영상 20편을 제목으로 검색합니다.
+ - 영상 영역을 누르면 재생과 일시정지가 전환됩니다. 재생바와 버튼 묶음은 세로와 가로 모두 가운데에 배치합니다.
+ - 오른쪽 위 자물쇠로 화면을 잠급니다. 잠금 중 화면 터치와 뒤로 가기는 해제 버튼만 표시하며, 회전해도 잠금은 유지됩니다.
+ - 재생 화면 위쪽의 **자막**에서 영상에 들어 있는 자막을 고르거나 끌 수 있습니다. **외부 SRT 열기**에서 UTF-8로 저장한 SRT 파일을 선택합니다. 자막은 0.1초씩 일찍 또는 늦게 표시할 수 있고, 외부 SRT는 글자 크기도 바꿀 수 있습니다. 영상마다 선택과 설정을 기억합니다.
+-- **보관함 → 폴더별 영상 → 폴더 추가**에서 폴더를 선택합니다. 목록에서 하위 폴더로 들어가 영상을 재생할 수 있고, 재생을 닫으면 보던 폴더로 돌아옵니다. 파일을 추가하거나 옮긴 뒤에는 **새로고침**을 누릅니다.
++- **폴더 → 폴더 추가**에서 폴더를 선택합니다. 하위 폴더로 들어가 미리보기를 눌러 재생하고, 뒤로 가면 보던 폴더로 돌아옵니다. 파일을 추가하거나 옮긴 뒤에는 **새로고침**을 누릅니다. 홈, 보관함, 폴더 메뉴는 세로 화면 아래에, 가로 휴대폰 화면 왼쪽에 있습니다.
+ 
+ 2026-11-20 [자막 검증](docs/verification.md#2026-11-20-자막-선택과-표시)에서 Android 17 가상 기기로 한글과 영어 내장 자막 전환, 외부 한글 SRT 표시와 설정 복원을 확인했습니다. 실제 휴대폰 검증은 남아 있습니다.
+ 
+--- a/apps/video/android/src/main/java/dev/forme/video/MainActivity.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/MainActivity.kt
+@@ -8,7 +8,6 @@
+ import androidx.activity.enableEdgeToEdge
+ import androidx.lifecycle.viewmodel.compose.viewModel
+ import dev.forme.video.ui.VideoApp
+-import dev.forme.video.ui.VideoTheme
+ 
+ class MainActivity : ComponentActivity() {
+     override fun onCreate(savedInstanceState: Bundle?) {
+@@ -18,9 +17,7 @@
+             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+         )
+         setContent {
+-            VideoTheme {
+-                VideoApp(viewModel())
+-            }
++            VideoApp(viewModel())
+         }
+     }
+ }
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/FolderBrowser.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/FolderBrowser.kt
+@@ -5,6 +5,7 @@
+ import androidx.activity.compose.BackHandler
+ import androidx.activity.compose.rememberLauncherForActivityResult
+ import androidx.activity.result.contract.ActivityResultContracts
++import androidx.compose.foundation.background
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.foundation.lazy.LazyColumn
+@@ -18,8 +19,12 @@
+ import androidx.compose.ui.res.painterResource
+ import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.style.TextOverflow
++import androidx.compose.ui.draw.clip
++import androidx.compose.ui.unit.Dp
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.semantics.Role
++import androidx.compose.ui.semantics.contentDescription
++import androidx.compose.ui.semantics.semantics
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.lifecycle.compose.LifecycleResumeEffect
+ import dev.forme.video.R
+@@ -32,8 +37,8 @@
+ import java.io.IOException
+ 
+ @Composable
+-internal fun FolderBrowser(folders: VideoFolders, play: (Uri) -> Unit, close: () -> Unit, modifier: Modifier) {
+-    var tree by rememberSaveable { mutableStateOf<Uri?>(null) }
++internal fun FolderBrowser(folders: VideoFolders, initialFolder: Uri?, play: (Uri) -> Unit, close: () -> Unit, modifier: Modifier) {
++    var tree by rememberSaveable { mutableStateOf(initialFolder) }
+     var path by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
+     var temporaryAccess by rememberSaveable { mutableStateOf(false) }
+     val current = tree
+@@ -53,16 +58,20 @@
+     }
+     BackHandler(onBack = back)
+     Column(modifier.fillMaxSize()) {
+-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
++        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 8.dp, end = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+             VideoIconButton(back, Modifier.size(48.dp)) {
+                 Icon(painterResource(R.drawable.ic_back), stringResource(R.string.folder_back))
+             }
+             Text(stringResource(R.string.folder_videos), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+             if (current == null) {
+-                TextButton(onClick = { picker.launch(null) }) { Text(stringResource(R.string.add_folder)) }
++                VideoButton(stringResource(R.string.add_folder), { picker.launch(null) }, icon = R.drawable.ic_add)
+             }
+         }
++        HorizontalDivider()
+         if (current == null) {
++            Box(Modifier.padding(horizontal = 20.dp)) {
++                SectionHeading(stringResource(R.string.registered_folders, folders.roots.size))
++            }
+             if (folders.roots.isEmpty()) {
+                 Text(stringResource(R.string.folders_empty), Modifier.padding(24.dp))
+             } else {
+@@ -119,9 +128,9 @@
+         }
+         if (failed) listing = null
+     }
+-    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
++    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+         Text(listing?.title ?: rootTitle, Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis,
+-            style = MaterialTheme.typography.titleMedium)
++            style = MaterialTheme.typography.titleLarge)
+         TextButton(onClick = { revision++ }) { Text(stringResource(R.string.refresh_folder)) }
+     }
+     if (temporaryAccess) Text(stringResource(R.string.folder_temporary), Modifier.padding(horizontal = 24.dp))
+@@ -137,7 +146,8 @@
+             if (!current.loading && current.entries.isEmpty()) Text(stringResource(R.string.folder_empty), Modifier.padding(24.dp))
+             LazyColumn(state = scroll) {
+                 items(current.entries, key = { it.id }) { entry ->
+-                    FolderRow(entry.title, entry.isFolder) {
++                    val video = if (entry.isFolder) null else DocumentsContract.buildDocumentUriUsingTree(tree, entry.id)
++                    FolderRow(entry.title, entry.isFolder, video = video) {
+                         if (entry.isFolder) enter(entry.id) else play(entry.id)
+                     }
+                 }
+@@ -147,12 +157,24 @@
+ }
+ 
+ @Composable
+-private fun FolderRow(label: String, isFolder: Boolean, click: () -> Unit) {
+-    Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = click).heightIn(min = 56.dp)
+-        .padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
+-        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+-        Icon(painterResource(if (isFolder) R.drawable.ic_folder else R.drawable.ic_play),
+-            stringResource(if (isFolder) R.string.folder else R.string.folder_video), Modifier.size(24.dp))
+-        Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
++internal fun FolderRow(label: String, isFolder: Boolean, video: Uri? = null, inset: Dp = 20.dp, click: () -> Unit) {
++    val videoLabel = stringResource(R.string.folder_video)
++    Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = click)
++        .padding(horizontal = inset, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
++        horizontalArrangement = Arrangement.spacedBy(14.dp)) {
++        if (video != null) {
++            VideoArtwork(video.toString(), Modifier.size(76.dp, 48.dp).clip(MaterialTheme.shapes.small)
++                .semantics { contentDescription = videoLabel })
++        } else {
++            Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium),
++                contentAlignment = Alignment.Center) {
++                Icon(painterResource(R.drawable.ic_folder), stringResource(R.string.folder), Modifier.size(21.dp),
++                    tint = MaterialTheme.colorScheme.onPrimaryContainer)
++            }
++        }
++        Text(label, Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis,
++            style = MaterialTheme.typography.titleMedium)
++        Icon(painterResource(R.drawable.ic_chevron), null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
+     }
++    HorizontalDivider(Modifier.padding(start = inset + if (isFolder) 58.dp else 90.dp, end = inset))
+ }
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/LibraryScreen.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/LibraryScreen.kt
+@@ -1,33 +1,32 @@
+ package dev.forme.video.ui
+ 
++import android.net.Uri
++import androidx.compose.foundation.Image
+ import androidx.compose.foundation.background
+-import androidx.compose.foundation.border
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.foundation.lazy.LazyColumn
+-import androidx.compose.foundation.lazy.LazyRow
+ import androidx.compose.foundation.lazy.items
++import androidx.compose.foundation.selection.selectableGroup
+ import androidx.compose.foundation.shape.CircleShape
+-import androidx.compose.foundation.selection.selectable
+-import androidx.compose.ui.semantics.Role
+-import androidx.compose.ui.platform.LocalWindowInfo
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.runtime.saveable.rememberSaveable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+-import androidx.compose.ui.graphics.Brush
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.res.painterResource
+ import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.semantics.Role
++import androidx.compose.ui.semantics.heading
++import androidx.compose.ui.semantics.semantics
++import androidx.compose.ui.text.font.FontFamily
+ import androidx.compose.ui.text.style.TextOverflow
+ import androidx.compose.ui.unit.dp
+-import androidx.compose.ui.unit.sp
+-import android.net.Uri
+-import dev.forme.video.data.VideoFolders
+ import dev.forme.video.R
+ import dev.forme.video.data.PlaybackRecord
++import dev.forme.video.data.VideoFolders
+ 
+ @Composable
+ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
+@@ -35,155 +34,225 @@
+     var library by rememberSaveable { mutableStateOf(false) }
+     var query by rememberSaveable { mutableStateOf("") }
+     var browsingFolders by rememberSaveable { mutableStateOf(false) }
+-    if (browsingFolders) {
+-        FolderBrowser(folders, playFromFolder, { browsingFolders = false }, modifier)
+-        return
+-    }
+-    Column(modifier.fillMaxSize()) {
+-        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+-            verticalAlignment = Alignment.CenterVertically) {
+-            Text("for me", style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 3.sp),
+-                modifier = Modifier.weight(1f))
+-            VideoIconButton(openFile, Modifier.size(48.dp)) {
+-                Icon(painterResource(R.drawable.ic_add), stringResource(R.string.open_video))
+-            }
+-        }
+-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 28.dp),
+-            verticalArrangement = Arrangement.spacedBy(24.dp)) {
+-            if (library) {
+-                item {
+-                    Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+-                        Text(stringResource(R.string.library), style = MaterialTheme.typography.headlineLarge)
+-                        VideoButton(stringResource(R.string.folder_videos), { browsingFolders = true }, secondary = true)
+-                        Text(stringResource(R.string.library_count, records.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
+-                        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
+-                            label = { Text(stringResource(R.string.search_videos)) },
+-                            shape = MaterialTheme.shapes.small)
+-                    }
+-                }
+-                val visible = records.filter { it.title.contains(query, ignoreCase = true) }
+-                if (visible.isEmpty()) item {
+-                    EmptyCollection(records.isEmpty(), openFile)
+-                }
+-                items(visible, key = { it.uri }) { record ->
+-                    VideoRow(record) { play(record) }
++    var initialFolder by rememberSaveable { mutableStateOf<Uri?>(null) }
++    val browse = {
++        initialFolder = null
++        browsingFolders = true
++    }
++    val activeTab = when {
++        browsingFolders -> R.string.folder
++        library -> R.string.library
++        else -> R.string.home
++    }
++    LibraryScaffold(modifier, activeTab, select = { label ->
++        if (label == R.string.folder && !browsingFolders) initialFolder = null
++        browsingFolders = label == R.string.folder
++        if (!browsingFolders) library = label == R.string.library
++    }) {
++        if (browsingFolders) {
++            FolderBrowser(folders, initialFolder, playFromFolder, { browsingFolders = false }, Modifier.weight(1f).widthIn(max = 840.dp))
++        } else {
++            Column(Modifier.weight(1f).widthIn(max = 840.dp).fillMaxWidth()) {
++                Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 20.dp, vertical = 8.dp),
++                    verticalAlignment = Alignment.CenterVertically) {
++                    BrandMark(34)
++                    Spacer(Modifier.width(10.dp))
++                    Text(stringResource(R.string.app_name), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
++                    if (records.isNotEmpty() || library) {
++                        VideoButton(stringResource(R.string.open_video), openFile, icon = R.drawable.ic_add)
++                    }
++                }
++                HorizontalDivider()
++                key(library) {
++                    LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp)) {
++                        item {
++                            Text(stringResource(if (library) R.string.library else R.string.continue_watching),
++                                Modifier.padding(top = 18.dp, bottom = 16.dp).semantics { heading() },
++                                style = MaterialTheme.typography.headlineLarge)
++                        }
++                        if (library) {
++                            item {
++                                FolderShortcut(folders.roots.size, browse)
++                                OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(top = 16.dp),
++                                    singleLine = true, label = { Text(stringResource(R.string.search_videos)) },
++                                    shape = MaterialTheme.shapes.medium)
++                                SectionHeading(stringResource(R.string.library_count, records.size))
++                            }
++                            val visible = records.filter { it.title.contains(query, ignoreCase = true) }
++                            if (visible.isEmpty()) item {
++                                Text(stringResource(if (records.isEmpty()) R.string.empty_description else R.string.try_another_title),
++                                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
++                            }
++                            items(visible, key = { it.uri }) { record -> VideoRow(record) { play(record) } }
++                        } else {
++                            val latest = records.firstOrNull()
++                            item {
++                                if (latest != null) FeaturedVideo(latest) { play(latest) }
++                                else EmptyPlayer(openFile)
++                            }
++                            if (records.size > 1) {
++                                item {
++                                    Row(verticalAlignment = Alignment.CenterVertically) {
++                                        Box(Modifier.weight(1f)) { SectionHeading(stringResource(R.string.recent_videos)) }
++                                        TextButton(onClick = { library = true }) { Text(stringResource(R.string.see_all)) }
++                                    }
++                                }
++                                items(records.drop(1).take(4), key = { it.uri }) { record -> VideoRow(record) { play(record) } }
++                            }
++                            if (folders.roots.isNotEmpty()) {
++                                item { SectionHeading(stringResource(R.string.registered_folders, folders.roots.size)) }
++                                val roots = folders.roots.asSequence().sortedBy { it.value.lowercase() }.take(3).toList()
++                                items(roots, key = { "folder:${it.key}" }) { (uri, title) ->
++                                    FolderRow(title, isFolder = true, inset = 0.dp) {
++                                        initialFolder = uri
++                                        browsingFolders = true
++                                    }
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
++private val destinations = listOf(R.drawable.ic_home to R.string.home,
++    R.drawable.ic_library to R.string.library, R.drawable.ic_folder to R.string.folder)
++
++@Composable
++private fun LibraryScaffold(modifier: Modifier, activeTab: Int, select: (Int) -> Unit,
++    content: @Composable ColumnScope.() -> Unit) {
++    BoxWithConstraints(modifier.fillMaxSize()) {
++        val sideNavigation = maxWidth >= 600.dp && maxHeight < 500.dp
++        Row(Modifier.fillMaxSize()) {
++            if (sideNavigation) {
++                Column(Modifier.fillMaxHeight().width(84.dp).selectableGroup().padding(vertical = 8.dp),
++                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
++                    destinations.forEach { (icon, label) ->
++                        NavigationRailItem(selected = label == activeTab, onClick = { select(label) },
++                            icon = { Icon(painterResource(icon), null, Modifier.size(21.dp)) },
++                            label = { Text(stringResource(label)) },
++                            colors = NavigationRailItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.primaryContainer))
++                    }
++                }
++                VerticalDivider()
++            }
++            Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
++                content()
++                if (!sideNavigation) {
++                    HorizontalDivider()
++                    Row(Modifier.widthIn(max = 560.dp).fillMaxWidth().selectableGroup().padding(4.dp)) {
++                        destinations.forEach { (icon, label) ->
++                            NavigationBarItem(selected = label == activeTab, onClick = { select(label) },
++                                icon = { Icon(painterResource(icon), null, Modifier.size(21.dp)) },
++                                label = { Text(stringResource(label), style = MaterialTheme.typography.labelMedium) },
++                                colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.primaryContainer,
++                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
++                                    selectedTextColor = MaterialTheme.colorScheme.primary))
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
++@Composable
++internal fun BrandMark(size: Int) {
++    Box(Modifier.size(size.dp).clip(MaterialTheme.shapes.small).background(CinemaSurface),
++        contentAlignment = Alignment.Center) {
++        Image(painterResource(R.drawable.video_logo), null, Modifier.fillMaxSize())
++    }
++}
++
++@Composable
++internal fun SectionHeading(title: String) {
++    Text(title, Modifier.padding(top = 22.dp, bottom = 10.dp).semantics { heading() },
++        style = MaterialTheme.typography.titleMedium)
++}
++
++@Composable
++private fun FolderShortcut(count: Int, click: () -> Unit) {
++    Surface(onClick = click, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer) {
++        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically,
++            horizontalArrangement = Arrangement.spacedBy(14.dp)) {
++            Icon(painterResource(R.drawable.ic_folder), null)
++            Text(stringResource(R.string.folder_videos), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
++            Text(count.toString(), fontFamily = FontFamily.Monospace)
++            Icon(painterResource(R.drawable.ic_chevron), null, Modifier.size(18.dp))
++        }
++    }
++}
++
++@Composable
++private fun FeaturedVideo(record: PlaybackRecord, play: () -> Unit) {
++    Surface(onClick = play, shape = MaterialTheme.shapes.large, color = CinemaSurface, contentColor = Color.White) {
++        BoxWithConstraints(Modifier.fillMaxWidth()) {
++            if (maxWidth >= 570.dp) {
++                Row(verticalAlignment = Alignment.CenterVertically) {
++                    VideoArtwork(record.uri, Modifier.weight(1.25f).aspectRatio(16f / 9))
++                    Box(Modifier.weight(1f)) { FeatureDetails(record) }
+                 }
+             } else {
+-                item {
+-                    val latest = records.firstOrNull()
+-                    if (latest != null) FeaturedVideo(latest) { play(latest) }
+-                    else EmptyCollection(true, openFile)
+-                }
+-                if (records.isNotEmpty()) {
+-                    item {
+-                        SectionTitle(stringResource(R.string.continue_watching)) { library = true }
+-                        Spacer(Modifier.height(14.dp))
+-                        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp),
+-                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+-                            items(records, key = { it.uri }) { record ->
+-                                Column(Modifier.width(240.dp).clickable { play(record) }) {
+-                                    Box(Modifier.fillMaxWidth().height(138.dp).clip(MaterialTheme.shapes.medium)) {
+-                                        VideoArtwork(record.uri, Modifier.fillMaxSize())
+-                                        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp)
+-                                            .background(Color.White.copy(alpha = 0.2f))) {
+-                                            Box(Modifier.fillMaxWidth(progress(record)).fillMaxHeight().background(Color.White))
+-                                        }
+-                                    }
+-                                    Spacer(Modifier.height(10.dp))
+-                                    Text(record.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+-                                        style = MaterialTheme.typography.titleMedium)
+-                                    Text(timeSummary(record), style = MaterialTheme.typography.bodySmall,
+-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+-                                }
+-                            }
+-                        }
+-                    }
+-                    item { SectionTitle(stringResource(R.string.recent_videos)) { library = true } }
+-                    items(records.take(4), key = { "recent:" + it.uri }) { record -> VideoRow(record) { play(record) } }
+-                }
+-            }
+-        }
+-        HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+-            NavigationItem(R.drawable.ic_home, R.string.home, !library) { library = false }
+-            NavigationItem(R.drawable.ic_library, R.string.library, library) { library = true }
+-            NavigationItem(R.drawable.ic_folder, R.string.open_video, false, openFile)
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun FeaturedVideo(record: PlaybackRecord, play: () -> Unit) {
+-    val windowSize = LocalWindowInfo.current.containerSize
+-    val heroHeight = if (windowSize.width > windowSize.height) 220.dp else 380.dp
+-    Box(Modifier.fillMaxWidth().height(heroHeight)) {
+-        VideoArtwork(record.uri, Modifier.fillMaxSize())
+-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
+-            Color.Black.copy(alpha = 0.05f), Color(0xFF0B1016).copy(alpha = 0.35f), Color(0xFF0B1016)))))
+-        Column(Modifier.align(Alignment.BottomStart).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+-            Text(stringResource(R.string.your_last_scene), style = MaterialTheme.typography.labelMedium,
+-                color = Color.White.copy(alpha = 0.8f))
+-            Text(record.title, maxLines = 2, overflow = TextOverflow.Ellipsis,
+-                style = MaterialTheme.typography.headlineLarge)
+-            Text(timeSummary(record), color = MaterialTheme.colorScheme.onSurfaceVariant)
+-            VideoButton(stringResource(R.string.resume_video), play)
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun EmptyCollection(empty: Boolean, openFile: () -> Unit) {
+-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 48.dp),
+-        verticalArrangement = Arrangement.spacedBy(20.dp)) {
+-        Icon(painterResource(R.drawable.ic_library), null, Modifier.size(48.dp),
+-            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+-        Text(stringResource(if (empty) R.string.empty_title else R.string.no_search_results),
+-            style = MaterialTheme.typography.headlineLarge)
+-        Text(stringResource(if (empty) R.string.empty_description else R.string.try_another_title),
+-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+-        if (empty) VideoButton(stringResource(R.string.open_video), openFile)
+-    }
+-}
+-
+-@Composable
+-private fun SectionTitle(title: String, open: () -> Unit) {
+-    Row(Modifier.fillMaxWidth().clickable(onClick = open).padding(horizontal = 24.dp).heightIn(min = 48.dp),
+-        verticalAlignment = Alignment.CenterVertically) {
+-        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+-        Icon(painterResource(R.drawable.ic_chevron), null, Modifier.size(20.dp))
++                Column {
++                    VideoArtwork(record.uri, Modifier.fillMaxWidth().aspectRatio(16f / 9))
++                    FeatureDetails(record)
++                }
++            }
++        }
++    }
++}
++
++@Composable
++private fun FeatureDetails(record: PlaybackRecord) {
++    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
++        Text(record.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleLarge)
++        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
++            Box(Modifier.size(34.dp).background(ScreenAccent, CircleShape), contentAlignment = Alignment.Center) {
++                Icon(painterResource(R.drawable.ic_play), null, Modifier.size(18.dp), tint = CinemaSurface)
++            }
++            Text(stringResource(R.string.resume_video), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
++            Timecode(record)
++        }
++        if (record.durationMs > 0) {
++            Box(Modifier.fillMaxWidth().height(3.dp).background(Color.White.copy(alpha = 0.22f))) {
++                val progress = (record.positionMs.toFloat() / record.durationMs).coerceIn(0f, 1f)
++                Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(ScreenAccent))
++            }
++        }
++    }
++}
++
++@Composable
++private fun Timecode(record: PlaybackRecord) {
++    val time = if (record.durationMs > 0) "${formatTime(record.positionMs)} / ${formatTime(record.durationMs)}"
++        else formatTime(record.positionMs)
++    Text(time, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium)
++}
++
++@Composable
++private fun EmptyPlayer(openFile: () -> Unit) {
++    Surface(shape = MaterialTheme.shapes.large, color = CinemaSurface, contentColor = Color.White) {
++        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
++            BrandMark(76)
++            Text(stringResource(R.string.empty_title), style = MaterialTheme.typography.titleLarge)
++            Text(stringResource(R.string.empty_description), color = Color.White.copy(alpha = 0.82f))
++            FilledTonalButton(onClick = openFile) { Text(stringResource(R.string.open_video)) }
++        }
+     }
+ }
+ 
+ @Composable
+ private fun VideoRow(record: PlaybackRecord, play: () -> Unit) {
+-    Row(Modifier.fillMaxWidth().clickable(onClick = play).padding(horizontal = 24.dp),
+-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+-        VideoArtwork(record.uri, Modifier.width(104.dp).height(64.dp).clip(MaterialTheme.shapes.medium))
+-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
++    Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = play).padding(vertical = 12.dp),
++        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
++        VideoArtwork(record.uri, Modifier.size(92.dp, 56.dp).clip(MaterialTheme.shapes.small))
++        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+             Text(record.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+-            Text(timeSummary(record), style = MaterialTheme.typography.bodySmall,
+-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+-        }
+-        Box(Modifier.size(30.dp).border(1.dp, Color.White.copy(alpha = 0.7f), CircleShape),
+-            contentAlignment = Alignment.Center) {
+-            Icon(painterResource(R.drawable.ic_play), null, Modifier.size(16.dp))
+-        }
+-    }
+-}
+-
+-@Composable
+-private fun NavigationItem(icon: Int, label: Int, selected: Boolean, onClick: () -> Unit) {
+-    val color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+-    Column(Modifier.widthIn(min = 80.dp).selectable(selected = selected, role = Role.Tab, onClick = onClick).padding(8.dp),
+-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+-        Icon(painterResource(icon), null, Modifier.size(24.dp), tint = color)
+-        Text(stringResource(label), style = MaterialTheme.typography.labelSmall, color = color)
+-    }
+-}
+-
+-private fun progress(record: PlaybackRecord): Float =
+-    if (record.durationMs > 0) (record.positionMs.toFloat() / record.durationMs).coerceIn(0f, 1f) else 0f
+-
+-private fun timeSummary(record: PlaybackRecord): String =
+-    if (record.durationMs > 0) "${formatTime(record.positionMs)} / ${formatTime(record.durationMs)}"
+-    else formatTime(record.positionMs)
++            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) { Timecode(record) }
++        }
++        Icon(painterResource(R.drawable.ic_chevron), null, Modifier.size(16.dp))
++    }
++    HorizontalDivider()
++}
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/PlayerScreen.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/PlayerScreen.kt
+@@ -11,6 +11,7 @@
+ import androidx.compose.animation.scaleIn
+ import androidx.compose.animation.scaleOut
+ import androidx.compose.animation.togetherWith
++import androidx.compose.foundation.shape.CircleShape
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.layout.*
+@@ -175,7 +176,7 @@
+                     exit = fadeOut(tween(200, easing = VideoEasing)),
+                 ) {
+                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
+-                        Color.Black.copy(alpha = 0.65f), Color.Transparent, Color.Black.copy(alpha = 0.85f))))) {
++                        Color.Black.copy(alpha = 0.88f), Color.Transparent, Color.Black.copy(alpha = 0.75f))))) {
+                         Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(12.dp),
+                             verticalAlignment = Alignment.CenterVertically) {
+                             VideoIconButton(model::closeVideo, Modifier.size(48.dp)) {
+@@ -183,15 +184,15 @@
+                             }
+                             Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                 Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+-                                    style = MaterialTheme.typography.titleLarge)
+-                                Text(stringResource(R.string.local_video), style = MaterialTheme.typography.bodySmall,
++                                    style = MaterialTheme.typography.titleMedium)
++                                Text(stringResource(R.string.local_video), style = MaterialTheme.typography.labelSmall,
+                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                             }
+-                            TextButton(onClick = {
++                            FilledTonalButton(onClick = {
+                                 touchControls()
+                                 playback.subtitles.refresh()
+                                 subtitleMenu = true
+-                            }, enabled = !state.loading && !seeking) { Text(stringResource(R.string.subtitles)) }
++                            }, enabled = !state.loading && !seeking, contentPadding = PaddingValues(horizontal = 12.dp)) { Text(stringResource(R.string.subtitles)) }
+                             VideoIconButton(onClick = {
+                                 screenLocked = true
+                                 resumePosition = null
+@@ -203,8 +204,10 @@
+                                 Icon(painterResource(R.drawable.ic_folder), stringResource(R.string.open_video))
+                             }
+                         }
+-                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+-                            .padding(horizontal = if (landscape) 24.dp else 16.dp, vertical = 16.dp)) {
++                        Column(Modifier.align(Alignment.BottomCenter).widthIn(max = 580.dp).fillMaxWidth()
++                            .padding(horizontal = if (landscape) 24.dp else 12.dp, vertical = 8.dp)
++                            .background(CinemaSurface.copy(alpha = 0.9f), MaterialTheme.shapes.large)
++                            .padding(horizontal = 14.dp, vertical = 6.dp)) {
+                             SeekBar(
+                                 positionMs = state.positionMs,
+                                 durationMs = state.durationMs,
+@@ -235,7 +238,7 @@
+                                 VideoIconButton(
+                                     onClick = { touchControls(); playback.togglePlayback() },
+                                     enabled = !state.loading && !seeking,
+-                                    modifier = Modifier.size(56.dp)
++                                    modifier = Modifier.size(52.dp).background(ScreenAccent, CircleShape)
+                                         .semantics { contentDescription = playLabel },
+                                 ) {
+                                     AnimatedContent(showPause, transitionSpec = {
+@@ -245,7 +248,7 @@
+                                                 scaleOut(tween(200, easing = VideoEasing), targetScale = 0.5f))
+                                     }, label = "playIcon") { pausedIcon ->
+                                         Icon(painterResource(if (pausedIcon) R.drawable.ic_pause else R.drawable.ic_play),
+-                                            null, Modifier.size(32.dp))
++                                            null, Modifier.size(27.dp), tint = CinemaSurface)
+                                     }
+                                 }
+                                 SkipButton(R.string.skip_forward, R.drawable.ic_skip_forward,
+@@ -348,7 +351,8 @@
+ ) {
+     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+         verticalArrangement = Arrangement.spacedBy(20.dp)) {
+-        Text(title, style = MaterialTheme.typography.titleLarge)
++        BrandMark(50)
++        Text(title, style = MaterialTheme.typography.headlineLarge)
+         Text(stringResource(error), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+         if (error == R.string.file_unavailable) {
+             // 시스템 문서 주소는 실제 파일 경로와 다르므로 경로로 단정하지 않는다.
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/SeekBar.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/SeekBar.kt
+@@ -50,7 +50,7 @@
+     val seekLabel = stringResource(R.string.seek)
+     val currentTime = formatTime(shownPosition.toLong())
+     val totalTime = formatTime(durationMs)
+-    val timeStyle = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum")
++    val timeStyle = MaterialTheme.typography.labelMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+     val textMeasurer = rememberTextMeasurer()
+     val timeWidthPx = maxOf(
+         textMeasurer.measure(currentTime, timeStyle).size.width,
+@@ -84,7 +84,7 @@
+                         val start = if (layoutDirection == LayoutDirection.Rtl) size.width else 0f
+                         val end = if (layoutDirection == LayoutDirection.Rtl) 0f else size.width
+                         val centerY = size.height / 2
+-                        drawLine(colors.outline.copy(alpha = if (enabled) 1f else 0.4f),
++                        drawLine(colors.outline.copy(alpha = if (enabled) 0.65f else 0.35f),
+                             Offset(start, centerY), Offset(end, centerY), size.height, StrokeCap.Round)
+                         if (share > 0f) drawLine(colors.primary.copy(alpha = if (enabled) 1f else 0.4f),
+                             Offset(start, centerY), Offset(start + (end - start) * share, centerY),
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/SubtitleDialog.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/SubtitleDialog.kt
+@@ -43,15 +43,23 @@
+     }
+ }
+ 
++@OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+ internal fun SubtitleDialog(controls: SubtitleControls, close: () -> Unit) {
+     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+         if (uri != null) controls.load(uri)
+     }
+-    AlertDialog(onDismissRequest = close, title = { Text(stringResource(R.string.subtitles)) },
+-        confirmButton = { TextButton(onClick = close) { Text(stringResource(R.string.subtitle_close)) } },
+-        text = {
+-            Column(Modifier.verticalScroll(rememberScrollState())) {
++    ModalBottomSheet(onDismissRequest = close, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
++        containerColor = CinemaSurface, contentColor = MaterialTheme.colorScheme.onSurface,
++        dragHandle = null) {
++        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
++            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
++                Text(stringResource(R.string.subtitles), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
++                TextButton(onClick = close) { Text(stringResource(R.string.subtitle_close)) }
++            }
++            HorizontalDivider()
++            Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())
++                .padding(top = 4.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                 SubtitleOption(stringResource(R.string.subtitle_off), !controls.usingExternal && controls.selected < 0) {
+                     controls.select(-1)
+                 }
+@@ -62,33 +70,35 @@
+                 if (controls.hasExternal) {
+                     SubtitleOption(stringResource(R.string.loaded_srt), controls.usingExternal, controls::selectExternal)
+                 }
+-                TextButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.external_srt)) }
++                OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.external_srt)) }
+                 if (controls.loading) Text(stringResource(R.string.subtitle_loading))
+                 controls.notice?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+                 if (controls.usingExternal || controls.selected >= 0) {
+                     HorizontalDivider()
+-                    Text(stringResource(R.string.subtitle_delay, controls.delayMs / 1000.0))
+-                    Row {
++                    Text(stringResource(R.string.subtitle_delay, controls.delayMs / 1000.0), style = MaterialTheme.typography.titleMedium)
++                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                         TextButton(onClick = { controls.setDelay(controls.delayMs - 100) }) { Text(stringResource(R.string.subtitle_earlier)) }
+                         TextButton(onClick = { controls.setDelay(controls.delayMs + 100) }) { Text(stringResource(R.string.subtitle_later)) }
+                         TextButton(onClick = { controls.setDelay(0) }) { Text(stringResource(R.string.subtitle_reset)) }
+                     }
+                 }
+                 if (controls.usingExternal) {
+-                    Text(stringResource(R.string.subtitle_size, controls.fontSize))
+-                    Row {
++                    Text(stringResource(R.string.subtitle_size, controls.fontSize), style = MaterialTheme.typography.titleMedium)
++                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                         TextButton(onClick = { controls.setSize(controls.fontSize - 2) }, enabled = controls.fontSize > 12) { Text(stringResource(R.string.subtitle_smaller)) }
+                         TextButton(onClick = { controls.setSize(controls.fontSize + 2) }, enabled = controls.fontSize < 40) { Text(stringResource(R.string.subtitle_larger)) }
+                     }
+                 }
+             }
+-        })
++        }
++    }
+ }
+ 
+ @Composable
+ private fun SubtitleOption(label: String, selected: Boolean, onClick: () -> Unit) {
+     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+-        .selectable(selected, role = Role.RadioButton, onClick = onClick),
++        .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent, MaterialTheme.shapes.medium)
++        .selectable(selected, role = Role.RadioButton, onClick = onClick).padding(horizontal = 12.dp),
+         verticalAlignment = Alignment.CenterVertically) {
+         RadioButton(selected, onClick = null)
+         Text(label, Modifier.padding(start = 12.dp))
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/VideoApp.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/VideoApp.kt
+@@ -32,25 +32,27 @@
+     val openFile = { picker.launch(arrayOf("video/*", "application/octet-stream", "application/x-matroska")) }
+     BackHandler(enabled = selection != null) { model.closeVideo() }
+ 
+-    Surface(Modifier.fillMaxSize()) {
+-        Column(Modifier.safeDrawingPadding()) {
+-            val message = if (saveFailed) R.string.storage_failed else notice
+-            message?.let {
+-                Text(stringResource(it), color = MaterialTheme.colorScheme.error,
+-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+-                        .semantics { liveRegion = LiveRegionMode.Polite })
+-            }
+-            val current = selection
+-            if (current != null) {
+-                // 재생 화면을 교차 전환하면 두 재생기가 동시에 열리므로 한 인스턴스만 유지한다.
+-                key(current.sequence) {
+-                    PlayerScreen(current, model, recent.firstOrNull { it.uri == current.uri.toString() }?.title,
+-                        openFile, Modifier.weight(1f))
++    VideoTheme(cinema = selection != null) {
++        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
++            Column(Modifier.safeDrawingPadding()) {
++                val message = if (saveFailed) R.string.storage_failed else notice
++                message?.let {
++                    Text(stringResource(it), color = MaterialTheme.colorScheme.error,
++                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
++                            .semantics { liveRegion = LiveRegionMode.Polite })
+                 }
+-            } else {
+-                libraryState.SaveableStateProvider("library") {
+-                    LibraryScreen(recent, openFile, model.folders, model::playFromFolder, Modifier.weight(1f)) { record ->
+-                        model.select(record.uri.toUri(), fromPicker = false)
++                val current = selection
++                if (current != null) {
++                    // 재생 화면을 교차 전환하면 두 재생기가 동시에 열리므로 한 인스턴스만 유지한다.
++                    key(current.sequence) {
++                        PlayerScreen(current, model, recent.firstOrNull { it.uri == current.uri.toString() }?.title,
++                            openFile, Modifier.weight(1f))
++                    }
++                } else {
++                    libraryState.SaveableStateProvider("library") {
++                        LibraryScreen(recent, openFile, model.folders, model::playFromFolder, Modifier.weight(1f)) { record ->
++                            model.select(record.uri.toUri(), fromPicker = false)
++                        }
+                     }
+                 }
+             }
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/VideoButton.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/VideoButton.kt
+@@ -4,6 +4,11 @@
+ import androidx.compose.animation.core.tween
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+ import androidx.compose.foundation.interaction.collectIsPressedAsState
++import androidx.compose.foundation.layout.Spacer
++import androidx.compose.foundation.layout.width
++import androidx.compose.foundation.layout.size
++import androidx.compose.material3.Icon
++import androidx.compose.ui.res.painterResource
+ import androidx.compose.foundation.layout.PaddingValues
+ import androidx.compose.foundation.layout.defaultMinSize
+ import androidx.compose.material3.Button
+@@ -19,19 +24,26 @@
+ import androidx.compose.ui.unit.dp
+ 
+ @Composable
+-internal fun VideoButton(label: String, onClick: () -> Unit, secondary: Boolean = false) {
++internal fun VideoButton(label: String, onClick: () -> Unit, secondary: Boolean = false, icon: Int? = null) {
+     val interaction = remember { MutableInteractionSource() }
+     val pressed by interaction.collectIsPressedAsState()
+     val scale by animateFloatAsState(if (pressed) 0.95f else 1f,
+         tween(120, easing = VideoEasing), label = "buttonPress")
+-    val modifier = Modifier.defaultMinSize(minHeight = 44.dp)
++    val modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+         .graphicsLayer { scaleX = scale; scaleY = scale }
++    val labelContent: @Composable () -> Unit = {
++        if (icon != null) {
++            Icon(painterResource(icon), null, Modifier.size(16.dp))
++            Spacer(Modifier.width(6.dp))
++        }
++        Text(label)
++    }
+     if (secondary) {
+         OutlinedButton(onClick, modifier, shape = MaterialTheme.shapes.small, interactionSource = interaction,
+-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp)) { Text(label) }
++            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)) { labelContent() }
+     } else {
+         Button(onClick, modifier, shape = MaterialTheme.shapes.small, interactionSource = interaction,
+-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp)) { Text(label) }
++            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)) { labelContent() }
+     }
+ }
+ 
+--- a/apps/video/android/src/main/java/dev/forme/video/ui/VideoTheme.kt
++++ b/apps/video/android/src/main/java/dev/forme/video/ui/VideoTheme.kt
+@@ -5,6 +5,11 @@
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Shapes
+ import androidx.compose.material3.Typography
++import android.app.Activity
++import androidx.compose.material3.lightColorScheme
++import androidx.compose.runtime.SideEffect
++import androidx.compose.ui.platform.LocalView
++import androidx.core.view.WindowCompat
+ import androidx.compose.material3.darkColorScheme
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.graphics.Color
+@@ -36,24 +41,44 @@
+     letterSpacing = 0.sp,
+ )
+ 
++internal val CinemaSurface = Color(0xFF18231E)
++internal val ScreenAccent = Color(0xFFC8E3BF)
++
++private val Paper = lightColorScheme(
++    primary = Color(0xFF2E5B44), onPrimary = Color.White,
++    primaryContainer = Color(0xFFD4E2CF), onPrimaryContainer = Color(0xFF173D29),
++    secondaryContainer = Color(0xFFD4E2CF), onSecondaryContainer = Color(0xFF173D29),
++    background = Color(0xFFEFE9E0), surface = Color(0xFFEFE9E0),
++    onBackground = Color(0xFF22261F), onSurface = Color(0xFF22261F),
++    surfaceVariant = Color(0xFFE2D9CB), onSurfaceVariant = Color(0xFF555A50),
++    outline = Color(0xFF757A6E), outlineVariant = Color(0xFFC8C5B9),
++)
++private val Cinema = darkColorScheme(
++    primary = ScreenAccent, onPrimary = CinemaSurface,
++    primaryContainer = Color(0xFF344C3C), onPrimaryContainer = ScreenAccent,
++    secondaryContainer = Color(0xFF344C3C), onSecondaryContainer = ScreenAccent,
++    background = Color.Black, surface = CinemaSurface,
++    onBackground = Color.White, onSurface = Color(0xFFF3F3EB),
++    surfaceVariant = Color(0xFF28362C), onSurfaceVariant = Color(0xFFCCD2C5),
++    outline = Color(0xFF929B90), outlineVariant = Color(0xFF485448),
++    surfaceContainerLow = CinemaSurface, surfaceContainerHigh = Color(0xFF29352C),
++)
++
+ @Composable
+-fun VideoTheme(content: @Composable () -> Unit) {
++fun VideoTheme(cinema: Boolean, content: @Composable () -> Unit) {
++    val view = LocalView.current
++    SideEffect {
++        val window = (view.context as? Activity)?.window
++        if (window != null) WindowCompat.getInsetsController(window, view).apply {
++            isAppearanceLightStatusBars = !cinema
++            isAppearanceLightNavigationBars = !cinema
++        }
++    }
+     MaterialTheme(
+-        colorScheme = darkColorScheme(
+-            primary = Color(0xFFECEEF2),
+-            onPrimary = Color(0xFF0B1016),
+-            background = Color(0xFF0B1016),
+-            onBackground = Color(0xFFECEEF2),
+-            surface = Color(0xFF0B1016),
+-            onSurface = Color(0xFFECEEF2),
+-            surfaceVariant = Color(0xFF202A35),
+-            onSurfaceVariant = Color(0xFFAEB5C0),
+-            outline = Color(0xFF858D9A),
+-            error = Color(0xFFFFB4AB),
+-        ),
++        colorScheme = if (cinema) Cinema else Paper,
+         typography = Typography(
+-            headlineLarge = Body.copy(fontSize = 30.sp, lineHeight = 38.sp, fontWeight = FontWeight(650)),
+-            titleLarge = Body.copy(fontSize = 21.sp, lineHeight = 32.55.sp, fontWeight = FontWeight(650)),
++            headlineLarge = Body.copy(fontSize = 33.sp, lineHeight = 42.sp, letterSpacing = (-1.3).sp, fontWeight = FontWeight(650)),
++            titleLarge = Body.copy(fontSize = 22.sp, lineHeight = 29.sp, letterSpacing = (-0.7).sp, fontWeight = FontWeight(650)),
+             titleMedium = Body.copy(fontSize = 16.sp, lineHeight = 24.8.sp, fontWeight = FontWeight(650)),
+             titleSmall = Body.copy(fontWeight = FontWeight.SemiBold),
+             bodyLarge = Body,
+@@ -65,10 +90,10 @@
+         ),
+         shapes = Shapes(
+             extraSmall = RoundedCornerShape(4.dp),
+-            small = RoundedCornerShape(6.dp),
+-            medium = RoundedCornerShape(10.dp),
+-            large = RoundedCornerShape(6.dp),
+-            extraLarge = RoundedCornerShape(6.dp),
++            small = RoundedCornerShape(8.dp),
++            medium = RoundedCornerShape(12.dp),
++            large = RoundedCornerShape(16.dp),
++            extraLarge = RoundedCornerShape(20.dp),
+         ),
+         content = content,
+     )
+--- a/apps/video/android/src/main/res/values/strings.xml
++++ b/apps/video/android/src/main/res/values/strings.xml
+@@ -23,14 +23,13 @@
+     <string name="home">홈</string>
+     <string name="library_count">최근에 연 영상 %1$d편</string>
+     <string name="search_videos">영상 제목 검색</string>
+-    <string name="continue_watching">계속 시청하기</string>
+-    <string name="your_last_scene">마지막으로 보던 장면</string>
++    <string name="continue_watching">이어보기</string>
++    <string name="see_all">전체 보기</string>
+     <string name="resume_video">이어서 재생</string>
+-    <string name="empty_title">나만의 장면을 모으는 곳</string>
+-    <string name="empty_description">기기에 저장한 영상을 열어 보세요.
+-보던 장면은 여기에 남겨 둘게요.</string>
+-    <string name="no_search_results">찾는 영상이 없어요</string>
+-    <string name="try_another_title">다른 제목으로 검색해 보세요.</string>
++    <string name="empty_title">최근에 본 영상이 없습니다</string>
++    <string name="empty_description">영상을 열면 다음에 보던 위치에서 이어볼 수 있습니다.</string>
++    <string name="registered_folders">등록한 폴더 %1$d개</string>
++    <string name="try_another_title">검색 결과가 없습니다. 다른 제목을 입력해 주세요.</string>
+     <string name="local_video">기기에 저장한 영상</string>
+     <string name="lock_screen">화면 잠금</string>
+     <string name="unlock_screen">잠금 해제</string>
+--- a/apps/video/android/src/main/res/values/styles.xml
++++ b/apps/video/android/src/main/res/values/styles.xml
+@@ -1,7 +1,7 @@
+ <resources>
+     <style name="Theme.ForMe" parent="android:style/Theme.Material.NoActionBar">
+         <item name="android:fontFamily">@font/pretendard_variable</item>
+-        <item name="android:windowBackground">#101318</item>
++        <item name="android:windowBackground">#EFE9E0</item>
+         <item name="android:windowLightStatusBar">false</item>
+         <item name="android:windowActionModeOverlay">true</item>
+     </style>
+--- a/apps/video/docs/scope.md
++++ b/apps/video/docs/scope.md
+@@ -117,3 +117,9 @@
+ 재생 화면 오른쪽 위의 자물쇠 버튼으로 잠급니다. 잠금 중에는 영상 터치, 위치 이동과 화면의 재생 조작을 차단하며, 잠그기 전 재생 또는 일시정지 상태를 유지합니다. 화면을 누르거나 시스템 뒤로 가기를 사용하면 잠금 해제 버튼만 나타납니다. 해제 버튼을 눌러야 조작이 돌아옵니다.
+ 
+ 회전 중에도 잠금은 유지하고, 다른 영상을 열면 잠금 없이 시작합니다. 화면 읽기 기능의 터치 탐색이 켜져 있으면 해제 버튼을 숨기지 않습니다. 앱 안의 조작 잠금이며 운영체제의 홈, 알림과 전원 기능을 막지는 않습니다.
++
++## 2026-11-20 Android 화면 리디자인
++
++- 홈에는 마지막 영상의 실제 장면, 재생 위치와 이어서 재생 버튼을 표시합니다. 그 아래에서는 다른 최근 영상 네 편과 등록 폴더 세 곳까지 바로 열 수 있습니다.
++- 보관함에서는 최근에 연 영상 20편을 제목으로 찾습니다. 폴더에서는 등록한 폴더와 하위 폴더를 탐색하고 영상의 미리보기를 눌러 재생합니다. 세로 휴대폰은 하단 메뉴를, 가로 휴대폰은 왼쪽 메뉴를 사용합니다.
++- 재생 중에는 아래쪽 중앙에 재생바, 10초 이동, 재생과 일시정지 버튼을 모읍니다. 위쪽의 자막 버튼을 누르면 화면 아래에서 설정이 열립니다. 내장 자막을 전환하거나 외부 SRT를 선택하고 표시 시각을 조절할 수 있습니다.
