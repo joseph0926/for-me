@@ -7,10 +7,14 @@ import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
 import androidx.core.net.toUri
+import dev.forme.video.R
+import dev.forme.video.player.SubtitleControls
+import org.robolectric.Shadows.shadowOf
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
@@ -49,6 +53,24 @@ class VideoDocumentTest {
         provider.denied = true
         assertThrows(SecurityException::class.java) {
             openVideoDocument(context.contentResolver, uri, "fallback")
+        }
+    }
+
+    @Test fun deniedSubtitleShowsReselectionNotice() {
+        provider.denied = true
+        val subtitles = SubtitleControls(context, uri) { null }
+        try {
+            subtitles.load(uri)
+            val deadline = System.nanoTime() + 5_000_000_000L
+            while (subtitles.loading && System.nanoTime() < deadline) {
+                shadowOf(Looper.getMainLooper()).idle()
+                Thread.sleep(10)
+            }
+            assertEquals(R.string.subtitle_unavailable, subtitles.notice)
+            assertFalse(subtitles.usingExternal)
+            assertFalse(subtitles.loading)
+        } finally {
+            subtitles.close()
         }
     }
 
