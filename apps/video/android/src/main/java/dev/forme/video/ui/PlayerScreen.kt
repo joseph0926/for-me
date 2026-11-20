@@ -102,9 +102,8 @@ internal fun PlayerScreen(
         }
     }
     var subtitleMenu by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(playback.subtitles.notice) {
-        if (playback.subtitles.notice != null && !screenLocked) subtitleMenu = true
-    }
+    // 메뉴를 닫아 둔 사이 저장한 외부 자막을 읽지 못한 안내도 보여 주고, 잠금 중이면 해제 뒤에 보여 준다.
+    val subtitleDialogVisible = (subtitleMenu || playback.subtitles.notice != null) && !screenLocked
     var controlsVisible by remember { mutableStateOf(true) }
     var interactionVersion by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableStateOf(false) }
@@ -153,8 +152,11 @@ internal fun PlayerScreen(
                     view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 },
             )
-            if (subtitleMenu && !screenLocked) {
-                SubtitleDialog(playback.subtitles) { subtitleMenu = false }
+            if (subtitleDialogVisible) {
+                SubtitleDialog(playback.subtitles) {
+                    subtitleMenu = false
+                    playback.subtitles.dismissNotice()
+                }
             }
             if (!screenLocked) {
                 val showPause = selection.wantsToPlay && state.error == null
