@@ -49,7 +49,7 @@ fun VideoApp(model: VideoViewModel) {
                 }
             } else {
                 libraryState.SaveableStateProvider("library") {
-                    LibraryScreen(recent, openFile, Modifier.weight(1f)) { record ->
+                    LibraryScreen(recent, openFile, model.folders, model::playFromFolder, Modifier.weight(1f)) { record ->
                         model.select(record.uri.toUri(), fromPicker = false)
                     }
                 }

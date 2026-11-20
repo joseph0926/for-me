@@ -48,6 +48,7 @@ class VlcPlayback(
     private val context: Context,
     private val repository: PlaybackRepository,
     private val uri: Uri,
+    private val accessUri: Uri,
     private val wantsToPlay: () -> Boolean,
     private val changePlayIntent: (Boolean) -> Unit,
 ) {
@@ -55,6 +56,9 @@ class VlcPlayback(
         private set
     private var lib: LibVLC? = null
     private var player: MediaPlayer? = null
+    internal val subtitles = SubtitleControls(context, uri) { player }
+    internal fun subtitleTimeMs(): Long = progress.pendingSeekMs ?: player?.time?.takeIf { it >= 0 } ?: state.positionMs
+
     private var descriptor: ParcelFileDescriptor? = null
     private var layout: VLCVideoLayout? = null
     private var progress = PlaybackProgress(0)
@@ -96,8 +100,13 @@ class VlcPlayback(
             receiverRegistered = true
             val saved = repository.find(uri.toString())
             val document = withContext(Dispatchers.IO) {
-                openVideoDocument(context.contentResolver, uri,
-                    saved?.title ?: context.getString(R.string.app_name)).also { opened = it }
+                try {
+                    openVideoDocument(context.contentResolver, accessUri,
+                        saved?.title ?: context.getString(R.string.app_name)).also { opened = it }
+                } catch (error: IllegalArgumentException) {
+                    // 폴더 아래의 문서가 이동하면 제공자가 파일 없음 대신 이 예외를 반환하기도 한다.
+                    throw IOException("Cannot open video document", error)
+                }
             }
             if (closed) return
             descriptor = document.descriptor
@@ -108,6 +117,7 @@ class VlcPlayback(
             lib = engine
             val mediaPlayer = MediaPlayer(engine)
             player = mediaPlayer
+            subtitles.restore()
             mediaPlayer.setEventListener { event -> if (!closed) handleEvent(event) }
             layout?.let(::attachPlayerViews)
             state = state.copy(loading = false)
@@ -229,9 +239,8 @@ class VlcPlayback(
         val media = Media(checkNotNull(lib), checkNotNull(descriptor).fileDescriptor)
         try {
             media.setHWDecoderEnabled(true, false)
-            // 기본 MP4 demux에서 탐색 후 참조 프레임이 누락된 샘플을 avformat으로 처리한다.
-            // avformat이 읽지 못하는 형식은 다른 libVLC demux로 넘긴다.
-            media.addOption(":demux=avformat,any")
+            // MKV의 내장 자막 형식은 전용 demux가 읽는다. MP4의 탐색에는 avformat을 유지한다.
+            media.addOption(":demux=mkv,avformat,any")
             media.addOption(":start-time=${progress.positionMs / 1000.0}")
             if (!wantsToPlay() || scrubbing) media.addOption(":start-paused")
             active.media = media
@@ -271,7 +280,9 @@ class VlcPlayback(
     private fun handleEvent(event: MediaPlayer.Event) {
         val active = player ?: return
         when (event.type) {
+            MediaPlayer.Event.ESAdded, MediaPlayer.Event.ESDeleted, MediaPlayer.Event.ESSelected -> subtitles.refresh()
             MediaPlayer.Event.Playing -> {
+                subtitles.refresh()
                 progress.updateDuration(active.length)
                 state = state.copy(durationMs = progress.durationMs, seekable = active.isSeekable)
                 restorePosition()
@@ -335,6 +346,7 @@ class VlcPlayback(
     }
 
     private fun releasePlayer() {
+        subtitles.close()
         handler.removeCallbacks(previewSeek)
         previewScheduled = false
         player?.let {

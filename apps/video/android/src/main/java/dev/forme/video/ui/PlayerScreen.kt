@@ -58,7 +58,7 @@ internal fun PlayerScreen(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val playback = remember(selection.sequence) {
-        VlcPlayback(context, model.repository, selection.uri,
+        VlcPlayback(context, model.repository, selection.uri, selection.accessUri,
             wantsToPlay = { selection.wantsToPlay }, changePlayIntent = { selection.wantsToPlay = it })
     }
     val state = playback.state
@@ -82,7 +82,7 @@ internal fun PlayerScreen(
     val title = state.title.ifBlank { savedTitle ?: context.getString(R.string.app_name) }
     val fatalError = state.error?.takeUnless { it == R.string.audio_focus_failed }
     if (fatalError != null) {
-        PlaybackFailure(title, fatalError, selection.uri.toString(), openFile, model::closeVideo, modifier)
+        PlaybackFailure(title, fatalError, selection.accessUri.toString(), openFile, model::closeVideo, modifier)
         return
     }
 
@@ -100,6 +100,10 @@ internal fun PlayerScreen(
             delay(2_000)
             unlockVisible = false
         }
+    }
+    var subtitleMenu by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(playback.subtitles.notice) {
+        if (playback.subtitles.notice != null && !screenLocked) subtitleMenu = true
     }
     var controlsVisible by remember { mutableStateOf(true) }
     var interactionVersion by remember { mutableIntStateOf(0) }
@@ -149,6 +153,9 @@ internal fun PlayerScreen(
                     view.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 },
             )
+            if (subtitleMenu && !screenLocked) {
+                SubtitleDialog(playback.subtitles) { subtitleMenu = false }
+            }
             if (!screenLocked) {
                 val showPause = selection.wantsToPlay && state.error == null
                 val playLabel = stringResource(if (showPause) R.string.pause else R.string.play)
@@ -180,6 +187,11 @@ internal fun PlayerScreen(
                                 Text(stringResource(R.string.local_video), style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            TextButton(onClick = {
+                                touchControls()
+                                playback.subtitles.refresh()
+                                subtitleMenu = true
+                            }, enabled = !state.loading && !seeking) { Text(stringResource(R.string.subtitles)) }
                             VideoIconButton(onClick = {
                                 screenLocked = true
                                 resumePosition = null
@@ -271,6 +283,7 @@ internal fun PlayerScreen(
                     }
                 }
             }
+            ExternalSubtitle(playback, controlsVisible && !screenLocked, Modifier.align(Alignment.BottomCenter))
             if (state.error == R.string.audio_focus_failed) {
                 Text(stringResource(R.string.audio_focus_failed), color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp)

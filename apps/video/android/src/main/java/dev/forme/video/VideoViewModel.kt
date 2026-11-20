@@ -15,11 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 
-data class VideoSelection(val uri: Uri, val sequence: Long) {
+data class VideoSelection(val uri: Uri, val sequence: Long, val accessUri: Uri = uri) {
     var wantsToPlay by mutableStateOf(true)
 }
 
 class VideoViewModel(application: Application) : AndroidViewModel(application) {
+    internal val folders = (application as VideoApplication).folders
     val repository = (application as VideoApplication).repository
     private val mutableSelection = MutableStateFlow<VideoSelection?>(null)
     val selection = mutableSelection.asStateFlow()
@@ -41,7 +42,13 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 mutableNotice.value = R.string.temporary_access
             }
         }
-        mutableSelection.value = VideoSelection(uri, ++sequence)
+        val accessUri = if (fromPicker) uri else folders.readableUri(uri)
+        mutableSelection.value = VideoSelection(uri, ++sequence, accessUri)
+    }
+
+    fun playFromFolder(access: Uri) {
+        mutableNotice.value = null
+        mutableSelection.value = VideoSelection(folders.rememberVideo(access), ++sequence, access)
     }
 
     fun closeVideo() {

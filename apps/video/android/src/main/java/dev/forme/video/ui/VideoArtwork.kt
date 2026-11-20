@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import dev.forme.video.VideoApplication
 import dev.forme.video.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,7 +37,7 @@ internal fun VideoArtwork(uri: String, modifier: Modifier = Modifier) {
             try {
                 val retriever = MediaMetadataRetriever()
                 try {
-                    retriever.setDataSource(context, uri.toUri())
+                    retriever.setDataSource(context, (context as VideoApplication).folders.readableUri(uri.toUri()))
                     if (Build.VERSION.SDK_INT >= 27) {
                         retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 800, 450)
                             ?.also { artworkCache.put(uri, it) }

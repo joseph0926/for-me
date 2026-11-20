@@ -24,14 +24,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import dev.forme.video.data.VideoFolders
 import dev.forme.video.R
 import dev.forme.video.data.PlaybackRecord
 
 @Composable
 internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
-    modifier: Modifier = Modifier, play: (PlaybackRecord) -> Unit) {
+    folders: VideoFolders, playFromFolder: (Uri) -> Unit, modifier: Modifier = Modifier, play: (PlaybackRecord) -> Unit) {
     var library by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    var browsingFolders by rememberSaveable { mutableStateOf(false) }
+    if (browsingFolders) {
+        FolderBrowser(folders, playFromFolder, { browsingFolders = false }, modifier)
+        return
+    }
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
@@ -47,6 +54,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                 item {
                     Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(stringResource(R.string.library), style = MaterialTheme.typography.headlineLarge)
+                        VideoButton(stringResource(R.string.folder_videos), { browsingFolders = true }, secondary = true)
                         Text(stringResource(R.string.library_count, records.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
                             label = { Text(stringResource(R.string.search_videos)) },
