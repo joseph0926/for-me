@@ -29,6 +29,8 @@ pnpm --filter work-<주제 id> dev
 | [가계부 앱](works/2026-11-18-budget/README.md) | 가계부 앱 "살림장" |
 | [인게임 샵 웹](works/2026-11-18-game-shop/README.md) | 축구 게임 상점 "KICKLINE 27 상점" |
 | [블로그 웹](works/2026-11-18-blog/README.md) | 개인 블로그 "오후의 서랍" |
+| [동영상 앱](works/2026-11-20-video/README.md) | 저장한 영상을 OTT처럼 보는 재생기 "필름함" |
+| [AI 채팅 앱](works/2026-11-20-ai-chat/README.md) | 출처와 작업 단계를 보여 주는 AI 채팅 "곁" |
 
 앞의 세 완성작은 2026-11-18에 AI가 사용자 역할로 만든 시험 결과입니다. 가계부 앱부터는 AI가 고르고 1차 피드백까지 하는 기본 절차로 만들었습니다.
 

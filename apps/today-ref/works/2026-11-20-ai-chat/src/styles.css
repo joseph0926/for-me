@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* 글이 주인공인 화면이라 바탕은 흰색과 거의 검은색, 강조색은 출처와 선택 표시에만 쓰는 이끼 초록 하나다. */
+:root {
+  --surface: #ffffff;
+  --raised: #f4f4f2;
+  --raised-2: #eaeae6;
+  --ink: #18191b;
+  --muted: #6c6f75;
+  --faint: #a2a5ab;
+  --line: #e6e6e2;
+  --accent: #2b7a57;
+  --accent-soft: #e2f0e8;
+  --bubble: #f0f0ec;
+  --backdrop: #e9ebef;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #121314;
+    --raised: #1c1d1f;
+    --raised-2: #26282b;
+    --ink: #ecedef;
+    --muted: #9a9ea6;
+    --faint: #62666d;
+    --line: #2a2c30;
+    --accent: #6cc79a;
+    --accent-soft: #1f3529;
+    --bubble: #232427;
+    --backdrop: #050506;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-raised-2: var(--raised-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-bubble: var(--bubble);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 답을 쓰는 동안 마지막 글자 뒤에 깜빡이는 점 */
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 3px;
+  border-radius: 999px;
+  background: var(--ink);
+  vertical-align: middle;
+  animation: caret-blink 1s steps(2, start) infinite;
+}
+
+@keyframes caret-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* 단계 행의 진행 중 표시 */
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.6px solid var(--faint);
+  border-top-color: var(--ink);
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .spinner {
+    animation: none;
+  }
+}
