@@ -1,0 +1,188 @@
+{
+  "id": "2026-11-21-prompt",
+  "date": "2026-11-21",
+  "title": "프롬프트 생성 웹",
+  "platform": "web",
+  "brief": "하고 싶은 일을 채팅으로 적거나 이미지를 올리고 설명을 덧붙이면 AI가 바로 쓸 수 있는 프롬프트를 만들어 주는 웹입니다. 빈 첫 화면의 입력창과 예시, 이미지 첨부와 분석 결과(색, 스타일 태그), 구조가 보이는 프롬프트 출력과 복사, 대상 모델과 용도 선택, 다듬기 요청과 이어서 물어볼 질문, 만든 프롬프트 기록까지 핵심 화면을 모읍니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "Claude Console",
+      "source": "공식 사이트",
+      "title": "작업 설명을 프롬프트로 바꾸는 생성 창과 변수 패널",
+      "url": "https://claude.com/resources/articles/evaluate-prompts",
+      "checkedOn": "2026-11-21",
+      "captures": ["r1-1.jpg", "r1-2.jpg"],
+      "points": [
+        "가운데 모달은 위쪽 아이콘과 'Your task' 제목, 설명 두세 줄, 'Write me an email', 'Content moderation' 같은 예시 칩 다섯 개, 큰 입력칸, 오른쪽 아래 'Cancel'과 주황 'Generate Prompt' 순서로 쌓습니다.",
+        "예시 칩은 아이콘과 짧은 동사구로 된 알약 모양이고 두 줄로 가운데 정렬됩니다.",
+        "생성된 프롬프트는 왼쪽 USER 칸에 고정폭 글꼴로 들어가고 {{SMS_MESSAGE}} 같은 변수는 초록 글자로 칠합니다.",
+        "오른쪽 'Variables' 패널은 변수 이름 아래에 값 입력칸, 위쪽 'Generate' 버튼, 맨 아래 폭 전체 주황 'Run' 버튼을 둡니다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "Claude Console",
+      "source": "공식 사이트",
+      "title": "프롬프트와 응답을 좌우로 나눈 작업대",
+      "url": "https://claude.com/resources/articles/prompt-improver",
+      "checkedOn": "2026-11-21",
+      "captures": ["r2-1.jpg"],
+      "points": [
+        "맨 위 줄에 프롬프트 이름 'Biology helper'와 'v2' 판 번호 배지, 가운데 'Prompt'와 'Evaluate' 전환, 오른쪽 기록, 'Get Code', 주황 'Run'을 둡니다.",
+        "왼쪽은 SYSTEM PROMPT, EXAMPLES 3, TOOLS 0, USER 칸을 접을 수 있는 상자로 쌓고 각 제목 옆에 개수 배지를 붙입니다.",
+        "USER 칸 아래에 'Pre-fill response', 'Add message pair', 'Improve prompt' 텍스트 버튼과 글자 수 433을 작게 둡니다.",
+        "오른쪽 RESPONSE 칸은 'Markdown'과 'Text' 보기 전환, 아래 'Add to Conversation'과 좋아요, 싫어요를 둡니다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "Ideogram",
+      "source": "공식 문서",
+      "title": "이미지를 설명 프롬프트로 바꾼 입력칸",
+      "url": "https://docs.ideogram.ai/create/describe",
+      "checkedOn": "2026-11-21",
+      "captures": ["r3-1.jpg"],
+      "points": [
+        "'Prompt' 제목 아래 큰 입력칸에 이미지를 읽어 쓴 긴 설명 문장(구도, 개수와 배열, 재질, 조명, 잘린 부분)이 그대로 채워집니다.",
+        "입력칸 왼쪽 아래에 보라 토글 'Magic Prompt'와 정보 아이콘, 오른쪽 아래에 이미지 설명 버튼을 둡니다.",
+        "캡처는 문서용으로 잘라 화살표를 그린 일부 화면이라 버튼을 누르기 전 상태와 업로드 메뉴는 보이지 않습니다."
+      ]
+    },
+    {
+      "id": "r4",
+      "kind": "product",
+      "product": "Ideogram",
+      "source": "App Store",
+      "title": "첨부 칸이 붙은 첫 화면 입력창과 생성 앱 패널",
+      "url": "https://apps.apple.com/us/app/id6476790495",
+      "checkedOn": "2026-11-21",
+      "captures": ["r4-1.jpg", "r4-2.jpg"],
+      "points": [
+        "첫 화면은 'What will you design?' 제목 아래 둥근 큰 입력창 하나입니다. 위쪽에 + 첨부 칸과 빈 첨부 칸, 가운데 프롬프트 문장, 아래 반짝이, 이미지, 영상 도구 아이콘과 오른쪽 검은 원 보내기 버튼을 둡니다.",
+        "입력창 아래 'Community inspiration'에 Explore, Following, Poster, Logo 같은 분류 탭과 3열 이미지 격자가 이어집니다.",
+        "생성 앱 화면은 왼쪽 얇은 아이콘 줄, 가운데 설정 열(Model, Reference images의 점선 + 칸, Prompt 입력칸, 1:1과 Auto 선택, 검은 Generate), 오른쪽 결과 2열 격자의 세 칸입니다.",
+        "iPad 스토어 이미지라 위쪽에 홍보 문구와 그라데이션 배경이 크게 들어 있습니다."
+      ]
+    },
+    {
+      "id": "r5",
+      "kind": "product",
+      "product": "Lexica",
+      "source": "공식 사이트",
+      "title": "이미지 옆 프롬프트 카드와 복사, 이미지 검색 입력창",
+      "url": "https://lexica.art/prompt/0e3265d3-d458-4e9a-bb56-7923daf4ed32",
+      "checkedOn": "2026-11-21",
+      "captures": ["r5-1.jpg", "r5-2.jpg"],
+      "points": [
+        "상세 화면 왼쪽 열 맨 위에 프롬프트 전문을 둥근 회색 카드에 담고, 그 아래 'Copy prompt'와 'Copy URL' 두 버튼을 나란히 둡니다.",
+        "카드 아래 보라 'Open in editor'와 회색 'Explore this style ›', 그 아래 Model과 Dimensions를 작은 회색 이름과 흰 값 두 줄로 적습니다.",
+        "오른쪽에는 같은 프롬프트로 만든 이미지 네 장을 한 줄로 붙입니다.",
+        "첫 화면은 가운데 로고 아래 'Search for an image' 입력창 안 오른쪽에 이미지 아이콘, 옆에 조절 아이콘, 아래 'Search'와 'Generate' 두 버튼, 그 아래 이미지 격자입니다."
+      ]
+    },
+    {
+      "id": "r6",
+      "kind": "gallery",
+      "product": "Prompt Enhancer (시안)",
+      "source": "Dribbble",
+      "title": "요청 말풍선 아래 구조화된 프롬프트와 후속 질문",
+      "url": "https://dribbble.com/shots/26681165-Prompt-Enhancer-Minimal-AI-Prompt-Generator-for-Designers",
+      "checkedOn": "2026-11-21",
+      "captures": ["r6-1.jpg"],
+      "points": [
+        "사용자 요청은 오른쪽 연한 파랑 말풍선이고, 그 아래 'Product Design', 'Lovable' 같은 작은 태그로 고른 용도와 대상 도구를 보여 줍니다.",
+        "AI 결과는 왼쪽 연회색 상자에 역할 문장, 굵은 소제목, 목록, 마무리 문장 순서의 프롬프트로 들어가고 상자 오른쪽 바깥에 복사 아이콘 두 개를 세로로 둡니다.",
+        "결과 아래 반짝이 아이콘이 붙은 파랑 글자 제안 세 줄('Can you make this more specific...')을 알약 모양으로 쌓습니다.",
+        "아래 입력창은 그라데이션 테두리 안에 'Add persona'와 '× Product Design' 칩, 안내 문구, 왼쪽 아래 대상 도구 선택, 오른쪽 아래 'Generate Prompt' 버튼입니다."
+      ]
+    },
+    {
+      "id": "r7",
+      "kind": "gallery",
+      "product": "Prompt Enhancer (시안)",
+      "source": "Dribbble",
+      "title": "슬래시 칩과 저장 버튼이 있는 프롬프트 편집 화면",
+      "url": "https://dribbble.com/shots/26572212--Craft-Refine-Save-Smarter-Prompt-Editing",
+      "checkedOn": "2026-11-21",
+      "captures": ["r7-1.jpg"],
+      "points": [
+        "맨 위 '← Go back' 아래 한 줄에 '/Apply persona', '/product-design', '/markdown', '/saas' 칩을 두고 오른쪽 끝에 'Preview'를 둡니다.",
+        "본문은 첫 문단 지시문, '## LANDING PAGE BLUEPRINT' 제목, 굵은 항목 이름과 [대괄호 자리 표시] 목록이 이어지는 마크다운 원문입니다.",
+        "오른쪽 가장자리에 둥근 아이콘 버튼 세 개를 세로로 띄우고, 아래 왼쪽 'Analayze'와 오른쪽 파랑 'Save'를 둡니다."
+      ]
+    },
+    {
+      "id": "r8",
+      "kind": "gallery",
+      "product": "AI Image Prompt Generator (시안)",
+      "source": "Dribbble",
+      "title": "왼쪽 입력 양식과 오른쪽 결과 카드",
+      "url": "https://dribbble.com/shots/21750197-AI-Image-Prompt-Generator",
+      "checkedOn": "2026-11-21",
+      "captures": ["r8-1.jpg"],
+      "points": [
+        "왼쪽 카드는 아이콘과 제목, 'See examples' 링크, 오른쪽 'Generated Image: 0/0' 개수로 시작하고 큰 설명 입력칸 아래 'Random prompt'를 둡니다.",
+        "Style(optional), Artist(optional), Dimensions 선택칸을 라벨 위 입력칸 형식으로 쌓고, 맨 아래 'Clear inputs', outputs 숫자 선택, 보라 'Generate'를 한 줄에 둡니다.",
+        "오른쪽 카드는 결과 제목과 한 줄 안내, 2열 결과 격자, 폭 전체 'Try again' 버튼입니다."
+      ]
+    },
+    {
+      "id": "r9",
+      "kind": "gallery",
+      "product": "Numenta (시안)",
+      "source": "Dribbble",
+      "title": "이미지를 올려 프롬프트를 만드는 첫 화면",
+      "url": "https://dribbble.com/shots/21290613-Numenta-AI-Prompt-Generator",
+      "checkedOn": "2026-11-21",
+      "captures": ["r9-1.jpg"],
+      "points": [
+        "어두운 첫 화면 가운데 큰 제목 두 줄 사이에 토글 모양 그림을 끼워 넣고 아래 'Upload image to generate a prompt and reuse it on your own' 한 줄을 둡니다.",
+        "위쪽 메뉴는 About Product, Pricing, Chat With Genie, FAQ와 오른쪽 'Log In', 둥근 'Generate'입니다.",
+        "아래쪽은 크기가 다른 이미지 카드를 모자이크처럼 붙여 화면 끝까지 채웁니다. 업로드 상자나 결과 화면은 보이지 않습니다."
+      ]
+    },
+    {
+      "id": "r10",
+      "kind": "gallery",
+      "product": "Pixcl.ai (시안)",
+      "source": "Dribbble",
+      "title": "이미지 한 장에서 뽑는 요소를 나열한 소개 화면",
+      "url": "https://dribbble.com/shots/27895529-Pixcl-ai-AI-Image-Generator-Creative-Platform-UI-UX-Design",
+      "checkedOn": "2026-11-21",
+      "captures": ["r10-1.jpg"],
+      "points": [
+        "이미지 카드와 빈 칸을 바둑판처럼 엇갈려 놓고, 빈 칸에 기울인 세리프 글자 목록을 둡니다.",
+        "첫 목록은 'Original reference image', 'Extracted color palette', 'Style and lighting tags'로 이미지에서 꺼내는 정보를 보여 줍니다.",
+        "둘째 목록은 'Editable generated prompt', 'Model selector', 'Aspect ratio', 'Quality selector'로 결과 쪽 조절 항목을 보여 줍니다.",
+        "실제 조작 화면이 아니라 기능 소개 그림이라 배치와 상태는 이 캡처에서 알 수 없습니다."
+      ]
+    }
+  ],
+  "selection": {
+    "mode": "combine",
+    "items": [
+      {
+        "ref": "r6",
+        "part": "대화 흐름 전체: 오른쪽 요청 말풍선과 그 아래 용도, 대상 모델 태그, 왼쪽 결과 상자의 구조화된 프롬프트(역할, 소제목, 목록)와 상자 옆 복사 버튼, 결과 아래 이어서 다듬을 제안 칩, 입력창 안의 용도 칩과 대상 모델 선택, 위쪽 메뉴의 기록 진입"
+      },
+      {
+        "ref": "r4",
+        "part": "입력창 하나에 이미지 첨부를 담는 방식: 둥근 큰 입력창 위쪽 첨부 칸(+와 올린 이미지 썸네일), 가운데 글줄, 아래 도구 아이콘과 오른쪽 둥근 보내기 버튼"
+      },
+      {
+        "ref": "r1",
+        "part": "빈 첫 화면과 변수: 제목과 짧은 안내 아래 아이콘이 붙은 예시 칩 두 줄, 생성된 프롬프트 속 {{변수}}를 색으로 구분하고 변수 값을 따로 채우는 패널"
+      },
+      {
+        "ref": "r5",
+        "part": "이미지 분석 카드: 올린 이미지 옆에 읽어 낸 설명 카드, 그 아래 복사 두 버튼, 작은 회색 이름과 값 두 줄로 쌓는 정보(색, 스타일, 비율)"
+      }
+    ],
+    "decidedOn": "2026-11-21"
+  },
+  "status": "done"
+}
