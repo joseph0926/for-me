@@ -15,3 +15,36 @@ internal fun stepPlaybackRate(current: Float, direction: Int): Float {
 internal fun formatPlaybackRate(rate: Float): String =
     if ((rate * 10).let { it == Math.round(it).toFloat() }) String.format(Locale.ROOT, "%.1f", rate)
     else String.format(Locale.ROOT, "%.2f", rate)
+
+/** 탐색 뒤 재생한 구간만 당시 배속으로 합산해 뒤늦은 시각 알림을 판정한다. */
+internal class SeekPlaybackClock(private var rate: Float) {
+    private var startedAtMs: Long? = null
+    private var accumulatedMs = 0.0
+
+    fun start(nowMs: Long) {
+        if (startedAtMs == null) startedAtMs = nowMs
+    }
+
+    fun pause(nowMs: Long) {
+        accumulatedMs += currentIntervalMs(nowMs)
+        startedAtMs = null
+    }
+
+    fun setRate(newRate: Float, nowMs: Long) {
+        if (startedAtMs != null) {
+            accumulatedMs += currentIntervalMs(nowMs)
+            startedAtMs = nowMs
+        }
+        rate = newRate
+    }
+
+    fun reset() {
+        startedAtMs = null
+        accumulatedMs = 0.0
+    }
+
+    fun elapsedMediaMs(nowMs: Long): Long = (accumulatedMs + currentIntervalMs(nowMs)).toLong()
+
+    private fun currentIntervalMs(nowMs: Long): Double =
+        startedAtMs?.let { (nowMs - it) * rate.toDouble() } ?: 0.0
+}

@@ -17,7 +17,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 internal data class FolderEntry(val id: String, val title: String, val isFolder: Boolean)
-internal data class FolderListing(val title: String, val entries: List<FolderEntry>, val loading: Boolean)
+internal data class FolderListing(val title: String, val entries: List<FolderEntry>, val loading: Boolean, val temporaryAccess: Boolean)
 
 data class QueuedVideo(val documentId: String, val title: String)
 
@@ -42,14 +42,13 @@ internal class VideoFolders(private val context: Context) {
         names.all.forEach { (uri, name) -> if (name is String) put(uri.toUri(), name) }
     }
 
-    fun add(tree: Uri): Boolean {
+    fun add(tree: Uri) {
         val name = roots.getOrPut(tree) { context.getString(R.string.folder) }
-        return try {
+        try {
             context.contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             names.edit { putString(tree.toString(), name) }
-            true
         } catch (_: SecurityException) {
-            false
+            // 이번 실행에서 받은 읽기 권한으로 목록을 연다.
         }
     }
 
@@ -81,7 +80,7 @@ internal class VideoFolders(private val context: Context) {
         val id = DocumentsContract.getDocumentId(access)
         val document = DocumentsContract.buildDocumentUri(checkNotNull(access.authority), id)
         val tree = DocumentsContract.buildTreeDocumentUri(checkNotNull(access.authority), DocumentsContract.getTreeDocumentId(access))
-        if (context.contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission }) {
+        if (context.contentResolver.hasPersistentRead(tree)) {
             videoAccess.edit { putString(document.toString(), access.toString()) }
             temporaryVideoAccess.remove(document)
         } else {
@@ -97,6 +96,9 @@ internal class VideoFolders(private val context: Context) {
         return if (direct == PackageManager.PERMISSION_GRANTED) document else treeAddress
     }
 }
+
+private fun ContentResolver.hasPersistentRead(tree: Uri): Boolean =
+    persistedUriPermissions.any { it.uri == tree && it.isReadPermission }
 
 private val videoExtensions = setOf("mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv",
     "mpg", "mpeg", "3gp", "3g2", "ts", "mts", "m2ts", "vob", "ogv", "asf", "m2v", "mxf")
@@ -126,6 +128,7 @@ internal fun readVideoFolder(resolver: ContentResolver, tree: Uri, directoryId: 
             }
         }.sortedWith(compareByDescending<FolderEntry> { it.isFolder }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
             .thenBy { it.id })
-        FolderListing(title, entries, cursor.extras.getBoolean(DocumentsContract.EXTRA_LOADING))
+        FolderListing(title, entries, cursor.extras.getBoolean(DocumentsContract.EXTRA_LOADING),
+            temporaryAccess = !resolver.hasPersistentRead(tree))
     } ?: throw IOException()
 }
