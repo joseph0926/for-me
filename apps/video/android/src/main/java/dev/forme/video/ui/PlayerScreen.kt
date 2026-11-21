@@ -151,11 +151,14 @@ internal fun PlayerScreen(
     var interactionVersion by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableStateOf(false) }
     var dragSeek by remember { mutableStateOf<DragSeek?>(null) }
+    // 조작이 숨겨진 채 영상을 끌기 시작하면 덮개는 옮겨 갈 위치만 보여 주고, 손을 떼면 다른 조작을 띄우지 않고 사라진다.
+    var dragPreviewOnly by remember { mutableStateOf(false) }
     var resumePosition by remember { mutableStateOf<Long?>(null) }
     var showLoading by remember { mutableStateOf(false) }
     var loadingShownAt by remember { mutableLongStateOf(0) }
     val touchControls = {
         controlsVisible = true
+        dragPreviewOnly = false
         interactionVersion++
     }
     LaunchedEffect(state.loading) {
@@ -175,10 +178,16 @@ internal fun PlayerScreen(
             resumePosition = null
         }
     }
-    LaunchedEffect(state.playing, interactionVersion, seeking, touchExploration) {
-        if (!state.playing || seeking || touchExploration) {
+    // 멈추거나 화면 읽기를 켜면 조작을 보여 준다. 탐색이 끝났다는 이유로는 다시 띄우지 않는다.
+    // 끄는 동안 재생기가 잠시 멈춤으로 바뀌어도 위치 미리보기는 손을 뗄 때까지 유지한다.
+    LaunchedEffect(state.playing, touchExploration) {
+        if (!state.playing || touchExploration) {
             controlsVisible = true
-        } else if (controlsVisible) {
+            if (!seeking) dragPreviewOnly = false
+        }
+    }
+    LaunchedEffect(state.playing, interactionVersion, seeking, touchExploration) {
+        if (state.playing && !seeking && !touchExploration && controlsVisible) {
             delay(2_000)
             controlsVisible = false
         }
@@ -270,7 +279,8 @@ internal fun PlayerScreen(
                                 playback.finishSeek()
                                 seeking = false
                                 dragSeek = null
-                                touchControls()
+                                // 끌기 전 조작 상태로 돌아간다. 숨겨져 있었으면 손을 떼는 즉시 영상만 남긴다.
+                                if (dragPreviewOnly) controlsVisible = false else touchControls()
                             }
                         }
                         detectHorizontalDragGestures(
@@ -285,7 +295,9 @@ internal fun PlayerScreen(
                                     seeking = true
                                     resumePosition = null
                                     dragSeek = DragSeek(startMs, startMs)
+                                    val controlsWereHidden = !controlsVisible
                                     touchControls()
+                                    dragPreviewOnly = controlsWereHidden
                                 }
                             },
                             onDragEnd = finish,
@@ -318,7 +330,8 @@ internal fun PlayerScreen(
                     exit = fadeOut(tween(200, easing = VideoEasing)),
                 ) {
                     // 재생바를 끌거나 두 번 눌러 이동하는 동안에는 덮개를 옅게 하고 재생바와 시간만 남긴다.
-                    val chromeHidden = seeking || seekFlash != null
+                    // 숨긴 상태에서 끈 미리보기는 사라지는 동안에도 다른 조작을 드러내지 않는다.
+                    val chromeHidden = seeking || seekFlash != null || dragPreviewOnly
                     val scrimAlpha by animateFloatAsState(if (chromeHidden) 0.2f else 0.5f,
                         tween(200, easing = VideoEasing), label = "scrim")
                     Box(Modifier.fillMaxSize()
