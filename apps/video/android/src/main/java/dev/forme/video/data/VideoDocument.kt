@@ -2,10 +2,12 @@ package dev.forme.video.data
 
 import android.content.ContentResolver
 import android.net.Uri
+import android.os.OperationCanceledException
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import java.io.Closeable
 import java.io.FileNotFoundException
+import java.util.concurrent.CancellationException
 
 class VideoDocument(val descriptor: ParcelFileDescriptor, val title: String) : Closeable {
     override fun close() = descriptor.close()
@@ -14,13 +16,15 @@ class VideoDocument(val descriptor: ParcelFileDescriptor, val title: String) : C
 fun openVideoDocument(resolver: ContentResolver, uri: Uri, fallbackTitle: String): VideoDocument {
     val descriptor = resolver.openFileDescriptor(uri, "r")
         ?: throw FileNotFoundException("No file descriptor")
-    try {
-        val title = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+    val title = try {
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-            ?: fallbackTitle
-        return VideoDocument(descriptor, title)
     } catch (error: Exception) {
-        descriptor.close()
-        throw error
+        if (error is OperationCanceledException || error is CancellationException) {
+            descriptor.close()
+            throw error
+        }
+        null
     }
+    return VideoDocument(descriptor, title ?: fallbackTitle)
 }
