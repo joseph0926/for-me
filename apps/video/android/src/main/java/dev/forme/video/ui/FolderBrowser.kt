@@ -23,20 +23,27 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.forme.video.R
+import dev.forme.video.data.FolderEntry
 import dev.forme.video.data.FolderListing
+import dev.forme.video.data.FolderQueue
 import dev.forme.video.data.VideoFolders
+import dev.forme.video.data.folderQueue
 import dev.forme.video.data.readVideoFolder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
+/**
+ * 보관함이나 홈에서 고른 폴더 하나의 내용을 연다. 그 폴더의 맨 위에서 뒤로 가면 연 곳으로 바로 돌아간다.
+ * [initialTemporary]는 방금 추가했지만 영구 권한을 받지 못한 폴더라는 뜻이다.
+ */
 @Composable
-internal fun FolderBrowser(folders: VideoFolders, play: (Uri) -> Unit, close: () -> Unit, modifier: Modifier) {
-    var tree by rememberSaveable { mutableStateOf<Uri?>(null) }
+internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, initialTemporary: Boolean,
+    play: (Uri, FolderQueue) -> Unit, close: () -> Unit, modifier: Modifier) {
+    var tree by rememberSaveable { mutableStateOf(initialTree) }
     var path by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
-    var temporaryAccess by rememberSaveable { mutableStateOf(false) }
-    val current = tree
+    var temporaryAccess by rememberSaveable { mutableStateOf(initialTemporary) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             temporaryAccess = !folders.add(uri)
@@ -44,56 +51,28 @@ internal fun FolderBrowser(folders: VideoFolders, play: (Uri) -> Unit, close: ()
             tree = uri
         }
     }
-    val back = {
-        when {
-            path.isNotEmpty() -> path = path.dropLast(1)
-            tree != null -> tree = null
-            else -> close()
-        }
-    }
+    val back = { if (path.isNotEmpty()) path = path.dropLast(1) else close() }
     BackHandler(onBack = back)
+    val current = tree
+    val rootId = DocumentsContract.getTreeDocumentId(current)
+    val directoryId = path.lastOrNull() ?: rootId
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            VideoIconButton(back, Modifier.size(48.dp)) {
-                Icon(painterResource(R.drawable.ic_back), stringResource(R.string.folder_back))
-            }
-            Text(stringResource(R.string.folder_videos), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            if (current == null) {
-                TextButton(onClick = { picker.launch(null) }) { Text(stringResource(R.string.add_folder)) }
-            }
-        }
-        if (current == null) {
-            if (folders.roots.isEmpty()) {
-                Text(stringResource(R.string.folders_empty), Modifier.padding(24.dp))
-            } else {
-                LazyColumn {
-                    items(folders.roots.entries.sortedWith(compareBy({ it.value.lowercase() }, { it.key.toString() })),
-                        key = { it.key.toString() }) { (uri, title) ->
-                        FolderRow(title, isFolder = true) {
-                            temporaryAccess = false
-                            tree = uri
-                        }
-                    }
-                }
-            }
-        } else {
-            val rootId = DocumentsContract.getTreeDocumentId(current)
-            val directoryId = path.lastOrNull() ?: rootId
-            key(current, directoryId) {
-                val fallbackTitle = if (path.isEmpty()) folders.roots[current].orEmpty() else stringResource(R.string.folder)
-                DirectoryContents(current, directoryId, fallbackTitle, temporaryAccess,
-                    rename = { if (path.isEmpty()) folders.updateTitle(current, it) },
-                    reselect = { picker.launch(current) },
-                    enter = { if (it != rootId && it !in path) path = path + it },
-                    play = { play(DocumentsContract.buildDocumentUriUsingTree(current, it)) })
-            }
+        key(current, directoryId) {
+            val fallbackTitle = if (path.isEmpty()) folders.roots[current].orEmpty() else stringResource(R.string.folder)
+            DirectoryContents(current, directoryId, fallbackTitle, temporaryAccess, back,
+                rename = { if (path.isEmpty()) folders.updateTitle(current, it) },
+                reselect = { picker.launch(current) },
+                enter = { if (it != rootId && it !in path) path = path + it },
+                play = { id, entries ->
+                    play(DocumentsContract.buildDocumentUriUsingTree(current, id), folderQueue(current, entries, id))
+                })
         }
     }
 }
 
 @Composable
-private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String, temporaryAccess: Boolean,
-    rename: (String) -> Unit, reselect: () -> Unit, enter: (String) -> Unit, play: (String) -> Unit) {
+private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String, temporaryAccess: Boolean, back: () -> Unit,
+    rename: (String) -> Unit, reselect: () -> Unit, enter: (String) -> Unit, play: (String, List<FolderEntry>) -> Unit) {
     val resolver = LocalContext.current.contentResolver
     var revision by remember { mutableIntStateOf(0) }
     var listing by remember { mutableStateOf<FolderListing?>(null) }
@@ -121,9 +100,12 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
         }
         if (failed) listing = null
     }
-    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(listing?.title ?: rootTitle, Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.titleMedium)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        VideoIconButton(back, Modifier.size(48.dp)) {
+            Icon(painterResource(R.drawable.ic_back), stringResource(R.string.folder_back))
+        }
+        Text(listing?.title ?: rootTitle, Modifier.weight(1f).padding(horizontal = 4.dp), maxLines = 2,
+            overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleLarge)
         TextButton(onClick = { revision++ }) { Text(stringResource(R.string.refresh_folder)) }
     }
     if (temporaryAccess) Text(stringResource(R.string.folder_temporary), Modifier.padding(horizontal = 24.dp))
@@ -140,7 +122,7 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
             LazyColumn(state = scroll) {
                 items(current.entries, key = { it.id }) { entry ->
                     FolderRow(entry.title, entry.isFolder) {
-                        if (entry.isFolder) enter(entry.id) else play(entry.id)
+                        if (entry.isFolder) enter(entry.id) else play(entry.id, current.entries)
                     }
                 }
             }
@@ -149,7 +131,7 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
 }
 
 @Composable
-private fun FolderRow(label: String, isFolder: Boolean, click: () -> Unit) {
+internal fun FolderRow(label: String, isFolder: Boolean, click: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = click).heightIn(min = 56.dp)
         .padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)) {

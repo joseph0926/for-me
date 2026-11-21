@@ -5,6 +5,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import android.view.View
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,12 +17,27 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalConfiguration
@@ -43,8 +60,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.forme.video.R
 import dev.forme.video.VideoSelection
 import dev.forme.video.VideoViewModel
+import dev.forme.video.player.PLAYBACK_RATES
 import dev.forme.video.player.VlcPlayback
+import dev.forme.video.player.formatPlaybackRate
+import dev.forme.video.player.stepPlaybackRate
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 
 @Composable
@@ -59,7 +81,8 @@ internal fun PlayerScreen(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val playback = remember(selection.sequence) {
         VlcPlayback(context, model.repository, selection.uri, selection.accessUri,
-            wantsToPlay = { selection.wantsToPlay }, changePlayIntent = { selection.wantsToPlay = it })
+            wantsToPlay = { selection.wantsToPlay }, changePlayIntent = { selection.wantsToPlay = it },
+            rate = model.playbackRate)
     }
     val state = playback.state
     LaunchedEffect(playback) { playback.open() }
@@ -105,6 +128,15 @@ internal fun PlayerScreen(
     // 메뉴를 닫아 둔 사이 저장한 외부 자막을 읽지 못한 안내도 보여 주고, 잠금 중이면 해제 뒤에 보여 준다.
     val subtitleDialogVisible = (subtitleMenu || playback.subtitles.notice != null) && !screenLocked
     var controlsVisible by remember { mutableStateOf(true) }
+    val tapScope = rememberCoroutineScope()
+    val pendingTap = remember { PendingTap() }
+    var seekFlash by remember { mutableStateOf<SeekFlash?>(null) }
+    LaunchedEffect(seekFlash) {
+        if (seekFlash != null) {
+            delay(SEEK_FLASH_MS)
+            seekFlash = null
+        }
+    }
     var interactionVersion by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableStateOf(false) }
     var resumePosition by remember { mutableStateOf<Long?>(null) }
@@ -160,72 +192,111 @@ internal fun PlayerScreen(
             }
             if (!screenLocked) {
                 val showPause = selection.wantsToPlay && state.error == null
-                val playLabel = stringResource(if (showPause) R.string.pause else R.string.play)
-                Box(Modifier.matchParentSize().clickable(
-                    role = Role.Button,
-                    enabled = !state.loading && !seeking,
-                    onClickLabel = playLabel,
-                    onClick = {
+                val centerIcon = when {
+                    showPause -> R.drawable.ic_pause
+                    state.ended -> R.drawable.ic_replay
+                    else -> R.drawable.ic_play
+                }
+                val playLabel = stringResource(when (centerIcon) {
+                    R.drawable.ic_pause -> R.string.pause
+                    R.drawable.ic_replay -> R.string.replay
+                    else -> R.string.play
+                })
+                val tapsEnabled = !state.loading && !seeking
+                val toggleByTap = {
+                    touchControls()
+                    playback.togglePlayback()
+                }
+                val seekByTap = { zone: TapZone ->
+                    val current = playback.state
+                    if (current.seekable && current.error == null) {
+                        // 이동한 위치를 볼 수 있게 아래 시간과 재생바를 띄운다. 나머지 조작은 표시가 끝난 뒤 돌아온다.
                         touchControls()
-                        playback.togglePlayback()
-                    },
-                ).semantics { contentDescription = playLabel })
+                        resumePosition = null
+                        val direction = if (zone == TapZone.Left) -1 else 1
+                        playback.previewSeek(current.positionMs + direction * SEEK_STEP_SECONDS * 1_000L)
+                        playback.finishSeek()
+                        seekFlash = nextSeekFlash(seekFlash, zone)
+                    }
+                }
+                val handleTap by rememberUpdatedState { zone: TapZone ->
+                    val pendingZone = pendingTap.zone
+                    pendingTap.cancel()
+                    when (val decision = decideTap(zone, seekFlash?.zone, pendingZone)) {
+                        TapDecision.Seek -> seekByTap(zone)
+                        is TapDecision.Single -> if (decision.delayMs == 0L) toggleByTap() else {
+                            pendingTap.zone = zone
+                            pendingTap.job = tapScope.launch {
+                                delay(decision.delayMs)
+                                pendingTap.zone = null
+                                pendingTap.job = null
+                                // 기다리는 사이 화면을 잠그거나 재생바를 잡았으면 한 번 누르기를 버린다.
+                                if (!screenLocked && !seeking) toggleByTap()
+                            }
+                        }
+                    }
+                }
+                // 화면 읽기 기능은 두 번 누르기를 선택으로 쓰므로 아래 onClick으로 재생만 바꾼다.
+                Box(Modifier.matchParentSize()
+                    .pointerInput(tapsEnabled) {
+                        if (tapsEnabled) detectTapGestures { offset -> handleTap(tapZone(offset.x, size.width.toFloat())) }
+                    }
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = playLabel
+                        if (tapsEnabled) onClick(label = playLabel) {
+                            toggleByTap()
+                            true
+                        } else disabled()
+                    })
+                SeekFlashIndicator(seekFlash, state.videoAspect, Modifier.matchParentSize())
                 androidx.compose.animation.AnimatedVisibility(
                     visible = controlsVisible,
                     modifier = Modifier.matchParentSize(),
                     enter = fadeIn(tween(200, easing = VideoEasing)),
                     exit = fadeOut(tween(200, easing = VideoEasing)),
                 ) {
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
-                        Color.Black.copy(alpha = 0.65f), Color.Transparent, Color.Black.copy(alpha = 0.85f))))) {
-                        Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            VideoIconButton(model::closeVideo, Modifier.size(48.dp)) {
-                                Icon(painterResource(R.drawable.ic_back), stringResource(R.string.back_to_list))
-                            }
-                            Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                                Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.titleLarge)
-                                Text(stringResource(R.string.local_video), style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            TextButton(onClick = {
-                                touchControls()
-                                playback.subtitles.refresh()
-                                subtitleMenu = true
-                            }, enabled = !state.loading && !seeking) { Text(stringResource(R.string.subtitles)) }
-                            VideoIconButton(onClick = {
-                                screenLocked = true
-                                resumePosition = null
-                                revealUnlock()
-                            }, modifier = Modifier.size(48.dp), enabled = !seeking) {
-                                Icon(painterResource(R.drawable.ic_lock), stringResource(R.string.lock_screen))
-                            }
-                            VideoIconButton(openFile, Modifier.size(48.dp)) {
-                                Icon(painterResource(R.drawable.ic_folder), stringResource(R.string.open_video))
+                    // 재생바를 끌거나 두 번 눌러 이동하는 동안에는 덮개를 옅게 하고 재생바와 시간만 남긴다.
+                    val chromeHidden = seeking || seekFlash != null
+                    val scrimAlpha by animateFloatAsState(if (chromeHidden) 0.2f else 0.5f,
+                        tween(200, easing = VideoEasing), label = "scrim")
+                    Box(Modifier.fillMaxSize()
+                        .background(Color.Black.copy(alpha = scrimAlpha))
+                        .background(Brush.verticalGradient(listOf(
+                            Color.Black.copy(alpha = 0.4f), Color.Transparent, Color.Transparent,
+                            Color.Black.copy(alpha = 0.5f))))) {
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.TopStart)) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                VideoIconButton(model::closeVideo, Modifier.size(48.dp)) {
+                                    Icon(painterResource(R.drawable.ic_back), stringResource(R.string.back_to_list))
+                                }
+                                Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.titleLarge)
+                                    Text(stringResource(R.string.local_video), style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                TextButton(onClick = {
+                                    touchControls()
+                                    playback.subtitles.refresh()
+                                    subtitleMenu = true
+                                }, enabled = !state.loading && !seeking) { Text(stringResource(R.string.subtitles)) }
+                                VideoIconButton(onClick = {
+                                    screenLocked = true
+                                    resumePosition = null
+                                    revealUnlock()
+                                }, modifier = Modifier.size(48.dp), enabled = !seeking) {
+                                    Icon(painterResource(R.drawable.ic_lock), stringResource(R.string.lock_screen))
+                                }
+                                VideoIconButton(openFile, Modifier.size(48.dp), enabled = !seeking) {
+                                    Icon(painterResource(R.drawable.ic_folder), stringResource(R.string.open_video))
+                                }
                             }
                         }
-                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                            .padding(horizontal = if (landscape) 24.dp else 16.dp, vertical = 16.dp)) {
-                            SeekBar(
-                                positionMs = state.positionMs,
-                                durationMs = state.durationMs,
-                                enabled = state.seekable && state.durationMs > 0 && state.error == null,
-                                onSeek = {
-                                    seeking = true
-                                    resumePosition = null
-                                    touchControls()
-                                    playback.previewSeek(it)
-                                },
-                                onSeekFinished = {
-                                    playback.finishSeek()
-                                    seeking = false
-                                    touchControls()
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally)) {
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.Center)) {
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                                 // 탐색 중 엔진이 잠깐 멈춰도 사용자가 정한 재생 의도의 아이콘을 유지한다.
                                 SkipButton(R.string.skip_back, R.drawable.ic_skip_back,
                                     state.seekable && !seeking && state.error == null) {
@@ -237,17 +308,19 @@ internal fun PlayerScreen(
                                 VideoIconButton(
                                     onClick = { touchControls(); playback.togglePlayback() },
                                     enabled = !state.loading && !seeking,
-                                    modifier = Modifier.size(56.dp)
+                                    modifier = Modifier.size(64.dp)
                                         .semantics { contentDescription = playLabel },
                                 ) {
-                                    AnimatedContent(showPause, transitionSpec = {
-                                        (fadeIn(tween(200, easing = VideoEasing)) +
-                                            scaleIn(tween(200, easing = VideoEasing), initialScale = 0.5f)) togetherWith
-                                            (fadeOut(tween(200, easing = VideoEasing)) +
-                                                scaleOut(tween(200, easing = VideoEasing), targetScale = 0.5f))
-                                    }, label = "playIcon") { pausedIcon ->
-                                        Icon(painterResource(if (pausedIcon) R.drawable.ic_pause else R.drawable.ic_play),
-                                            null, Modifier.size(32.dp))
+                                    Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.18f), CircleShape),
+                                        contentAlignment = Alignment.Center) {
+                                        AnimatedContent(centerIcon, transitionSpec = {
+                                            (fadeIn(tween(200, easing = VideoEasing)) +
+                                                scaleIn(tween(200, easing = VideoEasing), initialScale = 0.5f)) togetherWith
+                                                (fadeOut(tween(200, easing = VideoEasing)) +
+                                                    scaleOut(tween(200, easing = VideoEasing), targetScale = 0.5f))
+                                        }, label = "playIcon") { icon ->
+                                            Icon(painterResource(icon), null, Modifier.size(30.dp))
+                                        }
                                     }
                                 }
                                 SkipButton(R.string.skip_forward, R.drawable.ic_skip_forward,
@@ -258,8 +331,53 @@ internal fun PlayerScreen(
                                     playback.finishSeek()
                                 }
                             }
-
                         }
+                        // 끝까지 본 영상이 폴더 목록에서 연 것이면 같은 폴더의 다음 영상을 다시 보기 아래에 둔다.
+                        val nextVideo = selection.queue?.next
+                        if (state.ended && nextVideo != null) {
+                            FadeInChrome(chromeHidden, Modifier.align(Alignment.Center).offset(y = 76.dp)) {
+                                Button(
+                                    onClick = model::playNext,
+                                    modifier = Modifier.widthIn(max = 360.dp).padding(horizontal = 24.dp)
+                                        .defaultMinSize(minHeight = 44.dp),
+                                    shape = MaterialTheme.shapes.small,
+                                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp),
+                                ) {
+                                    Text(stringResource(R.string.next_video, nextVideo.title),
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.CenterEnd)) {
+                            SpeedControls(
+                                rate = model.playbackRate,
+                                enabled = !seeking && state.error == null,
+                                changeRate = {
+                                    touchControls()
+                                    model.playbackRate = it
+                                    playback.setRate(it)
+                                },
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                        }
+                        SeekBar(
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
+                            enabled = state.seekable && state.durationMs > 0 && state.error == null,
+                            onSeek = {
+                                seeking = true
+                                resumePosition = null
+                                touchControls()
+                                playback.previewSeek(it)
+                            },
+                            onSeekFinished = {
+                                playback.finishSeek()
+                                seeking = false
+                                touchControls()
+                            },
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                                .padding(horizontal = if (landscape) 24.dp else 16.dp, vertical = 16.dp),
+                        )
                     }
                 }
                 androidx.compose.animation.AnimatedVisibility(
@@ -325,13 +443,123 @@ internal fun PlayerScreen(
     }
 }
 
+/**
+ * 숨길 때는 같은 구성에서 바로 빼고, 다시 보일 때만 서서히 나타낸다.
+ * 사라지는 동안 남아 있는 버튼이 이어서 누르는 양옆 누르기를 가로채지 않게 하려는 것이다.
+ */
+@Composable
+private fun FadeInChrome(hidden: Boolean, modifier: Modifier, content: @Composable () -> Unit) {
+    if (hidden) return
+    val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+    androidx.compose.animation.AnimatedVisibility(appear, modifier, enter = fadeIn(tween(200, easing = VideoEasing))) {
+        content()
+    }
+}
+
+/** 양옆 첫 누르기가 두 번째 누르기를 기다리는 동안의 자리와 지연 작업. 화면에 그리지 않는다. */
+private class PendingTap {
+    var zone: TapZone? = null
+    var job: Job? = null
+
+    fun cancel() {
+        job?.cancel()
+        job = null
+        zone = null
+    }
+}
+
+/** 두 번 눌러 이동한 쪽 가장자리에 반원 모양 밝은 영역과 이동한 초를 잠깐 보여 준다. */
+@Composable
+private fun SeekFlashIndicator(flash: SeekFlash?, videoAspect: Float?, modifier: Modifier) {
+    BoxWithConstraints(modifier.clearAndSetSemantics {}) {
+        // VLC는 영상을 비율을 지켜 화면 가운데에 맞추므로 표시도 그 영상 자리 안에만 그린다.
+        val fitsHeight = videoAspect != null && maxWidth / maxHeight > videoAspect
+        val width = if (videoAspect != null && fitsHeight) maxHeight * videoAspect else maxWidth
+        val height = if (videoAspect != null && !fitsHeight) maxWidth / videoAspect else maxHeight
+        AnimatedContent(
+            targetState = flash,
+            modifier = Modifier.align(Alignment.Center).size(width, height),
+            contentKey = { it?.zone },
+            transitionSpec = { fadeIn(tween(150, easing = VideoEasing)) togetherWith fadeOut(tween(150, easing = VideoEasing)) },
+            label = "seekFlash",
+        ) { shown ->
+            Box(Modifier.fillMaxSize()) {
+                if (shown != null) {
+                    val left = shown.zone == TapZone.Left
+                    Column(
+                        Modifier.align(if (left) Alignment.CenterStart else Alignment.CenterEnd)
+                            .fillMaxHeight().fillMaxWidth(0.4f)
+                            .clip(EdgeArcShape(left))
+                            .background(Color.White.copy(alpha = 0.14f)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                    ) {
+                        Icon(painterResource(if (left) R.drawable.ic_skip_back else R.drawable.ic_skip_forward), null,
+                            Modifier.size(26.dp))
+                        Text(stringResource(R.string.seek_flash_seconds, shown.totalSeconds),
+                            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 화면 가장자리에 붙은 쪽은 곧고 안쪽은 타원으로 휘는 모양. */
+private class EdgeArcShape(private val left: Boolean) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val oval = if (left) Rect(-size.width, 0f, size.width, size.height) else Rect(0f, 0f, size.width * 2, size.height)
+        val bounds = Path().apply { addRect(Rect(0f, 0f, size.width, size.height)) }
+        return Outline.Generic(Path.combine(PathOperation.Intersect, Path().apply { addOval(oval) }, bounds))
+    }
+}
+
+/** 오른쪽 가장자리에 빠르게, 현재 속도(누르면 1배), 느리게를 세로로 둔다. */
+@Composable
+private fun SpeedControls(rate: Float, enabled: Boolean, changeRate: (Float) -> Unit, modifier: Modifier) {
+    val rateText = formatPlaybackRate(rate)
+    val resetLabel = stringResource(R.string.speed_reset, rateText)
+    val changed = rate != 1f
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        SpeedStepButton(R.drawable.ic_add, R.string.speed_faster, enabled && rate < PLAYBACK_RATES.last()) {
+            changeRate(stepPlaybackRate(rate, 1))
+        }
+        Box(Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = resetLabel) { changeRate(1f) }
+            .clearAndSetSemantics { contentDescription = resetLabel },
+            contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.speed_value, rateText),
+                color = if (changed) MaterialTheme.colorScheme.onPrimary else Color.White,
+                style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                modifier = Modifier
+                    .background(if (changed) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.4f),
+                        CircleShape)
+                    .padding(horizontal = 8.dp, vertical = 3.dp))
+        }
+        SpeedStepButton(R.drawable.ic_remove, R.string.speed_slower, enabled && rate > PLAYBACK_RATES.first()) {
+            changeRate(stepPlaybackRate(rate, -1))
+        }
+    }
+}
+
+@Composable
+private fun SpeedStepButton(icon: Int, label: Int, enabled: Boolean, onClick: () -> Unit) {
+    VideoIconButton(onClick, Modifier.size(48.dp), enabled = enabled) {
+        Box(Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape),
+            contentAlignment = Alignment.Center) {
+            Icon(painterResource(icon), stringResource(label), Modifier.size(20.dp))
+        }
+    }
+}
+
 @Composable
 private fun SkipButton(label: Int, icon: Int, enabled: Boolean, onClick: () -> Unit) {
     val description = stringResource(label)
     VideoIconButton(onClick, enabled = enabled,
         modifier = Modifier.size(48.dp)
             .semantics { contentDescription = description }) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.12f), CircleShape),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(painterResource(icon), null, Modifier.size(20.dp))
             Text(stringResource(R.string.skip_seconds), style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.clearAndSetSemantics {})

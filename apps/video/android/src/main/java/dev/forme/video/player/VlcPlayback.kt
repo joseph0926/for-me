@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
+import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.IOException
 
@@ -42,6 +43,9 @@ data class PlaybackUiState(
     val durationMs: Long = 0,
     val seekable: Boolean = false,
     val error: Int? = null,
+    val ended: Boolean = false,
+    /** 화면에 보이는 영상의 가로 대 세로 비율. 영상 출력이 준비되기 전에는 null이다. */
+    val videoAspect: Float? = null,
 )
 
 class VlcPlayback(
@@ -51,6 +55,7 @@ class VlcPlayback(
     private val accessUri: Uri,
     private val wantsToPlay: () -> Boolean,
     private val changePlayIntent: (Boolean) -> Unit,
+    private var rate: Float = 1f,
 ) {
     var state by mutableStateOf(PlaybackUiState())
         private set
@@ -161,6 +166,11 @@ class VlcPlayback(
         }
     }
 
+    fun setRate(rate: Float) {
+        this.rate = rate
+        player?.rate = rate
+    }
+
     fun togglePlayback() {
         // 탐색 직후 엔진이 아직 멈춰 있어도 화면에 표시한 재생 의도를 전환한다.
         if (wantsToPlay() && state.error == null) pauseByUser() else {
@@ -262,6 +272,7 @@ class VlcPlayback(
             return
         }
         ended = false
+        state = state.copy(ended = false)
         seekIssuedFor = null
         setMedia(active)
         layout?.let(::attachPlayerViews)
@@ -281,10 +292,14 @@ class VlcPlayback(
         val active = player ?: return
         when (event.type) {
             MediaPlayer.Event.ESAdded, MediaPlayer.Event.ESDeleted, MediaPlayer.Event.ESSelected -> subtitles.refresh()
+            MediaPlayer.Event.Vout -> updateVideoAspect(active)
             MediaPlayer.Event.Playing -> {
                 subtitles.refresh()
                 progress.updateDuration(active.length)
                 state = state.copy(durationMs = progress.durationMs, seekable = active.isSeekable)
+                // 새 입력을 열거나 끝난 뒤 다시 열어도 고른 속도를 유지한다.
+                if (active.rate != rate) active.rate = rate
+                updateVideoAspect(active)
                 restorePosition()
                 if (!visible || !wantsToPlay() || scrubbing) {
                     active.pause()
@@ -311,7 +326,9 @@ class VlcPlayback(
             MediaPlayer.Event.TimeChanged -> {
                 if (ended || scrubbing || !visible || !wantsToPlay()) return
                 val now = SystemClock.elapsedRealtime()
-                if (progress.acceptTime(event.timeChanged, elapsedPlayingMs = now - playRequestedAtMs)) {
+                // 빠르게 재생하면 영상 시각이 실제 경과보다 앞서므로 탐색 확인 허용 범위도 속도만큼 늘린다.
+                val elapsedMediaMs = ((now - playRequestedAtMs) * rate.coerceAtLeast(1f)).toLong()
+                if (progress.acceptTime(event.timeChanged, elapsedPlayingMs = elapsedMediaMs)) {
                     state = state.copy(positionMs = progress.positionMs, durationMs = progress.durationMs)
                     if (now - lastSaveAtMs >= 2_000) {
                         save()
@@ -323,12 +340,22 @@ class VlcPlayback(
                 progress.finish()
                 ended = true
                 changePlayIntent(false)
-                state = state.copy(playing = false, positionMs = 0)
+                state = state.copy(playing = false, positionMs = 0, ended = true)
                 save()
                 audio.abandonAudioFocusRequest(focusRequest)
             }
             MediaPlayer.Event.EncounteredError -> fail(R.string.playback_failed)
         }
+    }
+
+    private fun updateVideoAspect(active: MediaPlayer) {
+        val track = active.currentVideoTrack ?: return
+        if (track.width <= 0 || track.height <= 0) return
+        val pixelAspect = if (track.sarNum > 0 && track.sarDen > 0) track.sarNum.toFloat() / track.sarDen else 1f
+        val stored = track.width * pixelAspect / track.height
+        // 방향 값 4~7은 90도 돌려 저장한 영상이라 화면에서는 가로와 세로가 바뀐다.
+        val aspect = if (track.orientation >= IMedia.VideoTrack.Orientation.LeftTop) 1f / stored else stored
+        if (state.videoAspect != aspect) state = state.copy(videoAspect = aspect)
     }
 
     private fun save() {

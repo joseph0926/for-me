@@ -66,7 +66,7 @@ fun VideoTheme(content: @Composable () -> Unit) {
         shapes = Shapes(
             extraSmall = RoundedCornerShape(4.dp),
             small = RoundedCornerShape(6.dp),
-            medium = RoundedCornerShape(10.dp),
+            medium = RoundedCornerShape(6.dp),
             large = RoundedCornerShape(6.dp),
             extraLarge = RoundedCornerShape(6.dp),
         ),
