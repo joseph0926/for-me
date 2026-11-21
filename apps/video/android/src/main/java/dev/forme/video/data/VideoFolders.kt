@@ -19,6 +19,21 @@ import java.util.concurrent.ConcurrentHashMap
 internal data class FolderEntry(val id: String, val title: String, val isFolder: Boolean)
 internal data class FolderListing(val title: String, val entries: List<FolderEntry>, val loading: Boolean)
 
+data class QueuedVideo(val documentId: String, val title: String)
+
+/** 폴더 목록에서 연 영상의 같은 폴더 영상 순서. 시스템 선택기나 최근 목록에서 연 영상에는 없다. */
+data class FolderQueue(val tree: Uri, val videos: List<QueuedVideo>, val index: Int) {
+    val next: QueuedVideo? get() = videos.getOrNull(index + 1)
+
+    fun advanced(): FolderQueue = copy(index = index + 1)
+}
+
+/** 목록에 보인 순서(하위 폴더 제외)대로 [playedId] 영상의 자리를 잡는다. */
+internal fun folderQueue(tree: Uri, entries: List<FolderEntry>, playedId: String): FolderQueue {
+    val videos = entries.filterNot { it.isFolder }.map { QueuedVideo(it.id, it.title) }
+    return FolderQueue(tree, videos, videos.indexOfFirst { it.documentId == playedId })
+}
+
 internal class VideoFolders(private val context: Context) {
     private val names = context.getSharedPreferences("video_folder_names", Context.MODE_PRIVATE)
     private val videoAccess = context.getSharedPreferences("video_folder_access", Context.MODE_PRIVATE)
@@ -36,6 +51,23 @@ internal class VideoFolders(private val context: Context) {
         } catch (_: SecurityException) {
             false
         }
+    }
+
+    /** 폴더 목록과 홈 바로가기가 같은 순서로 보이도록 이름, 주소 순으로 정렬한다. */
+    fun sortedRoots(): List<Pair<Uri, String>> =
+        roots.entries.sortedWith(compareBy({ it.value.lowercase() }, { it.key.toString() })).map { it.key to it.value }
+
+    /**
+     * [records](최근 순) 중 [tree] 폴더나 그 하위 폴더에서 연 영상의 주소를 처음 하나 돌려준다.
+     * 폴더에서 열 때 남긴 접근 주소로만 판단하므로 시스템 선택기로 연 영상은 고르지 않는다.
+     */
+    fun latestVideoIn(tree: Uri, records: List<PlaybackRecord>): String? {
+        val treeId = DocumentsContract.getTreeDocumentId(tree)
+        return records.firstOrNull { record ->
+            val document = record.uri.toUri()
+            val access = temporaryVideoAccess[document] ?: videoAccess.getString(record.uri, null)?.toUri()
+            access != null && access.authority == tree.authority && DocumentsContract.getTreeDocumentId(access) == treeId
+        }?.uri
     }
 
     fun updateTitle(tree: Uri, title: String) {
