@@ -20,13 +20,13 @@ class FolderQueueTest {
     )
 
     @Test fun nextFollowsTheListedOrderAndSkipsFolders() {
-        val queue = folderQueue(tree, entries, playedId = "a")
+        val queue = folderQueue(tree, "opaque:root", entries, playedId = "a")
         assertEquals(QueuedVideo("b", "Episode 2.mkv"), queue.next)
         assertEquals(QueuedVideo("c", "Episode 3.mp4"), queue.advanced().next)
     }
 
     @Test fun lastVideoHasNoNext() {
-        assertNull(folderQueue(tree, entries, playedId = "c").next)
-        assertNull(folderQueue(tree, entries, playedId = "a").advanced().advanced().next)
+        assertNull(folderQueue(tree, "opaque:root", entries, playedId = "c").next)
+        assertNull(folderQueue(tree, "opaque:root", entries, playedId = "a").advanced().advanced().next)
     }
 }

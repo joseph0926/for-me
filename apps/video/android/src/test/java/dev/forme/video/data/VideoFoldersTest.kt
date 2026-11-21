@@ -42,6 +42,28 @@ class VideoFoldersTest {
         assertEquals("opaque:child", DocumentsContract.getDocumentId(provider.lastQuery))
     }
 
+    @Test fun subtitleWithTheSameNameWinsThenKoreanTagThenOtherTags() {
+        fun file(name: String) = FolderEntry(name, name, isFolder = false)
+        val files = listOf(file("Movie.en.srt"), file("Movie.ko.vtt"), file("movie.smi"), file("Movie.srt"),
+            file("Movie 2.srt"), file("Movie.srt.bak"), FolderEntry("dir", "Movie.srt", isFolder = true))
+        assertEquals("Movie.srt", matchingSubtitle("Movie.mkv", files)?.id)
+        assertEquals("movie.smi", matchingSubtitle("Movie.mkv", files - file("Movie.srt"))?.id)
+        assertEquals("Movie.ko.vtt", matchingSubtitle("Movie.mkv", listOf(file("Movie.en.srt"), file("Movie.ko.vtt")))?.id)
+        assertEquals("Movie.en.srt", matchingSubtitle("Movie.mkv", listOf(file("Movie.en.srt"), file("Movie 2.srt")))?.id)
+        assertNull(matchingSubtitle("Movie.mkv", listOf(file("Movie 2.srt"), file("Movie.srt.bak"), file("Other.srt"))))
+    }
+
+    @Test fun findsTheSubtitleNextToTheVideoInTheSameFolder() {
+        val queue = folderQueue(tree, "opaque:child", listOf(FolderEntry("v2", "Clip.MKV", isFolder = false)), "v2")
+        val found = checkNotNull(findFolderSubtitle(context.contentResolver, queue))
+        assertEquals(DocumentsContract.buildDocumentUriUsingTree(tree, "s2"), found.uri)
+        assertEquals("Clip.smi", found.name)
+        assertFalse(found.persistent)
+        assertEquals("opaque:child", DocumentsContract.getDocumentId(provider.lastQuery))
+        val unmatched = folderQueue(tree, "opaque:child", listOf(FolderEntry("v1", "stream", isFolder = false)), "v1")
+        assertNull(findFolderSubtitle(context.contentResolver, unmatched))
+    }
+
     @Test fun folderAndFileSelectionsShareTheSameDocumentKey() {
         val onlyTreeGranted = object : ContextWrapper(context) {
             override fun checkUriPermission(uri: Uri, pid: Int, uid: Int, modeFlags: Int) = PackageManager.PERMISSION_DENIED
@@ -94,6 +116,8 @@ private class FolderProvider : ContentProvider() {
         if (uri.lastPathSegment == "children") {
             cursor.addRow(arrayOf("v1", "stream", "video/mp4"))
             cursor.addRow(arrayOf("s1", "자막.srt", "application/octet-stream"))
+            cursor.addRow(arrayOf("s2", "Clip.smi", "application/smil"))
+            cursor.addRow(arrayOf("s3", "Clip.ko.srt", "application/x-subrip"))
             cursor.addRow(arrayOf("f1", "Series", Document.MIME_TYPE_DIR))
             cursor.addRow(arrayOf("v2", "Clip.MKV", "application/octet-stream"))
             cursor.addRow(arrayOf("a1", "song.mp4", "audio/mp4"))

@@ -59,7 +59,7 @@ class VideoDocumentTest {
 
     @Test fun deniedSubtitleShowsReselectionNotice() {
         provider.denied = true
-        val subtitles = SubtitleControls(context, uri) { null }
+        val subtitles = SubtitleControls(context, uri, folder = null) { null }
         try {
             subtitles.load(uri)
             val deadline = System.nanoTime() + 5_000_000_000L
