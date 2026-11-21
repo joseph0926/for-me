@@ -1,6 +1,7 @@
 package dev.forme.video.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.saveable.rememberSaveable
 import android.view.View
 import android.view.accessibility.AccessibilityManager
@@ -23,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,12 +63,14 @@ import dev.forme.video.R
 import dev.forme.video.VideoSelection
 import dev.forme.video.VideoViewModel
 import dev.forme.video.player.PLAYBACK_RATES
+import dev.forme.video.player.VideoScale
 import dev.forme.video.player.VlcPlayback
 import dev.forme.video.player.formatPlaybackRate
 import dev.forme.video.player.stepPlaybackRate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import org.videolan.libvlc.util.VLCVideoLayout
 
 @Composable
@@ -82,7 +86,7 @@ internal fun PlayerScreen(
     val playback = remember(selection.sequence) {
         VlcPlayback(context, model.repository, selection.uri, selection.accessUri,
             wantsToPlay = { selection.wantsToPlay }, changePlayIntent = { selection.wantsToPlay = it },
-            rate = model.playbackRate)
+            rate = model.playbackRate, videoScale = model.videoScale)
     }
     val state = playback.state
     LaunchedEffect(playback) { playback.open() }
@@ -110,6 +114,13 @@ internal fun PlayerScreen(
     }
 
     val touchExploration = rememberTouchExploration()
+    // 사용자가 회전 버튼으로 고른 방향. 고르기 전에는 영상 비율에 맞춘다. 목록으로 돌아갈 때 되돌리는 일은 VideoApp이 맡는다.
+    var orientationChoice by rememberSaveable(selection.sequence) { mutableStateOf<ScreenOrientation?>(null) }
+    val requestedOrientation = orientationChoice ?: orientationFor(state.videoAspect)
+    val activity = LocalActivity.current
+    LaunchedEffect(activity, requestedOrientation) {
+        if (activity != null && requestedOrientation != null) activity.requestedOrientation = requestedOrientation.activityValue
+    }
     var screenLocked by rememberSaveable(selection.sequence) { mutableStateOf(false) }
     var unlockVisible by remember { mutableStateOf(true) }
     var lockInteraction by remember { mutableIntStateOf(0) }
@@ -139,6 +150,7 @@ internal fun PlayerScreen(
     }
     var interactionVersion by remember { mutableIntStateOf(0) }
     var seeking by remember { mutableStateOf(false) }
+    var dragSeek by remember { mutableStateOf<DragSeek?>(null) }
     var resumePosition by remember { mutableStateOf<Long?>(null) }
     var showLoading by remember { mutableStateOf(false) }
     var loadingShownAt by remember { mutableLongStateOf(0) }
@@ -163,7 +175,7 @@ internal fun PlayerScreen(
             resumePosition = null
         }
     }
-    LaunchedEffect(state.playing, controlsVisible, interactionVersion, seeking, touchExploration) {
+    LaunchedEffect(state.playing, interactionVersion, seeking, touchExploration) {
         if (!state.playing || seeking || touchExploration) {
             controlsVisible = true
         } else if (controlsVisible) {
@@ -203,9 +215,11 @@ internal fun PlayerScreen(
                     else -> R.string.play
                 })
                 val tapsEnabled = !state.loading && !seeking
-                val toggleByTap = {
-                    touchControls()
-                    playback.togglePlayback()
+                // 채우기와 늘이기는 영상이 화면 전체를 덮으므로 터치 자리와 이동 표시도 화면 전체를 기준으로 한다.
+                val displayedAspect = state.videoAspect.takeIf { model.videoScale == VideoScale.Fit }
+                // 영상을 누르면 조작만 보이거나 숨긴다. 재생과 일시정지는 가운데 버튼으로만 바꾼다.
+                val toggleControlsByTap = {
+                    if (controlsVisible && !touchExploration) controlsVisible = false else touchControls()
                 }
                 val seekByTap = { zone: TapZone ->
                     val current = playback.state
@@ -224,32 +238,79 @@ internal fun PlayerScreen(
                     pendingTap.cancel()
                     when (val decision = decideTap(zone, seekFlash?.zone, pendingZone)) {
                         TapDecision.Seek -> seekByTap(zone)
-                        is TapDecision.Single -> if (decision.delayMs == 0L) toggleByTap() else {
+                        is TapDecision.Single -> if (decision.delayMs == 0L) toggleControlsByTap() else {
                             pendingTap.zone = zone
                             pendingTap.job = tapScope.launch {
                                 delay(decision.delayMs)
                                 pendingTap.zone = null
                                 pendingTap.job = null
                                 // 기다리는 사이 화면을 잠그거나 재생바를 잡았으면 한 번 누르기를 버린다.
-                                if (!screenLocked && !seeking) toggleByTap()
+                                if (!screenLocked && !seeking) toggleControlsByTap()
                             }
                         }
                     }
                 }
-                // 화면 읽기 기능은 두 번 누르기를 선택으로 쓰므로 아래 onClick으로 재생만 바꾼다.
+                // 화면 읽기 기능은 두 번 누르기를 선택으로 쓰고 조작을 늘 보여 주므로 아래 onClick으로 재생만 바꾼다.
                 Box(Modifier.matchParentSize()
-                    .pointerInput(tapsEnabled) {
-                        if (tapsEnabled) detectTapGestures { offset -> handleTap(tapZone(offset.x, size.width.toFloat())) }
+                    .pointerInput(tapsEnabled, displayedAspect) {
+                        if (tapsEnabled) detectTapGestures { offset ->
+                            val video = fittedVideoSize(size.width.toFloat(), size.height.toFloat(), displayedAspect)
+                            val left = (size.width - video.width) / 2
+                            handleTap(tapZone(offset.x - left, video.width))
+                        }
+                    }
+                    // 탐색 상태가 바뀌어도 끄는 도중의 제스처가 끊기지 않게 재생기 하나에만 묶는다.
+                    .pointerInput(playback) {
+                        var active = false
+                        var startMs = 0L
+                        var distancePx = 0f
+                        val finish = {
+                            if (active) {
+                                active = false
+                                playback.finishSeek()
+                                seeking = false
+                                dragSeek = null
+                                touchControls()
+                            }
+                        }
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                val current = playback.state
+                                active = !seeking && !current.loading && current.seekable &&
+                                    current.durationMs > 0 && current.error == null
+                                if (active) {
+                                    pendingTap.cancel()
+                                    startMs = current.positionMs
+                                    distancePx = 0f
+                                    seeking = true
+                                    resumePosition = null
+                                    dragSeek = DragSeek(startMs, startMs)
+                                    touchControls()
+                                }
+                            },
+                            onDragEnd = finish,
+                            onDragCancel = finish,
+                        ) { change, amount ->
+                            if (active) {
+                                change.consume()
+                                distancePx += amount
+                                val target = dragSeekTarget(startMs, distancePx, size.width.toFloat(), playback.state.durationMs)
+                                dragSeek = DragSeek(startMs, target)
+                                playback.previewSeek(target)
+                            }
+                        }
                     }
                     .semantics {
                         role = Role.Button
                         contentDescription = playLabel
                         if (tapsEnabled) onClick(label = playLabel) {
-                            toggleByTap()
+                            touchControls()
+                            playback.togglePlayback()
                             true
                         } else disabled()
                     })
-                SeekFlashIndicator(seekFlash, state.videoAspect, Modifier.matchParentSize())
+                SeekFlashIndicator(seekFlash, displayedAspect, Modifier.matchParentSize())
+                dragSeek?.let { DragSeekLabel(it, Modifier.align(Alignment.Center)) }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = controlsVisible,
                     modifier = Modifier.matchParentSize(),
@@ -265,7 +326,7 @@ internal fun PlayerScreen(
                         .background(Brush.verticalGradient(listOf(
                             Color.Black.copy(alpha = 0.4f), Color.Transparent, Color.Transparent,
                             Color.Black.copy(alpha = 0.5f))))) {
-                        FadeInChrome(chromeHidden, Modifier.align(Alignment.TopStart)) {
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.TopStart).safeDrawingPadding()) {
                             Row(Modifier.fillMaxWidth().padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
                                 VideoIconButton(model::closeVideo, Modifier.size(48.dp)) {
@@ -282,6 +343,13 @@ internal fun PlayerScreen(
                                     playback.subtitles.refresh()
                                     subtitleMenu = true
                                 }, enabled = !state.loading && !seeking) { Text(stringResource(R.string.subtitles)) }
+                                VideoIconButton(onClick = {
+                                    touchControls()
+                                    orientationChoice = if (landscape) ScreenOrientation.Portrait else ScreenOrientation.Landscape
+                                }, modifier = Modifier.size(48.dp), enabled = !seeking) {
+                                    Icon(painterResource(R.drawable.ic_rotate),
+                                        stringResource(if (landscape) R.string.rotate_portrait else R.string.rotate_landscape))
+                                }
                                 VideoIconButton(onClick = {
                                     screenLocked = true
                                     resumePosition = null
@@ -348,7 +416,20 @@ internal fun PlayerScreen(
                                 }
                             }
                         }
-                        FadeInChrome(chromeHidden, Modifier.align(Alignment.CenterEnd)) {
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.CenterStart).safeDrawingPadding()) {
+                            VideoScaleButton(
+                                scale = model.videoScale,
+                                enabled = !seeking && state.error == null,
+                                change = {
+                                    touchControls()
+                                    val next = model.videoScale.next
+                                    model.changeVideoScale(next)
+                                    playback.setVideoScale(next)
+                                },
+                                modifier = Modifier.padding(start = 4.dp),
+                            )
+                        }
+                        FadeInChrome(chromeHidden, Modifier.align(Alignment.CenterEnd).safeDrawingPadding()) {
                             SpeedControls(
                                 rate = model.playbackRate,
                                 enabled = !seeking && state.error == null,
@@ -375,14 +456,14 @@ internal fun PlayerScreen(
                                 seeking = false
                                 touchControls()
                             },
-                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().safeDrawingPadding()
                                 .padding(horizontal = if (landscape) 24.dp else 16.dp, vertical = 16.dp),
                         )
                     }
                 }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = resumePosition != null && state.seekable,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(start = 24.dp, end = 24.dp, top = 84.dp),
+                    modifier = Modifier.align(Alignment.TopCenter).safeDrawingPadding().padding(start = 24.dp, end = 24.dp, top = 84.dp),
                     enter = fadeIn(tween(200, easing = VideoEasing)),
                     exit = fadeOut(tween(200, easing = VideoEasing)),
                 ) {
@@ -403,7 +484,7 @@ internal fun PlayerScreen(
                     }
                 }
             }
-            ExternalSubtitle(playback, controlsVisible && !screenLocked, Modifier.align(Alignment.BottomCenter))
+            ExternalSubtitle(playback, controlsVisible && !screenLocked, Modifier.align(Alignment.BottomCenter).safeDrawingPadding())
             if (state.error == R.string.audio_focus_failed) {
                 Text(stringResource(R.string.audio_focus_failed), color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp)
@@ -423,7 +504,7 @@ internal fun PlayerScreen(
                 ).semantics { contentDescription = revealLabel })
                 if (unlockVisible || touchExploration) {
                     Surface(
-                        modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                        modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(16.dp),
                         color = Color.Black.copy(alpha = 0.75f),
                         shape = MaterialTheme.shapes.small,
                     ) {
@@ -468,17 +549,30 @@ private class PendingTap {
     }
 }
 
+/** 좌우로 끄는 동안 화면 가운데에 옮겨 갈 시각과 이동량을 보여 준다. 시각은 아래 재생바도 함께 알린다. */
+@Composable
+private fun DragSeekLabel(drag: DragSeek, modifier: Modifier) {
+    val deltaMs = drag.targetMs - drag.startMs
+    val sign = if (deltaMs < 0) "-" else "+"
+    Column(modifier.clearAndSetSemantics {}
+        .background(Color.Black.copy(alpha = 0.6f), MaterialTheme.shapes.small)
+        .padding(horizontal = 18.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(formatTime(drag.targetMs), style = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"))
+        Text(sign + formatTime(abs(deltaMs)), color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum"))
+    }
+}
+
 /** 두 번 눌러 이동한 쪽 가장자리에 반원 모양 밝은 영역과 이동한 초를 잠깐 보여 준다. */
 @Composable
 private fun SeekFlashIndicator(flash: SeekFlash?, videoAspect: Float?, modifier: Modifier) {
     BoxWithConstraints(modifier.clearAndSetSemantics {}) {
         // VLC는 영상을 비율을 지켜 화면 가운데에 맞추므로 표시도 그 영상 자리 안에만 그린다.
-        val fitsHeight = videoAspect != null && maxWidth / maxHeight > videoAspect
-        val width = if (videoAspect != null && fitsHeight) maxHeight * videoAspect else maxWidth
-        val height = if (videoAspect != null && !fitsHeight) maxWidth / videoAspect else maxHeight
+        val video = fittedVideoSize(maxWidth.value, maxHeight.value, videoAspect)
         AnimatedContent(
             targetState = flash,
-            modifier = Modifier.align(Alignment.Center).size(width, height),
+            modifier = Modifier.align(Alignment.Center).size(video.width.dp, video.height.dp),
             contentKey = { it?.zone },
             transitionSpec = { fadeIn(tween(150, easing = VideoEasing)) togetherWith fadeOut(tween(150, easing = VideoEasing)) },
             label = "seekFlash",
@@ -511,6 +605,21 @@ private class EdgeArcShape(private val left: Boolean) : Shape {
         val oval = if (left) Rect(-size.width, 0f, size.width, size.height) else Rect(0f, 0f, size.width * 2, size.height)
         val bounds = Path().apply { addRect(Rect(0f, 0f, size.width, size.height)) }
         return Outline.Generic(Path.combine(PathOperation.Intersect, Path().apply { addOval(oval) }, bounds))
+    }
+}
+
+/** 왼쪽 가장자리의 화면 모드. 누를 때마다 맞춤, 채우기, 늘이기 순서로 바뀐다. */
+@Composable
+private fun VideoScaleButton(scale: VideoScale, enabled: Boolean, change: () -> Unit, modifier: Modifier) {
+    val label = stringResource(scale.label)
+    val changeLabel = stringResource(R.string.video_scale_change, label, stringResource(scale.next.label))
+    Box(modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+        .clickable(enabled = enabled, role = Role.Button, onClickLabel = changeLabel, onClick = change)
+        .clearAndSetSemantics { contentDescription = changeLabel },
+        contentAlignment = Alignment.Center) {
+        Text(label, color = Color.White, style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                .padding(horizontal = 10.dp, vertical = 4.dp))
     }
 }
 

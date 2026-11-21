@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name">for-me 동영상</string>
+    <string name="app_name">장면</string>
+    <string name="app_version">버전 %1$s</string>
     <string name="open_video">영상 열기</string>
     <string name="recent_videos">최근 영상</string>
     <string name="play">재생</string>
@@ -64,6 +65,12 @@
     <string name="try_another_title">다른 제목으로 검색해 보세요.</string>
     <string name="local_video">기기에 저장한 영상</string>
     <string name="lock_screen">화면 잠금</string>
+    <string name="video_scale_fit">맞춤</string>
+    <string name="video_scale_fill">채우기</string>
+    <string name="video_scale_stretch">늘이기</string>
+    <string name="video_scale_change">화면 모드 %1$s, 누르면 %2$s</string>
+    <string name="rotate_landscape">가로 화면으로 전환</string>
+    <string name="rotate_portrait">세로 화면으로 전환</string>
     <string name="unlock_screen">잠금 해제</string>
     <string name="show_unlock">화면이 잠겼습니다. 잠금 해제 버튼 표시</string>
     <string name="subtitles">자막</string>

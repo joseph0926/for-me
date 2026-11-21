@@ -1,5 +1,13 @@
 package dev.forme.video.ui
 
+import androidx.compose.ui.geometry.Size
+
+/** VLC가 화면 가운데에 원래 비율로 맞춘 영상 크기. 입력과 출력은 같은 단위를 쓴다. */
+internal fun fittedVideoSize(width: Float, height: Float, aspect: Float?): Size {
+    if (aspect == null) return Size(width, height)
+    return Size(minOf(width, height * aspect), minOf(height, width / aspect))
+}
+
 /** 영상 영역을 가로로 나눈 터치 자리. 양옆과 가운데의 폭 비율은 1 : 1.2 : 1이다. */
 internal enum class TapZone { Left, Center, Right }
 
@@ -36,6 +44,20 @@ internal fun decideTap(zone: TapZone, flashZone: TapZone?, pendingZone: TapZone?
 
 /** 가장자리 표시에 쓰는 이동 묶음. 같은 쪽으로 이어 누르면 초가 쌓이고, 반대쪽이면 새로 센다. */
 internal data class SeekFlash(val zone: TapZone, val totalSeconds: Int, val version: Int)
+
+/** 영상 영역을 왼쪽 끝에서 오른쪽 끝까지 끌면 이만큼 이동한다. */
+internal const val DRAG_SEEK_FULL_WIDTH_MS = 90_000L
+
+/** 좌우로 끄는 동안의 시작 위치와 지금 가리키는 위치. */
+internal data class DragSeek(val startMs: Long, val targetMs: Long)
+
+/** 오른쪽으로 끈 거리는 앞으로, 왼쪽은 뒤로 옮긴다. 결과는 0과 영상 길이 사이로 제한한다. */
+internal fun dragSeekTarget(startMs: Long, dragPx: Float, widthPx: Float, durationMs: Long): Long {
+    if (widthPx <= 0f) return startMs
+    val offsetMs = (dragPx / widthPx * DRAG_SEEK_FULL_WIDTH_MS).toLong()
+    val maximum = durationMs.takeIf { it > 0 } ?: Long.MAX_VALUE
+    return (startMs + offsetMs).coerceIn(0, maximum)
+}
 
 internal fun nextSeekFlash(current: SeekFlash?, zone: TapZone): SeekFlash {
     val total = if (current?.zone == zone) current.totalSeconds + SEEK_STEP_SECONDS else SEEK_STEP_SECONDS

@@ -2,8 +2,10 @@ package dev.forme.video
 
 import android.app.Application
 import android.content.Intent
+import android.database.sqlite.SQLiteException
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -12,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import dev.forme.video.data.FolderQueue
 import dev.forme.video.data.PlaybackRecord
+import dev.forme.video.player.VideoScale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +39,22 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
     private var sequence = 0L
     /** 앱을 쓰는 동안 다음 영상에도 이어지는 재생 속도. 앱을 다시 시작하면 1배로 돌아간다. */
     var playbackRate by mutableFloatStateOf(1f)
+    private val playerSettings = application.getSharedPreferences("player_settings", Application.MODE_PRIVATE)
+    /** 모든 영상에 쓰는 화면 모드. 앱을 다시 시작해도 유지한다. */
+    var videoScale by mutableStateOf(VideoScale.fromStored(playerSettings.getString(VIDEO_SCALE_KEY, null)))
+        private set
+
+    fun changeVideoScale(scale: VideoScale) {
+        videoScale = scale
+        playerSettings.edit { putString(VIDEO_SCALE_KEY, scale.name) }
+    }
+
+    internal suspend fun findFolderRecord(uri: String): PlaybackRecord? = try {
+        repository.find(uri)
+    } catch (_: SQLiteException) {
+        mutableNotice.value = R.string.storage_failed
+        null
+    }
 
     fun select(uri: Uri, fromPicker: Boolean) {
         mutableNotice.value = null
@@ -68,3 +87,5 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
         mutableNotice.value = null
     }
 }
+
+private const val VIDEO_SCALE_KEY = "video_scale"

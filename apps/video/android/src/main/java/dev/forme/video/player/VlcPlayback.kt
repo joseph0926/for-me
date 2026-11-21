@@ -56,6 +56,7 @@ class VlcPlayback(
     private val wantsToPlay: () -> Boolean,
     private val changePlayIntent: (Boolean) -> Unit,
     private var rate: Float = 1f,
+    private var videoScale: VideoScale = VideoScale.Fit,
 ) {
     var state by mutableStateOf(PlaybackUiState())
         private set
@@ -70,7 +71,7 @@ class VlcPlayback(
     private var visible = false
     private var closed = false
     private var needsInitialStart = true
-    private var playRequestedAtMs = 0L
+    private val seekClock = SeekPlaybackClock(rate)
     private var ended = false
     private var lastSaveAtMs = 0L
     private var seekIssuedFor: Long? = null
@@ -150,12 +151,21 @@ class VlcPlayback(
 
     private fun attachPlayerViews(view: VLCVideoLayout) {
         // 일시정지 중 회전해도 마지막 영상 버퍼를 새 화면 크기에 맞춰 표시한다.
-        player?.attachViews(view, null, true, true)
+        val active = player ?: return
+        active.attachViews(view, null, true, true)
+        // 끝난 영상을 다시 열 때도 출력 화면을 새로 붙이므로 고른 화면 모드를 함께 적용한다.
+        active.videoScale = videoScale.vlcType
+    }
+
+    fun setVideoScale(scale: VideoScale) {
+        videoScale = scale
+        player?.videoScale = scale.vlcType
     }
 
     fun setVisible(visible: Boolean) {
         this.visible = visible
         if (visible) playIfRequested() else {
+            seekClock.pause(SystemClock.elapsedRealtime())
             handler.removeCallbacks(previewSeek)
             previewScheduled = false
             scrubbing = false
@@ -167,6 +177,7 @@ class VlcPlayback(
     }
 
     fun setRate(rate: Float) {
+        seekClock.setRate(rate, SystemClock.elapsedRealtime())
         this.rate = rate
         player?.rate = rate
     }
@@ -182,6 +193,7 @@ class VlcPlayback(
     private fun pauseByUser() {
         if (closed) return
         changePlayIntent(false)
+        seekClock.pause(SystemClock.elapsedRealtime())
         player?.pause()
         state = state.copy(playing = false)
         save()
@@ -203,7 +215,7 @@ class VlcPlayback(
             setMedia(active)
             needsInitialStart = false
         }
-        playRequestedAtMs = SystemClock.elapsedRealtime()
+        if (wantsToPlay()) seekClock.start(SystemClock.elapsedRealtime())
         if (ended) {
             restartMedia(active)
         } else {
@@ -219,6 +231,7 @@ class VlcPlayback(
             player?.pause()
             state = state.copy(playing = false)
         }
+        seekClock.reset()
         progress.seek(positionMs)
         seekIssuedFor = null
         state = state.copy(positionMs = progress.positionMs)
@@ -326,8 +339,7 @@ class VlcPlayback(
             MediaPlayer.Event.TimeChanged -> {
                 if (ended || scrubbing || !visible || !wantsToPlay()) return
                 val now = SystemClock.elapsedRealtime()
-                // 빠르게 재생하면 영상 시각이 실제 경과보다 앞서므로 탐색 확인 허용 범위도 속도만큼 늘린다.
-                val elapsedMediaMs = ((now - playRequestedAtMs) * rate.coerceAtLeast(1f)).toLong()
+                val elapsedMediaMs = seekClock.elapsedMediaMs(now)
                 if (progress.acceptTime(event.timeChanged, elapsedPlayingMs = elapsedMediaMs)) {
                     state = state.copy(positionMs = progress.positionMs, durationMs = progress.durationMs)
                     if (now - lastSaveAtMs >= 2_000) {
@@ -337,6 +349,7 @@ class VlcPlayback(
                 }
             }
             MediaPlayer.Event.EndReached -> {
+                seekClock.reset()
                 progress.finish()
                 ended = true
                 changePlayIntent(false)
