@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,6 +27,7 @@ import dev.forme.video.R
 import dev.forme.video.data.FolderEntry
 import dev.forme.video.data.FolderListing
 import dev.forme.video.data.FolderQueue
+import dev.forme.video.data.PlaybackRecord
 import dev.forme.video.data.VideoFolders
 import dev.forme.video.data.folderQueue
 import dev.forme.video.data.readVideoFolder
@@ -36,17 +38,15 @@ import java.io.IOException
 
 /**
  * 보관함이나 홈에서 고른 폴더 하나의 내용을 연다. 그 폴더의 맨 위에서 뒤로 가면 연 곳으로 바로 돌아간다.
- * [initialTemporary]는 방금 추가했지만 영구 권한을 받지 못한 폴더라는 뜻이다.
  */
 @Composable
-internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, initialTemporary: Boolean,
+internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, findRecord: suspend (String) -> PlaybackRecord?,
     play: (Uri, FolderQueue) -> Unit, close: () -> Unit, modifier: Modifier) {
     var tree by rememberSaveable { mutableStateOf(initialTree) }
     var path by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
-    var temporaryAccess by rememberSaveable { mutableStateOf(initialTemporary) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
-            temporaryAccess = !folders.add(uri)
+            folders.add(uri)
             path = emptyList()
             tree = uri
         }
@@ -59,7 +59,7 @@ internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, initialTempo
     Column(modifier.fillMaxSize()) {
         key(current, directoryId) {
             val fallbackTitle = if (path.isEmpty()) folders.roots[current].orEmpty() else stringResource(R.string.folder)
-            DirectoryContents(current, directoryId, fallbackTitle, temporaryAccess, back,
+            DirectoryContents(current, directoryId, fallbackTitle, findRecord, back,
                 rename = { if (path.isEmpty()) folders.updateTitle(current, it) },
                 reselect = { picker.launch(current) },
                 enter = { if (it != rootId && it !in path) path = path + it },
@@ -71,7 +71,8 @@ internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, initialTempo
 }
 
 @Composable
-private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String, temporaryAccess: Boolean, back: () -> Unit,
+private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
+    findRecord: suspend (String) -> PlaybackRecord?, back: () -> Unit,
     rename: (String) -> Unit, reselect: () -> Unit, enter: (String) -> Unit, play: (String, List<FolderEntry>) -> Unit) {
     val resolver = LocalContext.current.contentResolver
     var revision by remember { mutableIntStateOf(0) }
@@ -108,8 +109,8 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
             overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleLarge)
         TextButton(onClick = { revision++ }) { Text(stringResource(R.string.refresh_folder)) }
     }
-    if (temporaryAccess) Text(stringResource(R.string.folder_temporary), Modifier.padding(horizontal = 24.dp))
     val current = listing
+    if (current?.temporaryAccess == true) Text(stringResource(R.string.folder_temporary), Modifier.padding(horizontal = 24.dp))
     when {
         failed -> Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.folder_unavailable))
@@ -119,10 +120,17 @@ private fun DirectoryContents(tree: Uri, directoryId: String, rootTitle: String,
         else -> {
             if (current.loading) Text(stringResource(R.string.folder_loading), Modifier.padding(horizontal = 24.dp))
             if (!current.loading && current.entries.isEmpty()) Text(stringResource(R.string.folder_empty), Modifier.padding(24.dp))
-            LazyColumn(state = scroll) {
+            LazyColumn(state = scroll, contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(current.entries, key = { it.id }) { entry ->
-                    FolderRow(entry.title, entry.isFolder) {
-                        if (entry.isFolder) enter(entry.id) else play(entry.id, current.entries)
+                    if (entry.isFolder) FolderRow(entry.title, isFolder = true) { enter(entry.id) }
+                    else {
+                        val document = DocumentsContract.buildDocumentUri(checkNotNull(tree.authority), entry.id).toString()
+                        val record by produceState<PlaybackRecord?>(null, document, revision) {
+                            value = findRecord(document)
+                        }
+                        FolderVideoRow(entry.title, DocumentsContract.buildDocumentUriUsingTree(tree, entry.id).toString(),
+                            record) { play(entry.id, current.entries) }
                     }
                 }
             }
@@ -138,5 +146,21 @@ internal fun FolderRow(label: String, isFolder: Boolean, click: () -> Unit) {
         Icon(painterResource(if (isFolder) R.drawable.ic_folder else R.drawable.ic_play),
             stringResource(if (isFolder) R.string.folder else R.string.folder_video), Modifier.size(24.dp))
         Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** 폴더 안의 영상 행. 보관함 행처럼 장면을 보여 주고, 본 적이 있으면 본 위치와 진행 정도를 함께 둔다. */
+@Composable
+private fun FolderVideoRow(title: String, readableUri: String, record: PlaybackRecord?, click: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = click)
+        .padding(horizontal = 24.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        VideoArtwork(readableUri, Modifier.width(104.dp).height(64.dp).clip(MaterialTheme.shapes.medium))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+            if (record != null) Text(timeSummary(record), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        ProgressPlayMark(record?.let(::progress) ?: 0f)
     }
 }

@@ -36,28 +36,29 @@ import androidx.compose.ui.unit.sp
 import android.net.Uri
 import dev.forme.video.data.FolderQueue
 import dev.forme.video.data.VideoFolders
+import dev.forme.video.BuildConfig
 import dev.forme.video.R
 import dev.forme.video.data.PlaybackRecord
 
 @Composable
 internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
-    folders: VideoFolders, playFromFolder: (Uri, FolderQueue) -> Unit, modifier: Modifier = Modifier, play: (PlaybackRecord) -> Unit) {
+    folders: VideoFolders, findRecord: suspend (String) -> PlaybackRecord?,
+    playFromFolder: (Uri, FolderQueue) -> Unit, modifier: Modifier = Modifier, play: (PlaybackRecord) -> Unit) {
     var library by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var openTree by rememberSaveable { mutableStateOf<Uri?>(null) }
-    var openTemporary by rememberSaveable { mutableStateOf(false) }
-    val openFolder = { tree: Uri, temporary: Boolean ->
-        openTemporary = temporary
-        openTree = tree
-    }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) openFolder(uri, !folders.add(uri))
+        if (uri != null) {
+            folders.add(uri)
+            openTree = uri
+        }
     }
     var detailUri by rememberSaveable { mutableStateOf<String?>(null) }
     // 상세나 폴더 화면을 띄우는 동안 목록이 구성에서 빠져도 돌아왔을 때 보던 위치를 지키도록 여기서 만든다.
     val listState = rememberLazyListState()
+    val continueWatchingState = rememberLazyListState()
     openTree?.let { tree ->
-        key(tree) { FolderBrowser(folders, tree, openTemporary, playFromFolder, { openTree = null }, modifier) }
+        key(tree) { FolderBrowser(folders, tree, findRecord, playFromFolder, { openTree = null }, modifier) }
         return
     }
     // 재생을 닫으면 저장된 이 상태로 상세에 돌아온다. 기록이 최근 목록에서 빠지면 목록을 보여 준다.
@@ -70,7 +71,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Text("for me", style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 3.sp),
+            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 3.sp),
                 modifier = Modifier.weight(1f))
             VideoIconButton(openFile, Modifier.size(48.dp)) {
                 Icon(painterResource(R.drawable.ic_add), stringResource(R.string.open_video))
@@ -84,7 +85,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                         style = MaterialTheme.typography.headlineLarge)
                 }
                 item {
-                    LibraryFolders(folders.sortedRoots(), open = { openFolder(it, false) }, add = { folderPicker.launch(null) })
+                    LibraryFolders(folders.sortedRoots(), open = { openTree = it }, add = { folderPicker.launch(null) })
                 }
                 item {
                     Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -101,6 +102,12 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                 items(visible, key = { it.uri }) { record ->
                     VideoRow(record, { play(record) }) { openDetail(record) }
                 }
+                // 문제를 알릴 때 어느 빌드였는지 기록할 수 있게 보관함 끝에 둔다.
+                item {
+                    Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
+                        Modifier.padding(horizontal = 24.dp), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             } else {
                 item {
                     val latest = records.firstOrNull()
@@ -111,7 +118,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                     item {
                         SectionTitle(stringResource(R.string.continue_watching)) { library = true }
                         Spacer(Modifier.height(14.dp))
-                        LazyRow(contentPadding = PaddingValues(horizontal = 24.dp),
+                        LazyRow(state = continueWatchingState, contentPadding = PaddingValues(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(records, key = { it.uri }) { record ->
                                 Column(Modifier.width(240.dp).clickable { play(record) }) {
@@ -141,7 +148,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                         LazyRow(contentPadding = PaddingValues(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(shortcuts, key = { "folder:" + it.first }) { (tree, title) ->
-                                FolderShortcut(title, folders.latestVideoIn(tree, records)) { openFolder(tree, false) }
+                                FolderShortcut(title, folders.latestVideoIn(tree, records)) { openTree = tree }
                             }
                         }
                     }
@@ -279,7 +286,7 @@ private fun NavigationItem(icon: Int, label: Int, selected: Boolean, onClick: ()
 
 /** 재생 표시 둘레를 본 만큼 채운다. 행 전체가 재생 버튼이라 읽기 도구에는 알리지 않는다. */
 @Composable
-private fun ProgressPlayMark(watched: Float) {
+internal fun ProgressPlayMark(watched: Float) {
     Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
             val stroke = 2.dp.toPx()
@@ -320,6 +327,6 @@ private fun remainingSummary(record: PlaybackRecord): String {
     }
 }
 
-private fun timeSummary(record: PlaybackRecord): String =
+internal fun timeSummary(record: PlaybackRecord): String =
     if (record.durationMs > 0) "${formatTime(record.positionMs)} / ${formatTime(record.durationMs)}"
     else formatTime(record.positionMs)
