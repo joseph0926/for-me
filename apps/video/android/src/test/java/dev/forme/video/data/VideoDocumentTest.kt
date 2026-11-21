@@ -8,6 +8,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Looper
+import android.os.OperationCanceledException
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
@@ -81,9 +82,21 @@ class VideoDocumentTest {
         }
     }
 
-    @Test fun failedMetadataQueryClosesTheOpenedDescriptor() {
-        provider.queryFails = true
-        assertThrows(IllegalStateException::class.java) {
+    @Test fun failedTitleQueryReturnsReadableVideoWithFallbackTitle() {
+        provider.titleError = IllegalStateException("Provider unavailable")
+        openVideoDocument(context.contentResolver, uri, "fallback").use { document ->
+            assertEquals("fallback", document.title)
+            val copy = ParcelFileDescriptor.dup(document.descriptor.fileDescriptor)
+            ParcelFileDescriptor.AutoCloseInputStream(copy).use { input ->
+                assertEquals("original video bytes", input.readBytes().decodeToString())
+            }
+        }
+        assertFalse(provider.opened!!.fileDescriptor.valid())
+    }
+
+    @Test fun cancelledTitleQueryClosesTheOpenedDescriptor() {
+        provider.titleError = OperationCanceledException()
+        assertThrows(OperationCanceledException::class.java) {
             openVideoDocument(context.contentResolver, uri, "fallback")
         }
         assertFalse(provider.opened!!.fileDescriptor.valid())
@@ -94,7 +107,7 @@ private class TestVideoProvider(val file: File) : ContentProvider() {
     var mode: String? = null
     var denied = false
     var missing = false
-    var queryFails = false
+    var titleError: RuntimeException? = null
     var opened: ParcelFileDescriptor? = null
     override fun onCreate() = true
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
@@ -105,7 +118,7 @@ private class TestVideoProvider(val file: File) : ContentProvider() {
     }
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?,
         selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
-        if (queryFails) throw IllegalStateException("Provider unavailable")
+        titleError?.let { throw it }
         return MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf("샘플.mkv")) }
     }
     override fun getType(uri: Uri) = "video/x-matroska"
