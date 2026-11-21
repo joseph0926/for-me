@@ -53,6 +53,31 @@ class VideoFoldersTest {
         assertEquals(access, folders.readableUri(direct))
         assertEquals(direct, VideoFolders(onlyTreeGranted).readableUri(direct))
     }
+
+    @Test fun homeShortcutFindsTheLatestVideoOpenedFromEachFolder() {
+        val folders = VideoFolders(context)
+        val other = DocumentsContract.buildTreeDocumentUri("test.folders", "opaque:other")
+        val inSubfolder = folders.rememberVideo(DocumentsContract.buildDocumentUriUsingTree(tree, "opaque:child/clip"))
+        val older = folders.rememberVideo(DocumentsContract.buildDocumentUriUsingTree(tree, "opaque:old"))
+        val elsewhere = folders.rememberVideo(DocumentsContract.buildDocumentUriUsingTree(other, "opaque:b1"))
+        fun record(uri: Uri) = PlaybackRecord(uri.toString(), "", 0, 0, 0)
+        val picked = DocumentsContract.buildDocumentUri("test.folders", "picked")
+        val recent = listOf(record(picked), record(elsewhere), record(inSubfolder), record(older))
+
+        assertEquals(inSubfolder.toString(), folders.latestVideoIn(tree, recent))
+        assertEquals(elsewhere.toString(), folders.latestVideoIn(other, recent))
+        assertNull(folders.latestVideoIn(DocumentsContract.buildTreeDocumentUri("test.folders", "opaque:empty"), recent))
+    }
+
+    @Test fun rootsAreSortedByNameThenAddress() {
+        val folders = VideoFolders(context)
+        val b = DocumentsContract.buildTreeDocumentUri("test.folders", "b")
+        val a = DocumentsContract.buildTreeDocumentUri("test.folders", "a")
+        folders.roots[b] = "movies"
+        folders.roots[tree] = "Anime"
+        folders.roots[a] = "movies"
+        assertEquals(listOf(tree, a, b), folders.sortedRoots().map { it.first })
+    }
 }
 
 private class FolderProvider : ContentProvider() {
