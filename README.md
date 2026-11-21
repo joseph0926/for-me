@@ -12,7 +12,7 @@
 
 | 앱 | 폴더 | 대상 | 상태 |
 |---|---|---|---|
-| [동영상 앱](apps/video/README.md) | `apps/video` | Android, 이후 Windows와 macOS | 개발 중. 홈과 보관함, 터치 재생과 화면 잠금 구현. 실제 기기 재생은 미검증 |
+| [장면(동영상 앱)](apps/video/README.md) | `apps/video` | Android, 이후 Windows와 macOS | 개발 중. 홈과 보관함, 터치 재생과 화면 잠금 구현. 실제 기기 재생은 미검증 |
 | [화면 녹화 GIF 생성기](apps/screen-gif/README.md) | `apps/screen-gif` | Windows, 이후 macOS | 개발 중. Windows 시제품 1차 완료(영역 녹화와 저장 확인), 자르기와 품질 모드는 구현 전 |
 | [TermKeys](apps/termkeys/README.md) | `apps/termkeys` | macOS | 개발 중. 0.2.1에서 보안 입력 중 줄 이동 확인. 메뉴 입력 제외와 실제 응답 지연 조건은 미검증 |
 | [사용과 개발 기록](apps/journal/README.md) | `apps/journal` | 로컬 웹과 개발 AI | 요청, 사용 경험, 변경, 검증과 버전을 연결. 개인 기록은 로컬 파일에 보관 |

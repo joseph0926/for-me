@@ -1,3 +1,6 @@
+// 앱 버전은 시맨틱 버전 하나만 고친다. 올리는 규칙은 README의 버전 절을 따른다.
+val appVersion = "0.3.0"
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -14,11 +17,14 @@ android {
         applicationId = "dev.forme.video"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = semanticVersionCode(appVersion)
+        versionName = appVersion
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -34,6 +40,18 @@ android {
 }
 
 kotlin { jvmToolchain(17) }
+
+/**
+ * Android는 versionCode가 커져야 업데이트로 설치하므로 주 * 10000 + 부 * 100 + 수로 계산한다.
+ * 부와 수가 100 이상이면 다음 자리와 겹쳐 순서가 틀어지므로 빌드를 멈춘다.
+ */
+fun semanticVersionCode(version: String): Int {
+    val match = Regex("""(\d+)\.(\d+)\.(\d+)""").matchEntire(version)
+        ?: error("appVersion은 주.부.수 형식이어야 합니다: $version")
+    val (major, minor, patch) = match.destructured.toList().map(String::toInt)
+    check(minor < 100 && patch < 100) { "부와 수 버전은 99 이하여야 합니다: $version" }
+    return major * 10_000 + minor * 100 + patch
+}
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 dependencies {
