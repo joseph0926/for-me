@@ -75,10 +75,12 @@
     <string name="show_unlock">화면이 잠겼습니다. 잠금 해제 버튼 표시</string>
     <string name="subtitles">자막</string>
     <string name="subtitle_off">자막 끄기</string>
-    <string name="external_srt">외부 SRT 열기</string>
-    <string name="loaded_srt">선택한 외부 자막</string>
+    <string name="external_subtitle_open">외부 자막 열기</string>
+    <string name="loaded_subtitle">외부 자막</string>
+    <string name="loaded_subtitle_named">외부 자막: %1$s</string>
     <string name="subtitle_track">자막 %1$d</string>
-    <string name="subtitle_invalid">UTF-8 SRT 파일을 선택해 주세요. 최대 크기는 2 MiB입니다.</string>
+    <string name="subtitle_invalid">SRT, SMI, VTT, ASS 자막 파일을 선택해 주세요. 인코딩은 UTF-8, UTF-16, CP949(EUC-KR)를 읽고 최대 크기는 2 MiB입니다.</string>
+    <string name="folder_subtitle_invalid">폴더에서 찾은 같은 이름의 자막을 읽지 못했습니다. 형식과 인코딩을 확인하거나 다른 자막을 선택해 주세요.</string>
     <string name="subtitle_unavailable">자막 파일을 읽을 수 없습니다. 파일 위치와 권한을 확인하고 다시 선택해 주세요.</string>
     <string name="subtitle_select_failed">재생기에 자막 설정을 적용할 수 없습니다. 다시 시도해 주세요.</string>
     <string name="subtitle_loading">자막을 읽는 중</string>

@@ -84,7 +84,7 @@ internal fun PlayerScreen(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val playback = remember(selection.sequence) {
-        VlcPlayback(context, model.repository, selection.uri, selection.accessUri,
+        VlcPlayback(context, model.repository, selection.uri, selection.accessUri, selection.queue,
             wantsToPlay = { selection.wantsToPlay }, changePlayIntent = { selection.wantsToPlay = it },
             rate = model.playbackRate, videoScale = model.videoScale)
     }

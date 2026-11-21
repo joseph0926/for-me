@@ -60,9 +60,11 @@ internal fun SubtitleDialog(controls: SubtitleControls, close: () -> Unit) {
                         !controls.usingExternal && controls.selected == track.id) { controls.select(track.id) }
                 }
                 if (controls.hasExternal) {
-                    SubtitleOption(stringResource(R.string.loaded_srt), controls.usingExternal, controls::selectExternal)
+                    val label = controls.externalName?.let { stringResource(R.string.loaded_subtitle_named, it) }
+                        ?: stringResource(R.string.loaded_subtitle)
+                    SubtitleOption(label, controls.usingExternal, controls::selectExternal)
                 }
-                TextButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.external_srt)) }
+                TextButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text(stringResource(R.string.external_subtitle_open)) }
                 if (controls.loading) Text(stringResource(R.string.subtitle_loading))
                 controls.notice?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
                 if (controls.usingExternal || controls.selected >= 0) {

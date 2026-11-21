@@ -64,7 +64,7 @@ internal fun FolderBrowser(folders: VideoFolders, initialTree: Uri, findRecord: 
                 reselect = { picker.launch(current) },
                 enter = { if (it != rootId && it !in path) path = path + it },
                 play = { id, entries ->
-                    play(DocumentsContract.buildDocumentUriUsingTree(current, id), folderQueue(current, entries, id))
+                    play(DocumentsContract.buildDocumentUriUsingTree(current, id), folderQueue(current, directoryId, entries, id))
                 })
         }
     }

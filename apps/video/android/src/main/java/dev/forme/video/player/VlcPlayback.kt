@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import dev.forme.video.R
+import dev.forme.video.data.FolderQueue
 import dev.forme.video.data.PlaybackRecord
 import dev.forme.video.data.PlaybackRepository
 import dev.forme.video.data.VideoDocument
@@ -53,6 +54,7 @@ class VlcPlayback(
     private val repository: PlaybackRepository,
     private val uri: Uri,
     private val accessUri: Uri,
+    folder: FolderQueue?,
     private val wantsToPlay: () -> Boolean,
     private val changePlayIntent: (Boolean) -> Unit,
     private var rate: Float = 1f,
@@ -62,7 +64,7 @@ class VlcPlayback(
         private set
     private var lib: LibVLC? = null
     private var player: MediaPlayer? = null
-    internal val subtitles = SubtitleControls(context, uri) { player }
+    internal val subtitles = SubtitleControls(context, uri, folder) { player }
     internal fun subtitleTimeMs(): Long = progress.pendingSeekMs ?: player?.time?.takeIf { it >= 0 } ?: state.positionMs
 
     private var descriptor: ParcelFileDescriptor? = null
