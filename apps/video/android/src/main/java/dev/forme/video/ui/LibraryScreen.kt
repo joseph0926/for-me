@@ -37,7 +37,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,6 +53,12 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
     folders: VideoFolders, findRecord: suspend (String) -> PlaybackRecord?,
     playFromFolder: (Uri, FolderQueue) -> Unit, modifier: Modifier = Modifier, play: (PlaybackRecord) -> Unit) {
     var library by rememberSaveable { mutableStateOf(false) }
+    // 홈에 다녀와도 보관함에서 보던 탭으로 돌아오도록 보관함 표시 여부와 따로 기억한다.
+    var libraryTab by rememberSaveable { mutableStateOf(LibraryTab.Folders) }
+    val openLibrary = { tab: LibraryTab ->
+        libraryTab = tab
+        library = true
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var openTree by rememberSaveable { mutableStateOf<Uri?>(null) }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -65,6 +70,9 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
     var detailUri by rememberSaveable { mutableStateOf<String?>(null) }
     // 상세나 폴더 화면을 띄우는 동안 목록이 구성에서 빠져도 돌아왔을 때 보던 위치를 지키도록 여기서 만든다.
     val listState = rememberLazyListState()
+    // 탭마다 목록 길이가 달라 한 스크롤 위치를 함께 쓰면 탭을 바꿀 때 엉뚱한 곳이 보인다.
+    val folderTabState = rememberLazyListState()
+    val recentTabState = rememberLazyListState()
     val continueWatchingState = rememberLazyListState()
     openTree?.let { tree ->
         key(tree) { FolderBrowser(folders, tree, findRecord, playFromFolder, { openTree = null }, modifier) }
@@ -94,24 +102,37 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                 }
             }
         }
-        // 보관함은 묶음마다 간격을 따로 둔다. 모든 항목 사이에 같은 간격을 두면 묶음 경계가 보이지 않는다.
-        LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(bottom = 28.dp),
+        if (library) LibraryTabs(libraryTab, records.size) { libraryTab = it }
+        val listStateForScreen = when {
+            !library -> listState
+            libraryTab == LibraryTab.Folders -> folderTabState
+            else -> recentTabState
+        }
+        // 보관함 행은 간격 없이 붙고 안쪽 여백으로 떨어진다. 홈은 묶음 사이에 같은 간격을 둔다.
+        LazyColumn(Modifier.weight(1f), state = listStateForScreen, contentPadding = PaddingValues(bottom = 28.dp),
             verticalArrangement = if (library) Arrangement.Top else Arrangement.spacedBy(24.dp)) {
             if (library) {
-                item {
-                    LibraryFolders(folders.sortedRoots(), open = { openTree = it }, add = { folderPicker.launch(null) })
+                when (libraryTab) {
+                    LibraryTab.Folders -> item {
+                        LibraryFolders(folders.sortedRoots(), open = { openTree = it }, add = { folderPicker.launch(null) })
+                    }
+                    LibraryTab.Recent -> {
+                        // 검색은 최근 본 영상만 거르므로 이 탭에만 둔다.
+                        item {
+                            SearchField(query, Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp)) {
+                                query = it
+                            }
+                        }
+                        val visible = records.filter { it.title.contains(query, ignoreCase = true) }
+                        if (visible.isEmpty()) item {
+                            EmptyCollection(records.isEmpty(), openFile)
+                        }
+                        items(visible, key = { it.uri }) { record ->
+                            VideoRow(record, { play(record) }, verticalPadding = LIBRARY_ROW_PADDING) { openDetail(record) }
+                        }
+                    }
                 }
-                item {
-                    RecentVideosHeader(records.size, query) { query = it }
-                }
-                val visible = records.filter { it.title.contains(query, ignoreCase = true) }
-                if (visible.isEmpty()) item {
-                    EmptyCollection(records.isEmpty(), openFile)
-                }
-                items(visible, key = { it.uri }) { record ->
-                    VideoRow(record, { play(record) }, verticalPadding = LIBRARY_ROW_PADDING) { openDetail(record) }
-                }
-                // 문제를 알릴 때 어느 빌드였는지 기록할 수 있게 보관함 끝에 둔다.
+                // 문제를 알릴 때 어느 빌드였는지 기록할 수 있게 두 탭 모두 끝에 둔다.
                 item {
                     Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
                         Modifier.padding(start = 24.dp, end = 24.dp, top = LIBRARY_GROUP_GAP),
@@ -126,7 +147,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                 }
                 if (records.isNotEmpty()) {
                     item {
-                        SectionTitle(stringResource(R.string.continue_watching)) { library = true }
+                        SectionTitle(stringResource(R.string.continue_watching)) { openLibrary(LibraryTab.Recent) }
                         Spacer(Modifier.height(14.dp))
                         LazyRow(state = continueWatchingState, contentPadding = PaddingValues(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -153,7 +174,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                 val shortcuts = folders.sortedRoots()
                 if (shortcuts.isNotEmpty()) {
                     item {
-                        SectionTitle(stringResource(R.string.folder_videos)) { library = true }
+                        SectionTitle(stringResource(R.string.folder_videos)) { openLibrary(LibraryTab.Folders) }
                         Spacer(Modifier.height(14.dp))
                         LazyRow(contentPadding = PaddingValues(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -164,7 +185,7 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
                     }
                 }
                 if (records.isNotEmpty()) {
-                    item { SectionTitle(stringResource(R.string.recent_videos)) { library = true } }
+                    item { SectionTitle(stringResource(R.string.recent_videos)) { openLibrary(LibraryTab.Recent) } }
                     items(records.take(4), key = { "recent:" + it.uri }) { record ->
                         VideoRow(record, { play(record) }) { openDetail(record) }
                     }
@@ -202,36 +223,59 @@ private fun FeaturedVideo(record: PlaybackRecord, play: () -> Unit, open: () -> 
     }
 }
 
+/** 보관함 안의 탭. 홈의 묶음 제목은 해당 탭을 골라 보관함을 연다. */
+internal enum class LibraryTab { Folders, Recent }
+
 /**
- * 보관함의 폴더 묶음. 폴더 행을 누르면 그 폴더가 바로 열린다.
- * 폴더가 없으면 추가 행 하나만 두고, 있으면 추가는 제목 오른쪽의 밑줄 글자로 둔다.
+ * 머리 줄 아래 글자 탭. 고른 탭은 흰 글자와 밑줄, 나머지는 흐린 글자로 둔다.
+ * 최근 본 영상 탭에는 기록 수를 흐리게 붙인다.
+ */
+@Composable
+private fun LibraryTabs(selected: LibraryTab, recentCount: Int, select: (LibraryTab) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+        LibraryTabItem(stringResource(R.string.folder), null, selected == LibraryTab.Folders) {
+            select(LibraryTab.Folders)
+        }
+        LibraryTabItem(stringResource(R.string.recently_watched), stringResource(R.string.library_count, recentCount),
+            selected == LibraryTab.Recent) {
+            select(LibraryTab.Recent)
+        }
+    }
+}
+
+@Composable
+private fun LibraryTabItem(label: String, count: String?, selected: Boolean, onClick: () -> Unit) {
+    val color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick)
+        .padding(horizontal = 12.dp).width(IntrinsicSize.Max).heightIn(min = 48.dp),
+        verticalArrangement = Arrangement.Bottom) {
+        Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(label, style = MaterialTheme.typography.titleMedium, color = color)
+            if (count != null) Text(count, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        // 글자 폭만큼 밑줄을 그어 어느 탭인지 색에만 기대지 않게 한다.
+        Box(Modifier.fillMaxWidth().height(2.dp)
+            .background(if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent))
+    }
+}
+
+/**
+ * 폴더 탭의 내용. 폴더 행을 누르면 그 폴더가 바로 열린다.
+ * 추가 행은 폴더가 있든 없든 목록 끝의 같은 자리에 둔다.
  */
 @Composable
 private fun LibraryFolders(roots: List<Pair<Uri, String>>, open: (Uri) -> Unit, add: () -> Unit) {
-    Column {
-        if (roots.isNotEmpty()) {
-            // 제목 옆 추가 글자가 누를 수 있는 높이를 갖도록 이 경우에만 줄 높이를 48dp로 둔다.
-            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp).heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.folder), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.add_folder),
-                    Modifier.clickable(role = Role.Button, onClick = add).padding(horizontal = 12.dp, vertical = 14.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline))
-            }
-        } else {
-            // 추가 행이 바로 아래 붙도록 제목에 빈 줄 높이를 주지 않는다.
-            Text(stringResource(R.string.folder), Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp),
-                style = MaterialTheme.typography.titleMedium)
-            // 폴더 행과 같은 자리와 모양에 폴더 모양 아이콘을 두어, 영상 열기의 +와 다른 동작으로 읽히게 한다.
-            Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = add).heightIn(min = 56.dp)
-                .padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Icon(painterResource(R.drawable.ic_folder_add), null, Modifier.size(24.dp))
-                Text(stringResource(R.string.add_folder))
-            }
-        }
+    Column(Modifier.padding(top = 8.dp)) {
         roots.forEach { (tree, title) -> FolderRow(title, isFolder = true) { open(tree) } }
+        // 폴더 행과 같은 자리와 모양에 폴더 모양 아이콘을 두어, 영상 열기와 다른 동작으로 읽히게 한다.
+        Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = add).heightIn(min = 56.dp)
+            .padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Icon(painterResource(R.drawable.ic_folder_add), null, Modifier.size(24.dp))
+            Text(stringResource(R.string.add_folder))
+        }
     }
 }
 
@@ -276,26 +320,12 @@ private fun SectionTitle(title: String, open: () -> Unit) {
 /** 보관함 목록 행의 위아래 안쪽 여백. 행끼리는 간격 없이 붙고 이 여백으로 떨어진다. */
 private val LIBRARY_ROW_PADDING = 11.dp
 
-/** 보관함 묶음 사이 여백. 행 사이(안쪽 여백 두 번)보다 넓어야 묶음이 나뉘어 보인다. */
+/** 목록 마지막 행과 버전 표시 사이 여백. 행 사이(안쪽 여백 두 번)보다 넓어야 목록과 나뉘어 보인다. */
 private val LIBRARY_GROUP_GAP = 28.dp
-
-/** 보관함의 최근 영상 묶음 머리. 검색은 이 묶음만 거르므로 제목 바로 아래에 둔다. */
-@Composable
-private fun RecentVideosHeader(count: Int, query: String, changeQuery: (String) -> Unit) {
-    Column(Modifier.padding(start = 24.dp, end = 24.dp, top = LIBRARY_GROUP_GAP, bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.recently_opened), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.library_count, count), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        SearchField(query, changeQuery)
-    }
-}
 
 /** 떠오르는 라벨 없이 안내 글자만 두어 기본 입력란보다 낮게 만든다. */
 @Composable
-private fun SearchField(query: String, changeQuery: (String) -> Unit) {
+private fun SearchField(query: String, modifier: Modifier, changeQuery: (String) -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val colors = OutlinedTextFieldDefaults.colors()
     val shape = MaterialTheme.shapes.small
@@ -303,7 +333,7 @@ private fun SearchField(query: String, changeQuery: (String) -> Unit) {
     BasicTextField(
         value = query,
         onValueChange = changeQuery,
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = label },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
