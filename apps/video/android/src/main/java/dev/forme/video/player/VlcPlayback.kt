@@ -36,9 +36,20 @@ import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.IOException
 
+/** 영상을 고른 뒤 첫 장면이 보일 때까지의 단계. */
+enum class PlaybackStartup {
+    OpeningFile,
+    /** 설치 직후 libVLC가 기기 글꼴 캐시를 만드는 중이다. */
+    PreparingFonts,
+    /** 재생기는 준비됐지만 아직 영상 출력이 시작되지 않아 화면이 검다. */
+    WaitingForPicture,
+    /** 첫 장면이 나왔거나, 멈춤, 종료, 오류로 더 기다리지 않는다. */
+    Finished,
+}
+
 data class PlaybackUiState(
     val title: String = "",
-    val loading: Boolean = true,
+    val startup: PlaybackStartup = PlaybackStartup.OpeningFile,
     val playing: Boolean = false,
     val positionMs: Long = 0,
     val durationMs: Long = 0,
@@ -47,7 +58,11 @@ data class PlaybackUiState(
     val ended: Boolean = false,
     /** 화면에 보이는 영상의 가로 대 세로 비율. 영상 출력이 준비되기 전에는 null이다. */
     val videoAspect: Float? = null,
-)
+) {
+    /** 재생기가 아직 없어 재생 조작을 받을 수 없는 동안이다. */
+    val loading: Boolean
+        get() = startup == PlaybackStartup.OpeningFile || startup == PlaybackStartup.PreparingFonts
+}
 
 class VlcPlayback(
     private val context: Context,
@@ -121,6 +136,11 @@ class VlcPlayback(
             opened = null
             progress = PlaybackProgress(saved?.positionMs ?: 0)
             state = state.copy(title = document.title, positionMs = progress.positionMs)
+            if (FontCacheWarmup.preparing) {
+                state = state.copy(startup = PlaybackStartup.PreparingFonts)
+                FontCacheWarmup.awaitFinished()
+                if (closed) return
+            }
             val engine = LibVLC(context, arrayListOf("--no-video-title-show"))
             lib = engine
             val mediaPlayer = MediaPlayer(engine)
@@ -128,7 +148,7 @@ class VlcPlayback(
             subtitles.restore()
             mediaPlayer.setEventListener { event -> if (!closed) handleEvent(event) }
             layout?.let(::attachPlayerViews)
-            state = state.copy(loading = false)
+            state = state.copy(startup = PlaybackStartup.WaitingForPicture)
             playIfRequested()
         } catch (error: CancellationException) {
             throw error
@@ -272,6 +292,12 @@ class VlcPlayback(
         } finally {
             media.release()
         }
+        // 끝난 영상을 다시 열 때도 영상 출력을 새로 만드므로 첫 장면을 다시 기다린다.
+        state = state.copy(startup = PlaybackStartup.WaitingForPicture)
+    }
+
+    private fun finishWaitingForPicture() {
+        if (state.startup == PlaybackStartup.WaitingForPicture) state = state.copy(startup = PlaybackStartup.Finished)
     }
 
     private fun restartMedia(active: MediaPlayer) {
@@ -307,7 +333,11 @@ class VlcPlayback(
         val active = player ?: return
         when (event.type) {
             MediaPlayer.Event.ESAdded, MediaPlayer.Event.ESDeleted, MediaPlayer.Event.ESSelected -> subtitles.refresh()
-            MediaPlayer.Event.Vout -> updateVideoAspect(active)
+            MediaPlayer.Event.Vout -> {
+                // 재생 시작 알림은 영상 출력보다 먼저 온다. 글꼴 준비처럼 출력이 늦어지는 동안에도 화면은 검다.
+                if (event.voutCount > 0) finishWaitingForPicture()
+                updateVideoAspect(active)
+            }
             MediaPlayer.Event.Playing -> {
                 subtitles.refresh()
                 progress.updateDuration(active.length)
@@ -323,6 +353,8 @@ class VlcPlayback(
                 state = state.copy(playing = true, seekable = active.isSeekable)
             }
             MediaPlayer.Event.Paused -> {
+                // 멈춘 동안에는 조작이 보이므로 첫 장면을 기다린다는 표시를 거둔다.
+                finishWaitingForPicture()
                 progress.updateDuration(active.length)
                 state = state.copy(playing = false, durationMs = progress.durationMs,
                     seekable = active.isSeekable)
@@ -339,6 +371,8 @@ class VlcPlayback(
                 restorePosition()
             }
             MediaPlayer.Event.TimeChanged -> {
+                // 영상 트랙이 없는 파일은 출력 화면이 생기지 않으므로 시간이 흐르면 시작한 것으로 본다.
+                if (active.videoTracksCount == 0) finishWaitingForPicture()
                 if (ended || scrubbing || !visible || !wantsToPlay()) return
                 val now = SystemClock.elapsedRealtime()
                 val elapsedMediaMs = seekClock.elapsedMediaMs(now)
@@ -351,6 +385,7 @@ class VlcPlayback(
                 }
             }
             MediaPlayer.Event.EndReached -> {
+                finishWaitingForPicture()
                 seekClock.reset()
                 progress.finish()
                 ended = true
@@ -383,7 +418,7 @@ class VlcPlayback(
         if (closed) return
         save()
         changePlayIntent(false)
-        state = state.copy(loading = false, playing = false, error = message)
+        state = state.copy(startup = PlaybackStartup.Finished, playing = false, error = message)
         releasePlayer()
     }
 

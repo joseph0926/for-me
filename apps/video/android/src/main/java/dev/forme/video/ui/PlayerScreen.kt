@@ -63,6 +63,7 @@ import dev.forme.video.R
 import dev.forme.video.VideoSelection
 import dev.forme.video.VideoViewModel
 import dev.forme.video.player.PLAYBACK_RATES
+import dev.forme.video.player.PlaybackStartup
 import dev.forme.video.player.VideoScale
 import dev.forme.video.player.VlcPlayback
 import dev.forme.video.player.formatPlaybackRate
@@ -163,7 +164,11 @@ internal fun PlayerScreen(
     }
     LaunchedEffect(state.loading) {
         if (!state.loading && state.error == null && state.positionMs > 0) resumePosition = state.positionMs
-        if (state.loading) {
+    }
+    // 재생기를 만든 뒤에도 첫 장면이 나오기 전까지는 화면이 검으므로 준비 표시를 유지한다.
+    val starting = state.startup != PlaybackStartup.Finished && state.error == null
+    LaunchedEffect(starting) {
+        if (starting) {
             delay(300)
             loadingShownAt = android.os.SystemClock.uptimeMillis()
             showLoading = true
@@ -504,8 +509,10 @@ internal fun PlayerScreen(
                         .semantics { liveRegion = LiveRegionMode.Polite })
             }
             if (showLoading) {
-                Text(stringResource(R.string.loading), style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp)
+                val message = if (state.startup == PlaybackStartup.PreparingFonts) R.string.preparing_fonts else R.string.loading
+                // 준비 중에도 가운데 재생 버튼이 보이므로 그 아래에 둔다.
+                Text(stringResource(message), style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.Center).offset(y = 56.dp).padding(horizontal = 24.dp)
                         .semantics { liveRegion = LiveRegionMode.Polite })
             }
             if (screenLocked) {
