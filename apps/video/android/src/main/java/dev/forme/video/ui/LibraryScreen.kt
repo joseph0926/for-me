@@ -5,7 +5,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,10 +29,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.net.Uri
@@ -69,43 +78,44 @@ internal fun LibraryScreen(records: List<PlaybackRecord>, openFile: () -> Unit,
     }
     val openDetail = { record: PlaybackRecord -> detailUri = record.uri }
     Column(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+        // 버튼이 없는 보관함에서도 홈과 머리 줄 높이를 맞춰 탭을 바꿀 때 목록이 움직이지 않게 한다.
+        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp).heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 3.sp),
-                modifier = Modifier.weight(1f))
-            VideoIconButton(openFile, Modifier.size(48.dp)) {
-                Icon(painterResource(R.drawable.ic_add), stringResource(R.string.open_video))
+            // 보관함에서는 따로 큰 제목 줄을 두지 않고 이 줄이 화면 이름을 맡는다.
+            // 영상 열기는 아래 탭이 맡으므로, 폴더 추가와 헷갈리는 + 버튼을 보관함 머리 줄에는 두지 않는다.
+            if (library) {
+                Text(stringResource(R.string.library), style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f))
+            } else {
+                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 3.sp),
+                    modifier = Modifier.weight(1f))
+                VideoIconButton(openFile, Modifier.size(48.dp)) {
+                    Icon(painterResource(R.drawable.ic_add), stringResource(R.string.open_video))
+                }
             }
         }
+        // 보관함은 묶음마다 간격을 따로 둔다. 모든 항목 사이에 같은 간격을 두면 묶음 경계가 보이지 않는다.
         LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            verticalArrangement = if (library) Arrangement.Top else Arrangement.spacedBy(24.dp)) {
             if (library) {
-                item {
-                    Text(stringResource(R.string.library), Modifier.padding(horizontal = 24.dp),
-                        style = MaterialTheme.typography.headlineLarge)
-                }
                 item {
                     LibraryFolders(folders.sortedRoots(), open = { openTree = it }, add = { folderPicker.launch(null) })
                 }
                 item {
-                    Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(stringResource(R.string.library_count, records.size), style = MaterialTheme.typography.titleLarge)
-                        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
-                            label = { Text(stringResource(R.string.search_videos)) },
-                            shape = MaterialTheme.shapes.small)
-                    }
+                    RecentVideosHeader(records.size, query) { query = it }
                 }
                 val visible = records.filter { it.title.contains(query, ignoreCase = true) }
                 if (visible.isEmpty()) item {
                     EmptyCollection(records.isEmpty(), openFile)
                 }
                 items(visible, key = { it.uri }) { record ->
-                    VideoRow(record, { play(record) }) { openDetail(record) }
+                    VideoRow(record, { play(record) }, verticalPadding = LIBRARY_ROW_PADDING) { openDetail(record) }
                 }
                 // 문제를 알릴 때 어느 빌드였는지 기록할 수 있게 보관함 끝에 둔다.
                 item {
                     Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
-                        Modifier.padding(horizontal = 24.dp), style = MaterialTheme.typography.bodySmall,
+                        Modifier.padding(start = 24.dp, end = 24.dp, top = LIBRARY_GROUP_GAP),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
@@ -199,21 +209,25 @@ private fun FeaturedVideo(record: PlaybackRecord, play: () -> Unit, open: () -> 
 @Composable
 private fun LibraryFolders(roots: List<Pair<Uri, String>>, open: (Uri) -> Unit, add: () -> Unit) {
     Column {
-        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp).heightIn(min = 48.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.folder), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            if (roots.isNotEmpty()) {
+        if (roots.isNotEmpty()) {
+            // 제목 옆 추가 글자가 누를 수 있는 높이를 갖도록 이 경우에만 줄 높이를 48dp로 둔다.
+            Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp).heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.folder), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.add_folder),
                     Modifier.clickable(role = Role.Button, onClick = add).padding(horizontal = 12.dp, vertical = 14.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelLarge.copy(textDecoration = TextDecoration.Underline))
             }
-        }
-        if (roots.isEmpty()) {
+        } else {
+            // 추가 행이 바로 아래 붙도록 제목에 빈 줄 높이를 주지 않는다.
+            Text(stringResource(R.string.folder), Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                style = MaterialTheme.typography.titleMedium)
+            // 폴더 행과 같은 자리와 모양에 폴더 모양 아이콘을 두어, 영상 열기의 +와 다른 동작으로 읽히게 한다.
             Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = add).heightIn(min = 56.dp)
                 .padding(horizontal = 24.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Icon(painterResource(R.drawable.ic_add), null, Modifier.size(24.dp))
+                Icon(painterResource(R.drawable.ic_folder_add), null, Modifier.size(24.dp))
                 Text(stringResource(R.string.add_folder))
             }
         }
@@ -259,13 +273,77 @@ private fun SectionTitle(title: String, open: () -> Unit) {
     }
 }
 
+/** 보관함 목록 행의 위아래 안쪽 여백. 행끼리는 간격 없이 붙고 이 여백으로 떨어진다. */
+private val LIBRARY_ROW_PADDING = 11.dp
+
+/** 보관함 묶음 사이 여백. 행 사이(안쪽 여백 두 번)보다 넓어야 묶음이 나뉘어 보인다. */
+private val LIBRARY_GROUP_GAP = 28.dp
+
+/** 보관함의 최근 영상 묶음 머리. 검색은 이 묶음만 거르므로 제목 바로 아래에 둔다. */
 @Composable
-private fun VideoRow(record: PlaybackRecord, play: () -> Unit, open: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = play).padding(start = 24.dp, end = 12.dp),
+private fun RecentVideosHeader(count: Int, query: String, changeQuery: (String) -> Unit) {
+    Column(Modifier.padding(start = 24.dp, end = 24.dp, top = LIBRARY_GROUP_GAP, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.recently_opened), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.library_count, count), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        SearchField(query, changeQuery)
+    }
+}
+
+/** 떠오르는 라벨 없이 안내 글자만 두어 기본 입력란보다 낮게 만든다. */
+@Composable
+private fun SearchField(query: String, changeQuery: (String) -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val colors = OutlinedTextFieldDefaults.colors()
+    val shape = MaterialTheme.shapes.small
+    val label = stringResource(R.string.search_videos)
+    BasicTextField(
+        value = query,
+        onValueChange = changeQuery,
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+        interactionSource = interactionSource,
+    ) { innerTextField ->
+        OutlinedTextFieldDefaults.DecorationBox(
+            value = query,
+            innerTextField = innerTextField,
+            enabled = true,
+            singleLine = true,
+            visualTransformation = VisualTransformation.None,
+            interactionSource = interactionSource,
+            // 입력란 이름은 위 설명으로 전하므로, 입력하면 사라지는 안내 글자는 읽기 도구에 다시 알리지 않는다.
+            placeholder = { Text(label, Modifier.clearAndSetSemantics { }) },
+            colors = colors,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            container = {
+                OutlinedTextFieldDefaults.Container(
+                    enabled = true,
+                    isError = false,
+                    interactionSource = interactionSource,
+                    colors = colors,
+                    shape = shape,
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun VideoRow(record: PlaybackRecord, play: () -> Unit, verticalPadding: Dp = 0.dp, open: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = play)
+        .padding(start = 24.dp, end = 12.dp, top = verticalPadding, bottom = verticalPadding),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         VideoArtwork(record.uri, Modifier.width(104.dp).height(64.dp).clip(MaterialTheme.shapes.medium))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(record.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+        // 행 제목은 묶음 소제목(16sp 650)보다 한 단계 낮게 두고, 긴 파일 이름은 한 줄로 잘라 행 높이를 맞춘다.
+        // 잘린 이름은 상세에서 세 줄까지 보여 준다.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(record.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
             Text(timeSummary(record), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
