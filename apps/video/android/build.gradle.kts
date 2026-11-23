@@ -1,5 +1,5 @@
 // 앱 버전은 시맨틱 버전 하나만 고친다. 올리는 규칙은 README의 버전 절을 따른다.
-val appVersion = "0.5.0"
+val appVersion = "0.6.0"
 
 plugins {
     id("com.android.application")
