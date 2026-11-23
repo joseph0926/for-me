@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.Cursor
 import android.net.Uri
 import android.os.Process
 import android.provider.DocumentsContract
@@ -15,9 +14,10 @@ import androidx.core.net.toUri
 import dev.forme.video.R
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 
-internal data class FolderEntry(val id: String, val title: String, val isFolder: Boolean)
+internal data class FolderEntry(val id: String, val title: String, val isFolder: Boolean, val mime: String = "")
 internal data class FolderListing(val title: String, val entries: List<FolderEntry>, val loading: Boolean, val temporaryAccess: Boolean)
 
 data class QueuedVideo(val documentId: String, val title: String)
@@ -49,10 +49,18 @@ private val koreanTags = setOf("ko", "kor", "korean", "kr", "ko-kr")
  */
 internal fun matchingSubtitle(videoName: String, files: List<FolderEntry>): FolderEntry? {
     val videoStem = videoName.substringBeforeLast('.')
+    val videoStems = files.filter { !it.isFolder && isVideoFile(it.title, it.mime) }
+        .mapTo(mutableSetOf()) { it.title.substringBeforeLast('.').lowercase() }
     fun rank(file: FolderEntry): Int? {
         val stem = file.title.substringBeforeLast('.')
         if (stem.equals(videoStem, ignoreCase = true)) return 0
         if (!stem.startsWith("$videoStem.", ignoreCase = true)) return null
+        // 점 뒤의 표시가 다른 영상 이름의 일부라면 더 구체적인 이름을 가진 영상에 속한다.
+        var owner = stem.lowercase()
+        while ('.' in owner && !owner.equals(videoStem, ignoreCase = true)) {
+            if (owner in videoStems) return null
+            owner = owner.substringBeforeLast('.')
+        }
         return if (stem.substring(videoStem.length + 1).lowercase() in koreanTags) 1 else 2
     }
     return files.filter { !it.isFolder && it.title.substringAfterLast('.', "").lowercase() in subtitleExtensions }
@@ -63,17 +71,15 @@ internal fun matchingSubtitle(videoName: String, files: List<FolderEntry>): Fold
         ?.first
 }
 
-/** 폴더에서 연 영상 옆에서 같은 이름의 자막을 찾는다. 폴더를 읽지 못하면 예외를 그대로 전달한다. */
+/** 폴더에서 연 영상 옆에서 같은 이름의 자막을 찾는다. 목록을 읽지 못하면 영상만 재생한다. */
 internal fun findFolderSubtitle(resolver: ContentResolver, queue: FolderQueue): FolderSubtitle? {
     val videoName = queue.current?.title ?: return null
-    val files = queryChildren(resolver, queue.tree, queue.directoryId) { cursor ->
-        buildList {
-            while (cursor.moveToNext()) {
-                val id = cursor.getString(0) ?: continue
-                val name = cursor.getString(1) ?: continue
-                add(FolderEntry(id, name, cursor.getString(2) == Document.MIME_TYPE_DIR))
-            }
-        }
+    val files = try {
+        queryChildren(resolver, queue.tree, queue.directoryId).entries
+    } catch (_: IOException) {
+        return null
+    } catch (_: SecurityException) {
+        return null
     }
     val match = matchingSubtitle(videoName, files) ?: return null
     return FolderSubtitle(DocumentsContract.buildDocumentUriUsingTree(queue.tree, match.id), match.title,
@@ -82,13 +88,33 @@ internal fun findFolderSubtitle(resolver: ContentResolver, queue: FolderQueue): 
 
 private val childColumns = arrayOf(Document.COLUMN_DOCUMENT_ID, Document.COLUMN_DISPLAY_NAME, Document.COLUMN_MIME_TYPE)
 
-/** 폴더의 바로 아래 항목을 [childColumns] 순서로 읽는다. 제공자가 오류를 알리면 IOException으로 바꾼다. */
-private fun <T> queryChildren(resolver: ContentResolver, tree: Uri, directoryId: String, read: (Cursor) -> T): T {
+private data class ChildDocuments(val entries: List<FolderEntry>, val loading: Boolean)
+
+/** 두 화면이 받는 문서 열과 제공자의 조회 실패를 한 곳에서 해석한다. */
+private fun queryChildren(resolver: ContentResolver, tree: Uri, directoryId: String,
+    include: (FolderEntry) -> Boolean = { true }): ChildDocuments {
     val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId)
-    return resolver.query(children, childColumns, null, null, null)?.use { cursor ->
-        if (cursor.extras.containsKey(DocumentsContract.EXTRA_ERROR)) throw IOException()
-        read(cursor)
-    } ?: throw IOException()
+    return try {
+        resolver.query(children, childColumns, null, null, null)?.use { cursor ->
+            if (cursor.extras.containsKey(DocumentsContract.EXTRA_ERROR)) throw IOException()
+            val entries = buildList {
+                while (cursor.moveToNext()) {
+                    val id = cursor.getString(0) ?: continue
+                    val name = cursor.getString(1) ?: continue
+                    val mime = cursor.getString(2).orEmpty()
+                    val entry = FolderEntry(id, name, mime == Document.MIME_TYPE_DIR, mime)
+                    if (include(entry)) add(entry)
+                }
+            }
+            ChildDocuments(entries, cursor.extras.getBoolean(DocumentsContract.EXTRA_LOADING))
+        } ?: throw IOException()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: SecurityException) {
+        throw error
+    } catch (error: RuntimeException) {
+        throw IOException("Cannot read folder listing", error)
+    }
 }
 
 internal class VideoFolders(private val context: Context) {
@@ -160,6 +186,12 @@ private fun ContentResolver.hasPersistentRead(tree: Uri): Boolean =
 private val videoExtensions = setOf("mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv",
     "mpg", "mpeg", "3gp", "3g2", "ts", "mts", "m2ts", "vob", "ogv", "asf", "m2v", "mxf")
 
+private fun isVideoFile(name: String, mime: String): Boolean {
+    val generic = mime.isEmpty() || mime == "application/octet-stream"
+    return mime.startsWith("video/") || mime == "application/x-matroska" ||
+        (generic && name.substringAfterLast('.', "").lowercase() in videoExtensions)
+}
+
 internal fun readVideoFolder(resolver: ContentResolver, tree: Uri, directoryId: String): FolderListing {
     val directory = DocumentsContract.buildDocumentUriUsingTree(tree, directoryId)
     val title = resolver.query(directory, arrayOf(Document.COLUMN_DISPLAY_NAME, Document.COLUMN_MIME_TYPE),
@@ -167,22 +199,8 @@ internal fun readVideoFolder(resolver: ContentResolver, tree: Uri, directoryId: 
         if (it.moveToFirst() && it.getString(1) == Document.MIME_TYPE_DIR) it.getString(0) else null
     } ?: throw FileNotFoundException()
 
-    return queryChildren(resolver, tree, directoryId) { cursor ->
-        val entries = buildList {
-            while (cursor.moveToNext()) {
-                val id = cursor.getString(0) ?: continue
-                val name = cursor.getString(1) ?: continue
-                val mime = cursor.getString(2).orEmpty()
-                val folder = mime == Document.MIME_TYPE_DIR
-                val generic = mime.isEmpty() || mime == "application/octet-stream"
-                if (folder || mime.startsWith("video/") || mime == "application/x-matroska" ||
-                    (generic && name.substringAfterLast('.', "").lowercase() in videoExtensions)) {
-                    add(FolderEntry(id, name, folder))
-                }
-            }
-        }.sortedWith(compareByDescending<FolderEntry> { it.isFolder }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+    val children = queryChildren(resolver, tree, directoryId) { it.isFolder || isVideoFile(it.title, it.mime) }
+    val entries = children.entries.sortedWith(compareByDescending<FolderEntry> { it.isFolder }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
             .thenBy { it.id })
-        FolderListing(title, entries, cursor.extras.getBoolean(DocumentsContract.EXTRA_LOADING),
-            temporaryAccess = !resolver.hasPersistentRead(tree))
-    }
+    return FolderListing(title, entries, children.loading, temporaryAccess = !resolver.hasPersistentRead(tree))
 }
