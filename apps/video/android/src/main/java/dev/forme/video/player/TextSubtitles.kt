@@ -6,6 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.CharacterCodingException
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
+import java.util.Locale
 
 /** 직접 고른 자막과 폴더에서 찾은 자막이 함께 쓰는 크기 상한이다. */
 internal const val MAX_SUBTITLE_BYTES = 2 * 1024 * 1024
@@ -16,8 +17,49 @@ private val srtStyleTag = Regex("""</?(?:i|b|u|font)\b[^>]*>""", RegexOption.IGN
 // Android의 ICU 정규식은 PC의 자바와 달리 이스케이프하지 않은 닫는 중괄호를 문법 오류로 거부한다.
 private val overrideBlock = Regex("""\{[^}]*\}""")
 
-/** SRT, WebVTT, SAMI(SMI), ASS/SSA 자막을 읽어 시각별 문장으로 보여 준다. */
-internal class TextSubtitles private constructor(private val cues: List<Cue>) {
+internal data class SubtitleLanguage(val id: String, val label: String, val tag: String? = null) {
+    val korean: Boolean get() = tag?.substringBefore('-')?.equals("ko", ignoreCase = true)
+        ?: (id.startsWith("kr", ignoreCase = true) || id.startsWith("ko", ignoreCase = true))
+}
+
+internal class TextSubtitles private constructor(tracks: Map<SubtitleLanguage, CueTimeline>) {
+    val languages = tracks.keys.toList()
+    val defaultLanguage = languages.firstOrNull { it.tag != null && it.korean }
+        ?: languages.firstOrNull { it.korean } ?: languages.first()
+    private val timelines = tracks.mapKeys { it.key.id }
+
+    fun textAt(timeMs: Long, languageId: String = defaultLanguage.id): String =
+        timelines.getValue(languageId).textAt(timeMs)
+
+    companion object {
+        fun read(input: InputStream): TextSubtitles {
+            val content = decode(readLimited(input)).removePrefix("\uFEFF")
+                .replace("\r\n", "\n").replace('\r', '\n').trim()
+            val tracks = if (samiRoot.containsMatchIn(content)) {
+                readSami(content)
+            } else {
+                val cues = if (vttHeader.matches(content.lineSequence().first())) {
+                    readWebVtt(content)
+                } else {
+                    readSrt(content).ifEmpty { readAss(content) }
+                }
+                mapOf(SubtitleLanguage("", "") to cues)
+            }
+            val timelines = tracks.mapNotNull { (language, cues) ->
+                val usable = cues.filter { it.end > it.start && it.text.isNotEmpty() }.sortedBy { it.start }
+                if (usable.isEmpty()) null else language to CueTimeline(usable)
+            }.toMap()
+            require(timelines.isNotEmpty())
+            return TextSubtitles(timelines)
+        }
+    }
+}
+
+private val vttHeader = Regex("""WEBVTT(?:[ \t].*)?""")
+private val samiRoot = Regex("""^\s*(?:(?:<\?xml[^>]*\?>|<!--.*?-->|<!DOCTYPE\s+[^>]*>)\s*)*<SAMI(?:\s[^>]*)?>""",
+    setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+
+private class CueTimeline(private val cues: List<Cue>) {
     private val latestEnd = LongArray(cues.size).apply {
         for (index in indices) this[index] = maxOf(cues[index].end, getOrElse(index - 1) { 0L })
     }
@@ -36,23 +78,6 @@ internal class TextSubtitles private constructor(private val cues: List<Cue>) {
             index--
         }
         return active.asReversed().joinToString("\n")
-    }
-
-    companion object {
-        fun read(input: InputStream): TextSubtitles {
-            val content = decode(readLimited(input)).removePrefix("\uFEFF")
-                .replace("\r\n", "\n").replace('\r', '\n').trim()
-            val cues = when {
-                content.startsWith("WEBVTT") -> readWebVtt(content)
-                content.contains("<SAMI", ignoreCase = true) -> readSami(content)
-                content.contains("[Events]", ignoreCase = true) -> readAss(content)
-                else -> readSrt(content)
-            }
-            // 편집기가 남긴 빈 대사와 길이 0인 대사는 건너뛰고 읽을 수 있는 대사만 쓴다.
-            val usable = cues.filter { it.end > it.start && it.text.isNotEmpty() }.sortedBy { it.start }
-            require(usable.isNotEmpty())
-            return TextSubtitles(usable)
-        }
     }
 }
 
@@ -145,7 +170,7 @@ private val samiBodyEnd = Regex("""</BODY>.*""", setOf(RegexOption.IGNORE_CASE, 
 private const val LAST_SAMI_LINE_MS = 5_000L
 
 /** SYNC마다 언어(P의 Class)별 문장을 모으고, 같은 언어의 다음 SYNC에서 그 문장을 끝낸다. 한국어가 있으면 한국어를 고른다. */
-private fun readSami(content: String): List<Cue> {
+private fun readSami(content: String): Map<SubtitleLanguage, List<Cue>> {
     val syncs = samiSync.findAll(content).toList()
     val lines = syncs.mapIndexed { index, sync ->
         val bodyEnd = syncs.getOrNull(index + 1)?.range?.first ?: content.length
@@ -162,12 +187,31 @@ private fun readSami(content: String): List<Cue> {
             }
         }
     }.flatten()
-    val languages = lines.filter { it.third.isNotEmpty() }.map { it.first }.distinct()
-    val chosen = languages.firstOrNull { it.startsWith("KR", ignoreCase = true) || it.startsWith("KO", ignoreCase = true) }
-        ?: languages.firstOrNull() ?: return emptyList()
-    val timeline = lines.filter { it.first == chosen }
-    return timeline.mapIndexed { index, (_, start, text) ->
-        Cue(start, timeline.getOrNull(index + 1)?.second ?: (start + LAST_SAMI_LINE_MS), text)
+    val declarations = samiLanguages(content.substring(0, syncs.firstOrNull()?.range?.first ?: content.length))
+    return lines.groupBy { it.first.lowercase() }.map { (id, timeline) ->
+        val language = declarations[id] ?: SubtitleLanguage(id, timeline.first().first)
+        language to timeline.mapIndexed { index, (_, start, text) ->
+            Cue(start, timeline.getOrNull(index + 1)?.second ?: (start + LAST_SAMI_LINE_MS), text)
+        }
+    }.toMap()
+}
+
+private val styleElement = Regex("""<style\b[^>]*>(.*?)</style\s*>""",
+    setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+private val classRule = Regex("""\.([\w-]+)\s*\{([^}]*)\}""")
+private fun samiLanguages(header: String): Map<String, SubtitleLanguage> = buildMap {
+    for (style in styleElement.findAll(header)) {
+        for (rule in classRule.findAll(style.groupValues[1])) {
+            val (id, body) = rule.destructured
+            val fields = body.split(';').associate {
+                it.substringBefore(':').trim().lowercase() to it.substringAfter(':', "").trim().trim('\'', '"')
+            }
+            val tag = fields["lang"]?.takeIf(String::isNotBlank)
+            val label = fields["name"]?.takeIf(String::isNotBlank)
+                ?: tag?.let { Locale.forLanguageTag(it).getDisplayLanguage(Locale.KOREAN) }?.takeIf(String::isNotBlank)
+                ?: id
+            put(id.lowercase(), SubtitleLanguage(id.lowercase(), label, tag))
+        }
     }
 }
 

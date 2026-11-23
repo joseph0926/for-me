@@ -53,7 +53,9 @@ internal class SubtitleControls(
         private set
     var external by mutableStateOf<TextSubtitles?>(null)
         private set
-    // 메뉴에서 어떤 파일이 붙었는지 보여 줄 이름이다. 제공자가 이름을 알려 주지 않으면 null이다.
+    var languageId by mutableStateOf("")
+        private set
+    // 제공자가 파일 이름을 알려 주지 않으면 메뉴에 기본 이름을 표시한다.
     var externalName by mutableStateOf<String?>(null)
         private set
     // 외부 자막을 골랐더라도 파일을 읽기 전이나 읽지 못했을 때는 표시하지 않는다.
@@ -116,6 +118,15 @@ internal class SubtitleControls(
     // 임시 폴더 권한으로 자동으로 붙인 자막은 저장하지 않는다. 다음에 폴더에서 열 때 다시 찾는다.
     private var rememberExternal = true
 
+    private fun languageKey(uri: String) = "language:${video.toString().length}:$video$uri"
+
+    fun selectLanguage(id: String) {
+        val languages = external?.languages ?: return
+        if (!usingExternal || languages.none { it.id == id }) return
+        languageId = id
+        externalUri?.let { prefs.edit { putString(languageKey(it), id) } }
+    }
+
     private fun activateExternal(subtitles: TextSubtitles, name: String?, savedUri: String?, remember: Boolean = true) {
         val active = player() ?: return
         if (active.spuTrack >= 0 && !active.setSpuTrack(-1)) {
@@ -123,6 +134,9 @@ internal class SubtitleControls(
             return
         }
         val replacedUri = externalUri
+        val previousLanguage = if (subtitles === external) languageId
+            else savedUri?.let { prefs.getString(languageKey(it), null) }
+        languageId = subtitles.languages.firstOrNull { it.id == previousLanguage }?.id ?: subtitles.defaultLanguage.id
         external = subtitles
         externalName = name
         externalUri = savedUri
@@ -152,13 +166,7 @@ internal class SubtitleControls(
     }
 
     private fun loadFromFolder(queue: FolderQueue) = startReading(invalidNotice = R.string.folder_subtitle_invalid) {
-        val found = try {
-            withContext(Dispatchers.IO) { findFolderSubtitle(resolver, queue) }
-        } catch (_: IOException) {
-            null
-        } catch (_: SecurityException) {
-            null
-        } ?: return@startReading
+        val found = withContext(Dispatchers.IO) { findFolderSubtitle(resolver, queue) } ?: return@startReading
         val (subtitles, _) = read(found.uri)
         // 폴더 권한이 이 자막도 읽게 해 주므로 자막 파일의 권한은 따로 받지 않는다.
         activateExternal(subtitles, found.name, found.uri.toString().takeIf { found.persistent }, remember = found.persistent)

@@ -29,9 +29,10 @@ internal fun ExternalSubtitle(playback: VlcPlayback, controlsVisible: Boolean, m
     if (!controls.usingExternal) return
     val state = playback.state
     var text by remember(cues) { mutableStateOf("") }
-    LaunchedEffect(cues, controls.delayMs, state.playing, if (state.playing) null else state.positionMs) {
+    val languageId = controls.languageId
+    LaunchedEffect(cues, languageId, controls.delayMs, state.playing, if (state.playing) null else state.positionMs) {
         do {
-            text = cues.textAt(playback.subtitleTimeMs() - controls.delayMs)
+            text = cues.textAt(playback.subtitleTimeMs() - controls.delayMs, languageId)
             if (state.playing) delay(50)
         } while (state.playing)
     }
@@ -77,6 +78,14 @@ internal fun SubtitleDialog(controls: SubtitleControls, close: () -> Unit) {
                     }
                 }
                 if (controls.usingExternal) {
+                    val languages = controls.external?.languages.orEmpty()
+                    if (languages.size > 1) {
+                        Text(stringResource(R.string.subtitle_language))
+                        languages.forEach { language ->
+                            SubtitleOption(language.label.ifBlank { stringResource(R.string.subtitle_default_language) },
+                                controls.languageId == language.id) { controls.selectLanguage(language.id) }
+                        }
+                    }
                     Text(stringResource(R.string.subtitle_size, controls.fontSize))
                     Row {
                         TextButton(onClick = { controls.setSize(controls.fontSize - 2) }, enabled = controls.fontSize > 12) { Text(stringResource(R.string.subtitle_smaller)) }
