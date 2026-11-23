@@ -16,7 +16,7 @@ for-me/
 │   │   └── gradlew 등      이 앱의 Gradle 빌드
 │   ├── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
 │   ├── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
-│   ├── screen-note/        스크린샷 직후 그리기 도구(조사와 범위 초안만)
+│   ├── screen-note/        개인용 이미지 편집기(범위 초안)
 │   ├── journal/            사용과 개발 기록 로컬 웹과 CLI(Node, 외부 패키지 없음)
 │   └── today-ref/          주제별 UI 레퍼런스 수집과 조합 구현(React, Vite, pnpm 작업 공간)
 ├── docs/                   모든 앱에 공통인 개발 절차와 QA 절차
