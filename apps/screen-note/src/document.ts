@@ -8,7 +8,9 @@ export type Memo = { tool: "memo"; area: Region; text: string; fontSize: number;
 export type PenStyle = { color: string; strokeWidth: number };
 export type Stroke = PenStyle & { tool: "pen"; area: Region; points: number[] };
 export type Mark = Memo | Stroke | { tool: "cover" | "highlight"; area: Region; strokeWidth: number; color: string };
-export type Edit = { tool: "mark"; id: number; mark: Mark } | { tool: "crop"; area: Region };
+export type Edit =
+  | { tool: "mark"; id: number; mark: Mark; recolored?: boolean }
+  | { tool: "crop"; area: Region };
 
 export const toolNames = {
   select: "선택",
@@ -53,16 +55,33 @@ export function currentMarks(edits: Edit[]): Map<number, Mark> {
   return marks;
 }
 
+// 같은 표시의 연속된 색 변경을 한 번의 편집으로 묶는다. 색상 선택 창은 고르는 동안 색을 계속 보낸다.
+export function recolorMark(edits: Edit[], id: number, color: string): Edit[] {
+  const last = edits.at(-1);
+  const continued = last?.tool === "mark" && last.id === id && last.recolored === true;
+  const kept = continued ? edits.slice(0, -1) : edits;
+  const mark = currentMarks(kept).get(id);
+  if (!mark) return edits;
+  if (mark.color === color) return kept;
+  return [...kept, { tool: "mark", id, mark: { ...mark, color }, recolored: true }];
+}
+
 export function hitMark(marks: Map<number, Mark>, point: Point, scale: number) {
   let hit: number | null = null;
+  // 강조는 테두리만 그리므로 안쪽을 누르면 그 아래 표시를 먼저 고른다.
+  let hollow: number | null = null;
   for (const [id, mark] of marks) {
     const { x, y, width, height } = mark.area;
     const margin = mark.tool === "highlight" || mark.tool === "pen" ? Math.max(3 / scale, mark.strokeWidth / 2) : 0;
     if (point.x < x - margin || point.x > x + width + margin ||
         point.y < y - margin || point.y > y + height + margin) continue;
-    if (mark.tool !== "pen" || hitsStroke(mark, point, margin)) hit = id;
+    if (mark.tool === "pen" && !hitsStroke(mark, point, margin)) continue;
+    const insideBorder = point.x > x + margin && point.x < x + width - margin &&
+      point.y > y + margin && point.y < y + height - margin;
+    if (mark.tool === "highlight" && insideBorder) hollow = id;
+    else hit = id;
   }
-  return hit;
+  return hit ?? hollow;
 }
 
 export function moveMark(mark: Mark, start: Point, end: Point, view: Region): Mark {

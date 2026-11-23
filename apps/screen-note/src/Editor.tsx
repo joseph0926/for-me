@@ -4,7 +4,8 @@ import type Konva from "konva";
 import { Group, Image as CanvasImage, Layer, Rect, Stage } from "react-konva";
 import { Icon } from "./Icon";
 import { copyImage } from "./copy";
-import { currentMarks, hitMark, imagePoint, moveMark, selection, toolNames, visibleRegion } from "./document";
+import type { CopyResult } from "./copy";
+import { currentMarks, hitMark, imagePoint, moveMark, recolorMark, selection, toolNames, visibleRegion } from "./document";
 import type { BoxTool, Edit, Mark, Memo, PenStyle, Point, Region, Tool } from "./document";
 import { layoutMemo, MarkOutline, MarkShape, PenPath } from "./Marks";
 import { MarkSettings, PenSettings } from "./MarkSettings";
@@ -46,6 +47,12 @@ const toolHints: Record<Tool, string> = {
 };
 
 const tools = Object.keys(toolNames) as Tool[];
+
+const copyMessages: Record<CopyResult, string> = {
+  copied: "복사했습니다.",
+  "render-failed": "복사할 이미지를 만들지 못했습니다. 자르기로 영역을 줄인 뒤 다시 시도하세요.",
+  "clipboard-failed": "복사하지 못했습니다. 클립보드 접근을 확인하고 다시 시도하세요.",
+};
 
 export function Editor({ image, name, onOpen, onEdited }: Props) {
   const [tool, setTool] = useState<Tool>("memo");
@@ -91,7 +98,7 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
   }, [edits, memo, onEdited]);
 
   useEffect(() => {
-    if (message !== "복사했습니다.") return;
+    if (message !== copyMessages.copied) return;
     const timer = window.setTimeout(() => setMessage(""), 4000);
     return () => window.clearTimeout(timer);
   }, [message]);
@@ -158,6 +165,11 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
     setMessage("");
   }
 
+  function recolor(id: number, color: string) {
+    setEdits(history => recolorMark(history, id, color));
+    setMessage("");
+  }
+
   function addMark(mark: Mark) {
     const id = nextId.current++;
     storeMark(id, mark);
@@ -211,14 +223,9 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
     if (!marks.current) return;
     setCopying(true);
     setMessage("");
-    try {
-      await copyImage(image, marks.current, view);
-      setMessage("복사했습니다.");
-    } catch {
-      setMessage("복사하지 못했습니다. 클립보드 접근을 확인하고 다시 시도하세요.");
-    } finally {
-      setCopying(false);
-    }
+    const result = await copyImage(image, marks.current, view);
+    setMessage(copyMessages[result]);
+    setCopying(false);
   }
 
   const toolBusy = Boolean(memo || copying);
@@ -246,10 +253,18 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
         <div className="workspace" ref={workspace}>
           {scale > 0 && (
             <div className="sheet" style={{ width, height }}>
-              <div className="surface" data-mode={tool} data-moving={drag?.tool === "move"} aria-label={toolNames[tool] + " 작업 영역"}
+              <div
+                className="surface"
+                data-mode={tool}
+                data-moving={drag?.tool === "move"}
+                aria-label={toolNames[tool] + " 작업 영역"}
                 style={drag?.tool === "resize" ? { cursor: drag.corner.cursor } : undefined}
-                onPointerDown={begin} onPointerUp={finish} onPointerMove={track}
-                onLostPointerCapture={cancelDrag} onPointerCancel={cancelDrag}>
+                onPointerDown={begin}
+                onPointerUp={finish}
+                onPointerMove={track}
+                onLostPointerCapture={cancelDrag}
+                onPointerCancel={cancelDrag}
+              >
                 <Stage width={width} height={height} listening={false}>
                   <Layer {...transform} listening={false}>
                     <CanvasImage image={image} />
@@ -301,10 +316,13 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
             <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
           ) : selected?.tool === "pen" && selectedId !== null ? (
             <PenSettings style={selected} disabled={toolBusy || !!drag}
-              onChange={style => storeMark(selectedId, { ...selected, ...style })} />
+              onChange={style => {
+                if (style.color !== selected.color) recolor(selectedId, style.color);
+                else storeMark(selectedId, { ...selected, ...style });
+              }} />
           ) : selected && selected.tool !== "pen" && selectedId !== null ? (
             <MarkSettings key={selectedId} mark={selected} disabled={toolBusy || !!drag}
-              onColor={color => { if (color !== selected.color) storeMark(selectedId, { ...selected, color }); }}
+              onColor={color => recolor(selectedId, color)}
               onBold={() => { if (selected.tool === "memo") updateMemo({ bold: !selected.bold }); }}
               onSize={fontSize => updateMemo({ fontSize })}
               onText={() => {
