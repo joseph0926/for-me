@@ -44,6 +44,41 @@
 
 > Cinematic 35mm landscape photograph for a widescreen desktop image editor opening screen. Dusk on a volcanic coastline, one pale distant sea stack at the far right rising out of a silvery blue ocean, a broad misty headland on the right, a small muted apricot horizon in the upper third and a deep charcoal volcanic beach sweeping across the lower left foreground. Natural analog grain, dim cool graphite palette, beautiful tonal separation and tactile sea spray. Wide horizontal 3:2 composition, quiet left half with deep shadow for an interface title. No text, logos, graphics, borders or interface.
 
+## 0.2.0 이후 코드 리뷰 지적 수정
+
+2026-11-23, macOS 27.2.1, Node.js 24.22.3, pnpm 12.21.0. 커밋 `c7eaa58` 위의 커밋하지 않은 변경이다. 버전은 올리지 않았고 수정한 코드로 Tauri 앱은 만들지 않았다. 지적 열 건의 상태는 [QA 이슈](qa-issues.md)에 있다.
+
+- 자동 검사 10건이 통과했다. 추가한 두 검사는 강조 상자 안쪽을 눌렀을 때의 선택과 연속된 색 변경의 되돌리기를 다룬다. 임시 사본에서 각 수정을 되돌리면 해당 검사가 실패했다. 겹친 표시 검사의 강조 선택 지점은 바뀐 선택 규칙에 맞춰 테두리로 옮겼다.
+- `corepack pnpm build`의 TypeScript 검사와 화면 빌드가 통과했다.
+- 빌드한 화면을 Chromium에서 열어 확인했다. 마우스로 메모와 강조, 가리기를 만들고 강조 안쪽의 메모, 빈 안쪽과 테두리를 눌렀다. 색 변경 여섯 번 뒤 되돌리기 한 번, 색상 칸에 초점을 둔 붙여넣기, PNG 생성 실패와 클립보드 거절의 안내, 복사 뒤 캔버스 크기를 확인했다. 놓기, 붙여넣기, 새로 고침 키와 우클릭은 합성한 이벤트로 보냈다.
+- 이 브라우저는 클립보드 쓰기를 거절해 복사 성공 경로는 확인하지 못했다.
+- 미검증: 운영체제에서 파일을 실제로 끌어다 놓는 동작, Tauri 앱의 우클릭 메뉴와 새로 고침 단축키, 운영체제 색상 선택 창, 복사 뒤 메모리 변화, Windows 실행.
+
+## 0.2.0 코드 리뷰 수정 빌드의 macOS 앱 QA
+
+2026-11-23, Apple M2, 메모리 16GB, macOS 27.2.1(26B131). 위 절의 수정(커밋 `c7eaa58` 위의 커밋하지 않은 변경, `src`, `src-tauri`, `tests`의 `git diff` SHA-256 `ef54c250c0b7e5dd7e45e6594c68f946f77f4079bc80a7082c95487a56a86590`)으로 만든 macOS 앱이다. 버전은 0.2.0 그대로이고 실행 파일 SHA-256은 `6b8f871c460fb5b8881a06e35fe7678c9e0c27f1c355845f2af1662c283c30ab`이다. 이슈별 판정은 [QA 이슈](qa-issues.md)에 있다.
+
+- Node.js 24.22.3, pnpm 12.21.0, Rust 1.100.0. `corepack pnpm test` 10건이 통과했고 `corepack pnpm tauri build --bundles app -- --locked`가 성공했다(arm64, 로컬 서명). `codesign --verify --deep --strict`를 통과했다.
+- `/Applications`에 기존 Screen Note가 없어 그대로 복사해 설치했고 설치본의 실행 파일 해시가 빌드 결과와 같았다. 수정 전 0.2.0 앱(`8f8656cf…`)은 `/Applications`, 저장소 빌드 폴더, 개발 폴더, 임시 폴더와 Spotlight에서 찾지 못했다.
+- 설치한 앱을 실제 마우스와 키보드 입력으로 조작했다. 브라우저 미리보기와 합성 이벤트는 쓰지 않았다.
+  - 파일 놓기: Finder에서 PNG, 글 파일, 큰 JPEG를 창에 끌어 놓았다. 첫 화면의 PNG는 바로 열렸고, 편집 중 PNG는 교체 확인, 글 파일은 열기 실패 안내와 함께 편집이 유지됐다. 큰 JPEG의 첫 시도는 반응이 없었다(QA-012).
+  - 우클릭과 ⌘R: 캔버스 안팎과 상단 파일 이름에서 메뉴가 뜨지 않았고 메모 입력란에서는 기본 글 메뉴가 떴다. 영문 입력 상태의 ⌘R 뒤 편집이 유지됐다. 앱 메뉴에 새로 고침 항목은 없다. 한국어 2벌식 입력 상태에서 조작 도구가 보낸 ⌘R은 ⌘A로 전달돼 판정에서 뺐다.
+  - 색 변경 되돌리기: macOS 색상 창의 휠을 끌어 가리기와 선택한 펜 획의 색을 여러 번 바꾼 뒤 되돌리기 한 번으로 고르기 전 색이 됐다.
+  - 강조 안쪽의 메모 선택, 열기 실패 안내 문구, 첫 화면 구성이 브라우저 빌드에서 확인한 것과 같았다.
+  - 복사 성공 경로: 메모, 강조 두 개, 가리기, 펜 획을 그린 1536 × 1024 사진에서 이미지 복사를 누르자 "복사했습니다."가 나왔다. 클립보드의 PNG는 1536 × 1024였고 다섯 표시가 모두 들어 있었으며 선택 테두리는 없었다. 미리보기의 클립보드에서 신규로 붙여 넣은 문서도 PNG 1536 × 1024, sRGB였다. 6000 × 4000 사진의 복사 결과도 클립보드에서 6000 × 4000이었다.
+- 복사 뒤 메모리: 새로 띄운 앱에서 6000 × 4000 JPEG를 끌어 놓아 열고 15초 간격으로 이미지 복사를 다섯 번 눌렀다. 앱 본체와 WebKit 화면 처리, 그래픽, 네트워크 프로세스의 `footprint` 값(macOS가 부과한 메모리)을 0.25초 간격으로 합산했다. [회차별 표본](0.2.0-review-fix-memory.csv)
+
+| 구간 | 메모리 |
+|---|---:|
+| 첫 화면 대기 | 98.7MiB |
+| 사진을 연 뒤 대기 | 130.7MiB |
+| 복사 중 최고값(5회) | 624.5, 731.7, 751.9, 746.5, 704.3MiB |
+| 복사 8~14초 뒤 대기(5회) | 261.4, 257.8, 257.6, 257.9, 266.1MiB |
+
+- 반복 복사로 대기 메모리가 늘지는 않았지만 사진만 연 상태보다 약 127~135MiB 높게 남았다. 늘어난 양은 대부분 WebKit 화면 처리 프로세스(71MiB에서 182MiB)다. 다섯 번째 값에는 결과 확인을 위해 클립보드를 읽은 시점이 겹친다.
+- 0.2.0 측정과 기기, 표본 간격, 사진 여는 방법, 클립보드 전송 포함 여부가 달라 수정 전 값과 직접 비교할 수 없다. 사용자 요청으로 측정을 중단해 문서를 닫은 뒤의 회수, 장시간 회수와 같은 기기의 수정 전 값은 측정하지 않았다.
+- 미검증: 링크 놓기, 교체 확인의 새 이미지 열기, 견본 팝오버의 칸을 끌어 고르는 색 변경, 메모 글자색, 파일 선택 창의 형식 조건, Windows 실행 전체(F5, Ctrl+R 포함).
+
 ## 0.2.0 실행 시간과 CPU, 메모리 사용량
 
 2026-11-23, Apple M4 Pro, 메모리 48GB, macOS 27.2.1. 위의 0.2.0 macOS 빌드로 첫 화면을 측정했다. 버튼 준비 시점과 편집 작업은 같은 배포용 화면 코드에 시간 기록과 자동 입력을 추가한 빌드에서 측정했다.
