@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Screen Note",
+  "version": "0.2.0",
+  "identifier": "dev.forme.screennote",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1421",
+    "beforeDevCommand": "corepack pnpm dev",
+    "beforeBuildCommand": "corepack pnpm build"
+  },
+  "app": {
+    "windows": [
+      { "title": "이미지 편집기", "width": 1060, "height": 760, "minWidth": 640, "minHeight": 440, "dragDropEnabled": false }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": ["icons/icon.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": { "signingIdentity": "-" }
+  }
+}

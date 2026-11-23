@@ -1,0 +1,11 @@
+[package]
+name = "screen-note"
+version = "0.2.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+tauri = { version = "2.12.5", features = [] }
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
