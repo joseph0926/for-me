@@ -1,5 +1,6 @@
-import { type Filters, type SortKey, SORT_OPTIONS, EMPTY_FILTERS, appliedChips } from "../search";
-import { ChevronDown, CloseIcon, SlidersIcon } from "./icons";
+import { type Filters, type SortKey, EMPTY_FILTERS, appliedChips } from "../search";
+import { CloseIcon, SlidersIcon } from "./icons";
+import { SortMenu } from "./SortMenu";
 
 /** 목록 위의 결과 수, 정렬, 필터 열기 버튼과 적용한 조건 칩 */
 export function ResultsToolbar({
@@ -41,21 +42,7 @@ export function ResultsToolbar({
               </span>
             )}
           </button>
-          <label className="relative">
-            <span className="sr-only">정렬</span>
-            <select
-              value={sort}
-              onChange={(event) => onSortChange(event.target.value as SortKey)}
-              className="h-9 appearance-none rounded-lg border border-line-strong bg-white pl-3 pr-8 text-[14px] font-medium hover:border-ink"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" />
-          </label>
+          <SortMenu value={sort} onChange={onSortChange} />
         </div>
       </div>
 

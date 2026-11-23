@@ -59,3 +59,18 @@ button:disabled {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+/* 상세에서 돌아온 숙소 카드: 옅은 면을 1초 둔 뒤 220ms에 걷는다(1000 / 1220 = 82%). */
+.just-viewed {
+  animation: just-viewed 1220ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes just-viewed {
+  0%,
+  82% {
+    background-color: var(--canvas);
+  }
+  100% {
+    background-color: transparent;
+  }
+}

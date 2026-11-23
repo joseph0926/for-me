@@ -32,6 +32,7 @@ export function ResultsPage({
   onToggleSave,
   onOpenStay,
   initialScrollY,
+  returnedFromId,
 }: {
   criteria: SearchCriteria;
   filters: Filters;
@@ -42,6 +43,8 @@ export function ResultsPage({
   onToggleSave: (id: string) => void;
   onOpenStay: (id: string) => void;
   initialScrollY: number;
+  /** 상세에서 막 돌아왔을 때 그 숙소 id. 그 카드를 잠깐 표시한다. */
+  returnedFromId: string | null;
 }) {
   const wideMap = useMediaQuery("(min-width: 1240px)");
   const phone = useMediaQuery("(max-width: 639px)");
@@ -132,6 +135,8 @@ export function ResultsPage({
                   stay={stay}
                   nights={nights}
                   highlighted={stay.id === activeId}
+                  pinned={stay.id === pinnedId}
+                  justViewed={stay.id === returnedFromId}
                   saved={savedIds.includes(stay.id)}
                   onOpen={() => onOpenStay(stay.id)}
                   onToggleSave={() => onToggleSave(stay.id)}
