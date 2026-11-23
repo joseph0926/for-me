@@ -27,7 +27,11 @@ import dev.forme.video.data.PlaybackRepository
 import dev.forme.video.data.VideoDocument
 import dev.forme.video.data.openVideoDocument
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -82,6 +86,7 @@ class VlcPlayback(
     internal val subtitles = SubtitleControls(context, uri, folder) { player }
     internal fun subtitleTimeMs(): Long = progress.pendingSeekMs ?: player?.time?.takeIf { it >= 0 } ?: state.positionMs
 
+    private val replayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var descriptor: ParcelFileDescriptor? = null
     private var layout: VLCVideoLayout? = null
     private var progress = PlaybackProgress(0)
@@ -308,8 +313,9 @@ class VlcPlayback(
         try {
             // fd 입력은 다시 열 때 현재 파일 오프셋을 시작점으로 삼는다.
             Os.lseek(checkNotNull(descriptor).fileDescriptor, 0, OsConstants.SEEK_SET)
-        } catch (_: ErrnoException) {
-            fail(R.string.file_unavailable)
+        } catch (error: ErrnoException) {
+            if (error.errno == OsConstants.ESPIPE) reopenForReplay(active)
+            else fail(R.string.file_unavailable)
             return
         }
         ended = false
@@ -319,6 +325,40 @@ class VlcPlayback(
         layout?.let(::attachPlayerViews)
         active.setEventListener { event -> if (!closed) handleEvent(event) }
         active.play()
+    }
+
+    /** 순서대로만 읽을 수 있는 연결은 같은 접근 권한으로 새 입력을 연다. */
+    private fun reopenForReplay(active: MediaPlayer) {
+        if (state.loading) return
+        state = state.copy(startup = PlaybackStartup.OpeningFile, seekable = false)
+        replayScope.launch {
+            var replacement: ParcelFileDescriptor? = null
+            try {
+                withContext(Dispatchers.IO) {
+                    replacement = context.contentResolver.openFileDescriptor(accessUri, "r") ?: throw IOException()
+                }
+                descriptor?.close()
+                descriptor = replacement
+                replacement = null
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: IOException) {
+                fail(R.string.file_unavailable)
+                return@launch
+            } catch (_: RuntimeException) {
+                fail(R.string.file_unavailable)
+                return@launch
+            } finally {
+                replacement?.close()
+            }
+            ended = false
+            seekIssuedFor = null
+            needsInitialStart = true
+            state = state.copy(ended = false, startup = PlaybackStartup.WaitingForPicture)
+            active.setEventListener { event -> if (!closed) handleEvent(event) }
+            layout?.let(::attachPlayerViews)
+            playIfRequested()
+        }
     }
 
     private fun restorePosition() {
@@ -423,6 +463,7 @@ class VlcPlayback(
     }
 
     private fun releasePlayer() {
+        replayScope.cancel()
         subtitles.close()
         handler.removeCallbacks(previewSeek)
         previewScheduled = false
