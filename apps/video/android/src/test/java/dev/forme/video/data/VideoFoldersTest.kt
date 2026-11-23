@@ -53,6 +53,22 @@ class VideoFoldersTest {
         assertNull(matchingSubtitle("Movie.mkv", listOf(file("Movie 2.srt"), file("Movie.srt.bak"), file("Other.srt"))))
     }
 
+    @Test fun numberedSiblingOwnsItsSubtitles() {
+        fun file(name: String) = FolderEntry(name, name, false)
+        val files = listOf("Movie.mkv", "Movie.Part2.mkv", "Movie.Part2.srt", "Movie.Part2.ko.srt").map(::file)
+        assertNull(matchingSubtitle("Movie.mkv", files))
+        assertEquals("Movie.Part2.srt", matchingSubtitle("Movie.Part2.mkv", files)?.title)
+    }
+
+    @Test fun optionalSubtitleSearchSurvivesFailedDirectoryQuery() {
+        val queue = FolderQueue(tree, "opaque:child", listOf(QueuedVideo("v2", "Clip.MKV")), 0)
+        provider.invalidListing = true
+        assertThrows(java.io.IOException::class.java) { readVideoFolder(context.contentResolver, tree, queue.directoryId) }
+        assertNull(findFolderSubtitle(context.contentResolver, queue))
+        provider.invalidListing = false
+        assertEquals("Clip.smi", findFolderSubtitle(context.contentResolver, queue)?.name)
+    }
+
     @Test fun findsTheSubtitleNextToTheVideoInTheSameFolder() {
         val queue = folderQueue(tree, "opaque:child", listOf(FolderEntry("v2", "Clip.MKV", isFolder = false)), "v2")
         val found = checkNotNull(findFolderSubtitle(context.contentResolver, queue))
@@ -104,6 +120,7 @@ class VideoFoldersTest {
 
 private class FolderProvider : ContentProvider() {
     var denied = false
+    var invalidListing = false
     var exists = true
     lateinit var lastQuery: Uri
     override fun onCreate() = true
@@ -114,6 +131,7 @@ private class FolderProvider : ContentProvider() {
         val cursor = MatrixCursor(checkNotNull(projection))
         if (!exists) return cursor
         if (uri.lastPathSegment == "children") {
+            if (invalidListing) throw IllegalStateException("Folder listing unavailable")
             cursor.addRow(arrayOf("v1", "stream", "video/mp4"))
             cursor.addRow(arrayOf("s1", "자막.srt", "application/octet-stream"))
             cursor.addRow(arrayOf("s2", "Clip.smi", "application/smil"))

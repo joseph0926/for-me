@@ -75,6 +75,21 @@ class TextSubtitlesTest {
         assertEquals("마지막 <끝>", subtitles.textAt(4_000))
     }
 
+    @Test fun declaredLanguageWinsEvenWithOpaqueClassNames() {
+        val input = "<SAMI><HEAD><STYLE>.L1 { lang: en-US; } .L2 { lang: ko-KR; }</STYLE></HEAD>" +
+            "<BODY><SYNC Start=0><P Class=L1>Hello<P Class=L2>안녕</BODY></SAMI>"
+        val subtitles = TextSubtitles.read(input.byteInputStream())
+        assertEquals("안녕", subtitles.textAt(0))
+        assertEquals(listOf("영어", "한국어"), subtitles.languages.map { it.label })
+        assertEquals("Hello", subtitles.textAt(0, subtitles.languages.first().id))
+    }
+
+    @Test fun formatMarkersInSrtDialogueArePreserved() {
+        val text = "[Events]\n<SAMI>를 입력하세요"
+        val input = "1\n00:00:00,000 --> 00:00:01,000\n$text"
+        assertEquals(text, TextSubtitles.read(input.byteInputStream()).textAt(500))
+    }
+
     @Test fun samiWithoutKoreanUsesTheFirstLanguage() {
         val input = "<SAMI><BODY><SYNC Start=0><P Class=ENCC>Hi<P Class=JPCC>やあ" +
             "<SYNC Start=1000><P Class=ENCC>&nbsp;<P Class=JPCC>&nbsp;</BODY></SAMI>"
