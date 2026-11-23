@@ -1,0 +1,127 @@
+# 담음 (갤러리 앱(PC) 레퍼런스 구현)
+
+- 주제 id: `2026-11-23-gallery`
+- 플랫폼: PC 데스크톱 앱. 주제 형식에 데스크톱 값이 없어 `web`으로 두고 휴대폰 틀 없이 창 전체를 씁니다. 휴대폰 너비에서는 목록과 정보 패널을 아래에서 올라오는 시트로 엽니다.
+- 주제: 사용자가 정했습니다("갤러리 앱 (pc용, 이미지/동영상/gif)"). 2026-11-23에 사용자가 네 주제를 순서대로 요청했고 그중 첫째입니다.
+- 선택: r1, r2, r3, r5 조합. 사용자가 아니라 AI가 골랐습니다.
+- 제품 이름 "담음", 파일 이름, 폴더, 찍은 날, 태그와 별점은 모두 가상입니다.
+
+## 고른 이유
+
+PC 갤러리의 핵심은 많은 파일을 훑는 격자, 고른 파일의 정보, 크게 보기 세 화면이고, 이미지와 동영상, GIF를 한곳에서 다룬다는 점이 주제의 요구입니다. 형식별 정보 패널은 Eagle(r1), 날짜 묶음 격자와 크게 보기 막대는 Microsoft 사진(r2), 격자 위 거르기 줄은 Picsee(r3), 오른쪽 클릭 메뉴와 동영상 조작은 Pixea(r5)가 실제 제품 화면으로 가장 분명히 보여 줘서 이 넷을 조합했습니다.
+
+- 뺀 후보: Iris(r4)의 연도 트리와 목록 보기는 좋지만 얼굴 인식과 지도처럼 외부 데이터에 기대는 부분이 커서 r2의 날짜 묶음으로 대신했습니다. Quik(r6)의 날짜 머리글과 재생 화면은 r2, r5와 역할이 겹칩니다. Media Library Panel(r7)의 끌어 놓기는 조합 한도(4개) 때문에 가져오지 않았고, 파일 놓기 자리는 이 앱에서 정했습니다. Photo Gallery(r8)는 카드 목록뿐이라 정보가 적습니다.
+
+## 레퍼런스별로 가져온 부분
+
+- **r1 Eagle, 3단 구성과 정보 패널:** 왼쪽 목록, 가운데 격자, 오른쪽 정보 패널의 3단. 미리보기 왼쪽 위 형식 배지(JPG, GIF, WEBM), 그 아래 대표 색 견본, 이름과 메모 입력칸, 태그, 별점.
+- **r2 Microsoft 사진, 격자와 크게 보기:** 달마다 머리글로 묶고 행 높이를 맞춘 격자, 제목 아래 사진과 동영상 개수, 오른쪽 연도 막대, 여러 장 선택의 동그라미 체크. 크게 보기의 위쪽 파일 이름과 동작, 아래 필름 띠, 크기와 용량, 맞춤 단추, 배율 선택, 확대 막대.
+- **r3 Picsee, 거르기 줄:** 격자 위 한 줄의 형식, 색, 태그, 별점 거르기와 색 견본 판. 보관함과 폴더 줄 끝의 개수.
+- **r5 Pixea, 오른쪽 클릭 메뉴와 동영상:** 열기, 정렬 하위 메뉴, 색 태그 일곱 개, 별점, 휴지통으로 이동 순서의 메뉴. 동영상 아래쪽 반투명 조작 막대(음량, 10초 뒤로, 재생, 10초 앞으로, 반복, 전체 화면)와 화면 왼쪽, 가운데, 오른쪽을 두 번 눌러 10초 뒤로, 전체 화면, 10초 앞으로.
+
+## 가져오지 않은 부분
+
+- 제품 이름, 로고, 브랜드 색(Eagle의 파랑, Microsoft의 파랑, Iris의 보라)과 서체. 바탕은 푸른 기가 살짝 도는 회색, 강조는 본문색, 글꼴은 Pretendard Variable입니다.
+- r1의 원본 주소 칸과 AI 검색, r2의 OneDrive와 iCloud 연결, 추억, 편집, r3의 비슷한 이미지 찾기와 주석 도구, r5의 편집과 다른 앱으로 열기.
+- 실제 폴더 감시, 파일 저장, 원본 삭제. 모든 변경은 브라우저 메모리에만 있고 새로 고침하면 처음 상태로 돌아갑니다.
+- 레퍼런스에 없던 부분: 파일 끌어 놓기와 가져오기, 휴지통의 복원과 영구 삭제, 일괄 작업 막대, 태그 옆 건수는 이 앱에서 정했습니다.
+
+## 동작
+
+- 격자: 썸네일 크기 막대로 행 높이를 110~320px 사이에서 바꿉니다. 찍은 날순일 때만 달마다 묶고, 다른 정렬은 한 묶음입니다. 휴대폰 너비에서는 연도 막대를 빼고 행 높이를 너비에 맞춰 낮춥니다.
+- 고르기: 누르면 하나, Ctrl을 누른 채 누르면 더하거나 빼기, Shift를 누른 채 누르면 사이를 함께 고릅니다. 방향키로 옮기고(위아래는 화면에서 바로 위아래 줄의 가장 가까운 칸), Shift와 함께 누르면 넓힙니다. Ctrl+A 모두, Esc 해제, Delete 휴지통, F 즐겨찾기, 0~5 별점, I 정보 패널, Enter나 Space 크게 보기. 둘 이상 고르면 격자 아래에 일괄 작업 막대가 올라옵니다. 마우스가 없는 터치 화면에서는 한 번 눌러 크게 보고, 고르기는 동그라미로 합니다.
+- 거르기: 형식(전체, 이미지, 동영상, GIF), 색, 태그(고른 태그를 모두 가진 항목, 옆에 남는 건수), 별점 이상. 검색칸은 이름, 태그, 메모를 찾습니다.
+- 색: 썸네일을 48px로 줄여 많이 나온 색부터 서로 다른 색을 6개까지 뽑습니다. 무채색 견본은 주된 색 3개 중 밝기가 비슷한 무채색과, 유채색 견본은 색상각 18도와 밝기 0.25 안의 유채색과 맞춥니다. 화면에서 작은 물체의 색(예: 산딸기의 빨강)은 대표 색에 잡히지 않을 수 있습니다.
+- 정보 패널: 이름은 Enter나 바깥 누르기로 저장하고 Esc로 되돌립니다. 빈 이름은 저장하지 않습니다. 대표 색을 누르면 그 색으로 거릅니다. 여럿을 고르면 별점, 색 태그, 태그를 함께 바꿉니다.
+- 크게 보기: 맞춤 배율은 원본보다 키우지 않습니다. 휠, +와 -, 0(맞춤), 1(100%), 두 번 누르기(맞춤과 100% 전환)로 배율을 바꾸고, 화면보다 크면 끌어서 옮깁니다. ←와 →로 이동하고 필름 띠를 눌러 건너뜁니다. 지우면 같은 자리의 다음 항목으로 넘어갑니다.
+- 동영상: 처음에는 소리를 끈 채 자동 재생합니다. 재생 중 2초 동안 손대지 않으면 조작 막대를 숨기고, 멈춘 동안은 숨기지 않습니다. Space 재생과 멈춤, J와 L 10초 이동, M 소리.
+- 가져오기: 가져오기 단추나 창 위에 파일을 끌어 놓습니다. 이미지와 동영상만 받고 200MB를 넘거나 열 수 없는 파일은 이유와 함께 알립니다. 파일마다 따로 판정해 하나가 실패해도 나머지는 들어옵니다. 들어온 파일은 "가져온 항목" 폴더에 모이고, 원본 파일은 바꾸지 않습니다.
+- 휴지통: 휴지통으로 옮기면 알림의 되돌리기로 바로 돌릴 수 있습니다. 휴지통의 영구 삭제와 "휴지통 비우기"는 같은 자리를 3초 안에 한 번 더 눌러야 실행합니다.
+
+## AI 피드백 한 번에서 고친 것
+
+- 한 장만 골라도 모든 칸에 선택 동그라미가 떠서 격자가 어수선했습니다. 둘 이상 고른 동안에만 모든 칸에 띄웁니다.
+- 맞춤 72%에서 +를 누르면 75%로 바뀌어 커진 것이 보이지 않았습니다. 10% 넘게 달라지는 단계로 갑니다.
+- 크게 보기에서 동영상이 원래 크기(640px)로 작게 나왔습니다. 화면에 맞춰 키웁니다.
+- 색 거르기가 RGB 거리로 판정해 회색과 그늘이 초록이나 검정에 모두 걸렸습니다(초록 견본에 44개 중 35개). 색상각과 밝기로 판정합니다.
+- 휴대폰 너비에서 연도 막대가 44px를 차지하고 행이 높아 한 줄에 한 장만 남았습니다. 연도 막대를 빼고 행 높이를 낮춥니다. 터치 화면에서는 두 번 눌러야 열리던 것을 한 번으로 바꿨습니다.
+- 휴대폰 너비의 크게 보기에서 정보 단추가 아무것도 열지 않았습니다. 정보 시트를 크게 보기 위로 엽니다.
+- 화면을 그리지 않는 동안(숨은 창)에는 격자 너비 알림이 오지 않아 칸이 하나도 그려지지 않았습니다. 첫 렌더에서 너비를 바로 읽습니다.
+
+## tastepin으로 다듬은 것
+
+- 바탕 #f3f5f8와 #101318의 푸른 회색, 강조는 본문색(선택 테두리, 밑줄, 체크). 글자는 14px 이상, 제목 굵기 650, 모서리 6px.
+- 묶음은 테두리 없이 여백과 굵은 제목으로 나눕니다(머리줄, 목록, 정보 패널의 선 제거).
+- 형식 고르기를 밑줄이 미끄러지는 단일 선택으로, 메뉴를 버튼 쪽에서 0.96배로 펼치고(140ms) 가리킨 항목을 옅은 면이 따라가게(30px 항목) 바꿨습니다.
+- 정렬은 기준마다 한 방향(찍은 날, 크기, 별점은 큰 쪽이 위, 이름은 가나다순)입니다.
+- 영구 삭제를 확인 대화상자 대신 제자리 두 번 누르기(3초, 빨간 면)로, 알림을 오른쪽 아래 쌓기(3개, 300ms)로, 휴대폰 서랍을 아래 시트(300ms 곡선, 뒤 화면 0.97배)로 바꿨습니다.
+- 둘 이상 고르면 아래에서 올라오는 일괄 작업 막대와 세로로 넘기는 개수, 정보 패널 사용법 문구와 거르기 안내문 제거.
+- 따르지 않은 값: 필터의 "필터 버튼 하나와 적용 버튼"은 고를 때 정한 r3의 거르기 줄 구조를 지키느라 따르지 않았습니다. 재생 조작의 "가운데 큰 버튼"도 r5의 아래쪽 조작 막대 구조를 지키느라 따르지 않고, 숨김 시간(2초)과 흐려지는 길이(200ms)만 맞췄습니다. 미리보기 위 형식 배지는 r1의 구조라 면을 남겼습니다.
+
+## 상태로 가는 방법
+
+새로 고침 직후, 1440px 너비 기준입니다.
+
+- r1 정보 패널: 첫 묶음의 둘째 사진(야자수 해변) 누르기. 형식 배지, 대표 색, 태그, 별점, 정보가 오른쪽에 나옴
+- r2 여러 장 선택과 일괄 막대: 첫 사진을 누른 뒤 Shift를 누른 채 넷째 사진 누르기. 동그라미가 모든 칸에 뜨고 격자 아래에 "4개 선택" 막대
+- r2 연도 막대: 격자 오른쪽 위 "2025" 누르기, 2025년 묶음으로 미끄러져 이동
+- r2 크게 보기와 배율: 아무 사진이나 두 번 누르기, 1을 눌러 100%, 끌어서 옮기기, 아래 필름 띠
+- r3 거르기 줄: 격자 위 "색"에서 파란 견본, 바다 사진만 남음. "모두 지우기"로 되돌림
+- r3 태그 건수: "태그"를 열고 "바다" 체크, 다른 태그 옆 숫자가 줄고 0인 태그는 흐려짐
+- r5 오른쪽 클릭 메뉴: 아무 칸에서 오른쪽 클릭, "정렬 기준" 위에 올려 하위 메뉴
+- r5 동영상: 11월 묶음의 "0:08" 칸을 두 번 누르기, 화면 오른쪽 3분의 1을 두 번 눌러 10초 앞으로, 2초 기다리면 조작 막대가 숨음
+- 가져오기: 이미지 파일을 창에 끌어 오면 점선 테두리의 놓을 자리가 덮이고, 놓으면 "가져온 항목" 폴더로 이동
+- 영구 삭제: 칸을 휴지통으로 옮기고 왼쪽 "휴지통", 오른쪽 위 "휴지통 비우기"를 눌러 "정말 비우기"로 바뀐 뒤 한 번 더
+
+## 실행
+
+`apps/today-ref`에서:
+
+```sh
+pnpm --filter work-2026-11-23-gallery dev
+```
+
+## 사진과 영상 출처
+
+- 사진 36장은 [Unsplash 라이선스](https://unsplash.com/license) 사진을 [Lorem Picsum](https://picsum.photos)에서 2026-11-23에 정한 크기(1200x800, 800x1200, 1000x1000, 1280x720 중 하나)로 잘라 받았습니다. 사진 속 장소와 이름은 관계없습니다.
+- 동영상 5개(`public/media/videos`)는 위 사진을 천천히 키우며 옆으로 밀고 넘기는 장면을 로컬 Chrome의 캔버스로 녹화한 WebM입니다(640x360 또는 360x640, 6~12초). 위키미디어 공용의 영상을 먼저 시도했으나 변환본이 계속 429 응답이라 쓰지 않았습니다. 브라우저 녹화본이라 파일에 길이 정보가 없어, 재생기는 길이가 Infinity로 나오면 보관함에 적힌 길이를 씁니다.
+- GIF 3개(`public/media/gifs`)는 위 사진 세 장을 겹쳐 넘기는 것, 한 장을 당겼다 놓는 것, 사진 없이 점이 도는 것을 Pillow로 만들었습니다.
+
+| 파일 | 작가 | 원본 |
+|---|---|---|
+| `p102.jpg` | Ben Moore | https://unsplash.com/photos/pJILiyPdrXI |
+| `p108.jpg` | Florian Klauer | https://unsplash.com/photos/t1mqA3V3-7g |
+| `p113.jpg` | Zugr | https://unsplash.com/photos/yZf1quatKCA |
+| `p118.jpg` | Rick Waalders | https://unsplash.com/photos/d-Cr8MEW5Uc |
+| `p123.jpg` | Mark Doda | https://unsplash.com/photos/tS9hJOnmKK8 |
+| `p128.jpg` | Matteo Minelli | https://unsplash.com/photos/hlnucYOsL-c |
+| `p133.jpg` | Dietmar Becker | https://unsplash.com/photos/8Zt0xOOK4nI |
+| `p139.jpg` | Steve Richey | https://unsplash.com/photos/M-1MRfncLk0 |
+| `p144.jpg` | Mouly Kumar | https://unsplash.com/photos/TuOiIpkIea8 |
+| `p151.jpg` | Edoardo Loru | https://unsplash.com/photos/xPfj_Kdcal4 |
+| `p156.jpg` | Christopher Sardegna | https://unsplash.com/photos/iRyGmA_no2Q |
+| `p161.jpg` | Chloe Benko-Prieur | https://unsplash.com/photos/ti4uz330CwU |
+| `p166.jpg` | Romain Briaux | https://unsplash.com/photos/yD3PXDV7Sjc |
+| `p171.jpg` | Riley Briggs | https://unsplash.com/photos/cSe3oKQ03OQ |
+| `p176.jpg` | Good Free Photos | https://unsplash.com/photos/WO4bxwzHRe8 |
+| `p181.jpg` | Nick Turner | https://unsplash.com/photos/0EjvnhOkPLM |
+| `p186.jpg` | Simon Pape | https://unsplash.com/photos/2kc8bigeqEI |
+| `p191.jpg` | Alex Talmon | https://unsplash.com/photos/6iat9p85VnQ |
+| `p196.jpg` | Dyaa Eldin Moustafa | https://unsplash.com/photos/mR_HR8NZwg8 |
+| `p201.jpg` | Craig Garner | https://unsplash.com/photos/YoadQb46v6k |
+| `p208.jpg` | Martin Wessely | https://unsplash.com/photos/NYxxuBSQzp4 |
+| `p213.jpg` | Kelly Sikkema | https://unsplash.com/photos/X7dy114KWs4 |
+| `p218.jpg` | Monika Majkowska | https://unsplash.com/photos/Nq8LdWC7HnM |
+| `p223.jpg` | Maria Carrasco | https://unsplash.com/photos/vwY2D2Wr4ME |
+| `p230.jpg` | Wes Carr | https://unsplash.com/photos/rFKUFzjPYiQ |
+| `p235.jpg` | Paul E. Harrer | https://unsplash.com/photos/TI-B-TNYJMU |
+| `p240.jpg` | Elisabetta Foco | https://unsplash.com/photos/dFkCXUMB4r4 |
+| `p247.jpg` | Georgia Dixon | https://unsplash.com/photos/wuHPFRWtDLI |
+| `p252.jpg` | Florian Klauer | https://unsplash.com/photos/-K6JMRMj4x4 |
+| `p257.jpg` | Emanuele Pinna | https://unsplash.com/photos/3EYK2njhLxc |
+| `p263.jpg` | Kristian Karlsson | https://unsplash.com/photos/NUBjCmEgbHM |
+| `p268.jpg` | davide ragusa | https://unsplash.com/photos/vc3ZOCf5BN8 |
+| `p273.jpg` | Wim Peters | https://unsplash.com/photos/cyi4rNpSxBE |
+| `p278.jpg` | Taylor Leopold | https://unsplash.com/photos/6QQqqvq4R9A |
+| `p283.jpg` | Wojtek Witkowski | https://unsplash.com/photos/GtxZbYMCiPY |
+| `p290.jpg` | Aleksandar Vacić | https://unsplash.com/photos/nAZOGbSWK9o |

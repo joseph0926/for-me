@@ -1,0 +1,183 @@
+{
+  "id": "2026-11-23-gallery",
+  "date": "2026-11-23",
+  "title": "갤러리 앱(PC)",
+  "platform": "web",
+  "brief": "PC에 모아 둔 이미지, 동영상, GIF를 한곳에서 훑고 크게 보는 데스크톱 갤러리 앱입니다. 창 전체를 쓰는 PC 앱이라 휴대폰 틀 없이 화면 전체로 그립니다. 왼쪽 폴더와 보관함 목록, 날짜로 묶은 격자와 썸네일 크기 조절, 형식(이미지, 동영상, GIF)과 색, 태그, 별점 거르기와 정렬, 여러 장 선택, 오른쪽 정보 패널(형식 배지, 색 견본, 크기와 날짜, 태그, 별점), 크게 보기의 확대와 동영상 재생 조작, GIF 재생, 아래 필름 띠와 키보드 이동까지 핵심 화면을 모읍니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "Eagle",
+      "source": "공식 사이트",
+      "title": "폴더 트리, 벽돌 격자와 형식별 정보 패널",
+      "url": "https://eagle.cool/",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r1-1.webp",
+        "r1-2.webp",
+        "r1-3.webp"
+      ],
+      "points": [
+        "왼쪽 폴더 트리, 가운데 세로 길이가 서로 다른 4열 벽돌 격자, 오른쪽 정보 패널의 3단 구성이고 고른 사진은 파란 테두리로 표시합니다.",
+        "오른쪽 패널은 맨 위 미리보기의 왼쪽 위에 JPG, GIF, MP4 같은 형식 배지를 붙이고 그 아래 색 견본 8~10개를 알약 안에 줄 세웁니다.",
+        "견본 아래로 이름, 메모, 원본 주소 입력칸, 태그 칩, 별점 다섯 개가 이어집니다.",
+        "GIF와 MP4는 가운데 큰 화면으로 띄우고 아래에 지금 프레임의 작은 미리보기 썸네일을 겹쳐 띄웁니다. 공식 사이트 그림이라 패널 글자 일부는 흐리게 지워져 있습니다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "Microsoft 사진",
+      "source": "Microsoft Store",
+      "title": "날짜 묶음 격자, 여러 장 비교와 단일 보기",
+      "url": "https://apps.microsoft.com/detail/9wzdncrfjbh4?hl=en-us&gl=US",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r2-1.png",
+        "r2-2.png",
+        "r2-3.png"
+      ],
+      "points": [
+        "'All Photos' 제목 아래 '40639 photos, 2397 videos' 개수, 날짜 범위 머리글, 행 높이를 맞추고 너비를 원본 비율대로 바꾸는 격자를 둡니다. 썸네일 왼쪽 위에 출처와 동영상 아이콘을 작게 얹습니다.",
+        "격자 오른쪽 끝에 2023에서 2018까지 연도 눈금과 'Oct 2022' 현재 위치 표시가 있는 세로 시간 막대를 둡니다.",
+        "여러 장을 고르면 '4 items selected' 화면에서 고른 사진을 크게 나란히 보여 주고, 아래 필름 띠의 썸네일마다 체크 상자를 둡니다.",
+        "단일 보기는 위에 Edit, 회전, 삭제, 공유 버튼과 가운데 파일 이름, 아래에 필름 띠 단추, 즐겨찾기, 정보, '1920 x 1080px'와 용량, 오른쪽 맞춤 단추, 75% 배율 선택과 확대 막대를 둡니다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "Picsee",
+      "source": "Mac App Store",
+      "title": "개수가 붙은 보관함, 색 거르기와 메타 정보 패널",
+      "url": "https://apps.apple.com/us/app/picsee-photo-browse-manage/id1454805783",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r3-1.jpg",
+        "r3-2.jpg",
+        "r3-3.jpg"
+      ],
+      "points": [
+        "왼쪽 목록은 전체, 미분류, 태그 없음 같은 보관함과 폴더마다 오른쪽 끝에 7,751, 2,046 같은 개수를 붙입니다.",
+        "격자 위 한 줄에 색, 태그, 모양, 형식, 수정 시간, 크기, 평점, 메모 거르기 단추를 늘어놓고, 색 단추를 누르면 색 판과 HEX, RGB 입력, 견본 16개가 뜹니다.",
+        "오른쪽 패널은 미리보기 옆 세로 색 띠, 이름, 메모와 태그 입력, 별점, 아래 크기 1556 x 2444, 형식, 용량, 만든 날과 고친 날 표를 둡니다.",
+        "GIF 썸네일은 왼쪽 위에 작은 'gif' 글자를 얹어 구분합니다."
+      ]
+    },
+    {
+      "id": "r4",
+      "kind": "product",
+      "product": "Iris",
+      "source": "Mac App Store",
+      "title": "연도별 날짜 목록, 격자와 목록 보기 전환",
+      "url": "https://apps.apple.com/us/app/iris-photo-video-library/id6761598836",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r4-1.jpg",
+        "r4-2.jpg",
+        "r4-3.jpg"
+      ],
+      "points": [
+        "왼쪽은 LIBRARY(All Items, Images, Videos, Screenshots, Favorites), DATES(연대, 연도, 월로 접히는 트리), PEOPLE 순서로 묶고 고른 항목은 보라 칠로 표시합니다.",
+        "위쪽 막대에 뒤로와 앞으로, 'All Items 300 items' 이름표, 가운데 Grid, Map, List 전환, 오른쪽 검색칸을 둡니다.",
+        "List 보기는 썸네일, 찍은 날, 파일 이름, 파일 크기, 얼굴 수 열의 표이고 고른 행을 보라로 칠합니다.",
+        "오른쪽 정보 패널은 WHEN(날짜, 요일, '7 months ago', 같은 날 항목 수), WHERE 지도, PEOPLE 순으로 쌓고 위에 정보 종류 아이콘 탭을 둡니다."
+      ]
+    },
+    {
+      "id": "r5",
+      "kind": "product",
+      "product": "Pixea",
+      "source": "Mac App Store",
+      "title": "빈틈없는 정사각 격자, 오른쪽 클릭 정렬 메뉴와 동영상 조작",
+      "url": "https://apps.apple.com/us/app/pixea/id1507782672",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r5-1.jpg",
+        "r5-2.jpg"
+      ],
+      "points": [
+        "간격 없이 붙인 10열 정사각 썸네일 격자이고 오른쪽 아래에 썸네일 크기 막대를 둡니다.",
+        "오른쪽 클릭 메뉴는 Open, Sort by, Filter, 색 태그 7개, 별점, Edit with, Move to Trash, Show in Finder 순서이고 Sort by 하위 메뉴에서 Name, File Type, File Size, 날짜 셋, Rating, Shuffle을 고릅니다.",
+        "동영상은 화면 아래쪽에 반투명 조작 막대(음량, 뒤로, 재생, 앞으로, 반복, 자막, 전체 화면)와 00:01, -00:03 시간을 띄웁니다.",
+        "화면 왼쪽, 가운데, 오른쪽을 두 번 누르면 10초 뒤로, 전체 화면, 10초 앞으로라는 안내가 붙어 있고 맨 아래에 필름 띠가 있습니다."
+      ]
+    },
+    {
+      "id": "r6",
+      "kind": "gallery",
+      "product": "GoPro Quik for Desktop",
+      "source": "Dribbble",
+      "title": "날짜 머리글로 묶은 동영상과 사진 격자, 재생 화면",
+      "url": "https://dribbble.com/shots/2566794-Quik-for-Desktop",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r6-1.png",
+        "r6-2.png"
+      ],
+      "points": [
+        "어두운 창 왼쪽에 MEDIA, RECENTLY ADDED, EDITS와 구분선 아래 카드와 세션 목록, 오른쪽에 'ALL MEDIA' 제목과 'Filter By: ALL', 썸네일 크기 막대를 둡니다.",
+        "격자는 'TUESDAY, FEBRUARY 4, 2016' 같은 날짜 머리글로 끊고, 썸네일 왼쪽 아래에 동영상 아이콘과 2:49 같은 길이, 사진 아이콘을 얹습니다.",
+        "격자 오른쪽 아래에 맨 위로 가는 화살표 단추를 띄웁니다.",
+        "재생 화면은 'MEDIA LIBRARY' 뒤로 단추, 양옆 이전과 다음 화살표, 영상 아래 재생 막대와 음량, 전체 화면 단추를 둡니다."
+      ]
+    },
+    {
+      "id": "r7",
+      "kind": "gallery",
+      "product": "Media Library Panel",
+      "source": "Dribbble",
+      "title": "끌어 놓기 칸과 폴더 트리의 오른쪽 클릭 메뉴",
+      "url": "https://dribbble.com/shots/23332542-Media-Library-Panel",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r7-1.png"
+      ],
+      "points": [
+        "빈 폴더는 점선 상자 가운데 아래 화살표 원과 'Drop items here'를 두고, 끌고 오는 파일은 빨간 개수 배지 2와 파일 이름 이름표 묶음으로 보여 줍니다.",
+        "폴더 트리는 접기 삼각형과 들여쓰기, 줄 오른쪽 끝에 색 태그 점이나 별을 둡니다.",
+        "오른쪽 클릭 메뉴는 Rename, Favorite, Move to folder, Add to project, More info, Delete와 구분선 아래 'Color tag' 색 점 일곱 개입니다."
+      ]
+    },
+    {
+      "id": "r8",
+      "kind": "gallery",
+      "product": "Photo Gallery",
+      "source": "Dribbble",
+      "title": "어두운 갤러리 목록 카드",
+      "url": "https://dribbble.com/shots/18740552-Photo-Gallery",
+      "checkedOn": "2026-11-23",
+      "captures": [
+        "r8-1.png"
+      ],
+      "points": [
+        "어두운 창 왼쪽 좁은 막대에 파랗게 칠한 현재 메뉴와 맨 아래 사용자 이름, 오른쪽에 'Galleries' 제목과 검색 아이콘을 둡니다.",
+        "모서리를 둥글린 정사각 카드 3열 격자이고 마지막 칸은 비어 있는 추가 자리입니다."
+      ]
+    }
+  ],
+  "selection": {
+    "mode": "combine",
+    "decidedOn": "2026-11-23",
+    "items": [
+      {
+        "ref": "r1",
+        "part": "왼쪽 폴더 목록, 가운데 격자, 오른쪽 정보 패널의 3단 구성과 정보 패널의 내용(형식 배지가 붙은 미리보기, 색 견본, 이름, 메모, 태그, 별점)"
+      },
+      {
+        "ref": "r2",
+        "part": "날짜 머리글로 묶고 행 높이를 맞춘 격자, 제목 아래 사진과 동영상 개수, 오른쪽 연도 시간 막대, 여러 장 선택, 단일 보기의 아래 막대(크기, 배율, 확대 막대)와 필름 띠"
+      },
+      {
+        "ref": "r3",
+        "part": "격자 위의 거르기 줄(형식, 색, 태그, 별점)과 색 견본 선택, 보관함과 폴더마다 붙은 개수"
+      },
+      {
+        "ref": "r5",
+        "part": "오른쪽 클릭 메뉴(정렬 하위 메뉴, 색 태그, 별점, 휴지통으로 이동)와 동영상의 반투명 조작 막대, 화면 양옆을 두 번 눌러 10초 이동"
+      }
+    ]
+  },
+  "status": "done"
+}
