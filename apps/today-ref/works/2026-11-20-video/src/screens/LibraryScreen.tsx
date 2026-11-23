@@ -37,15 +37,15 @@ export function LibraryScreen({
           <button
             type="button"
             onClick={() => onOpenFolder(parent.id)}
-            className="flex max-w-[38%] min-w-0 items-center text-[15px] text-accent"
+            aria-label="상위 폴더로"
+            className="grid size-10 shrink-0 place-items-center"
           >
-            <Icon name="back" size={22} className="shrink-0" />
-            <span className="truncate">{parent.name}</span>
+            <Icon name="back" size={22} />
           </button>
         ) : (
           <span className="w-2" />
         )}
-        <h1 className="min-w-0 flex-1 truncate text-[17px] font-bold">{folder.id === ROOT_FOLDER_ID ? "보관함" : folder.name}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-[17px] font-bold">{folder.name}</h1>
         <span className="tabular shrink-0 pr-2 text-[12px] text-muted">영상 {countVideos(folder.id)}개</span>
       </header>
 

@@ -54,7 +54,7 @@ export const TODAY = "2026-11-20";
 export const FINISHED_MARGIN_SEC = 20;
 
 export const folders: Folder[] = [
-  { id: ROOT_FOLDER_ID, name: "내 영상", parentId: null },
+  { id: ROOT_FOLDER_ID, name: "보관함", parentId: null },
   { id: "drama", name: "드라마", parentId: ROOT_FOLDER_ID },
   { id: "island", name: "작은 섬의 여름 시즌 1", parentId: "drama" },
   { id: "docs", name: "다큐멘터리", parentId: ROOT_FOLDER_ID },
