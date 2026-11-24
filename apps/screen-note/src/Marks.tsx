@@ -45,11 +45,10 @@ export function MarkOutline({ mark, scale, view }: { mark: Mark; scale: number; 
   const bounds = outlineBounds(mark, scale);
   return (
     <Group listening={false}>
-      <Rect {...bounds} stroke="white" strokeWidth={2 / scale} />
-      <Rect {...bounds} stroke="#20242a" strokeWidth={1 / scale} dash={[4 / scale, 4 / scale]} />
+      <Rect {...bounds} stroke="#3575cb" strokeWidth={1 / scale} />
       {mark.tool !== "pen" && handles(mark, scale, view).map(({ corner, x, y }) => (
         <Rect key={corner.id} x={x - 4 / scale} y={y - 4 / scale} width={8 / scale} height={8 / scale}
-          fill="white" stroke="#20242a" strokeWidth={1 / scale} cornerRadius={1 / scale} />
+          fill="white" stroke="#3575cb" strokeWidth={1 / scale} />
       ))}
     </Group>
   );

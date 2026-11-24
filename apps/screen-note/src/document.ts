@@ -10,6 +10,7 @@ export type Stroke = PenStyle & { tool: "pen"; area: Region; points: number[] };
 export type Mark = Memo | Stroke | { tool: "cover" | "highlight"; area: Region; strokeWidth: number; color: string };
 export type Edit =
   | { tool: "mark"; id: number; mark: Mark; recolored?: boolean }
+  | { tool: "remove"; id: number }
   | { tool: "crop"; area: Region };
 
 export const toolNames = {
@@ -51,6 +52,7 @@ export function currentMarks(edits: Edit[]): Map<number, Mark> {
   const marks = new Map<number, Mark>();
   for (const edit of edits) {
     if (edit.tool === "mark") marks.set(edit.id, edit.mark);
+    if (edit.tool === "remove") marks.delete(edit.id);
   }
   return marks;
 }

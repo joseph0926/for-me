@@ -13,7 +13,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 export function outlineBounds(mark: Mark, scale: number): Region {
   const stroke = mark.tool === "highlight" || mark.tool === "pen" ? mark.strokeWidth : 0;
-  const inset = stroke / 2 + 3 / scale;
+  const inset = stroke / 2 + 4 / scale;
   return {
     x: mark.area.x - inset, y: mark.area.y - inset,
     width: mark.area.width + 2 * inset, height: mark.area.height + 2 * inset,

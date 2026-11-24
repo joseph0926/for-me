@@ -9,10 +9,11 @@ import type { CopyResult } from "./copy";
 import { currentMarks, hitMark, imagePoint, moveMark, recolorMark, selection, toolNames, visibleRegion } from "./document";
 import type { BoxTool, Edit, Mark, Memo, PenStyle, Point, Region, Tool } from "./document";
 import { layoutMemo, MarkOutline, MarkShape, PenPath } from "./Marks";
-import { MarkSettings, PenSettings } from "./MarkSettings";
+import { MarkColors, MarkSettings, PenSettings } from "./MarkSettings";
+import { SelectionBar } from "./SelectionBar";
 
 import { appendSamples, finishStroke } from "./pen";
-import { hitHandle, resizeMark } from "./resize";
+import { hitHandle, outlineBounds, resizeMark } from "./resize";
 import type { Corner, Resizable } from "./resize";
 
 type Props = {
@@ -82,6 +83,7 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
   const boxPreview = drag?.tool === "box" ? selection(drag.start, drag.end) : null;
   const transformed = transformedMark(drag, view);
   const outline = transformed ?? selected;
+  const bounds = outline && scale > 0 ? outlineBounds(outline, scale) : null;
 
   useLayoutEffect(() => {
     const element = workspace.current!;
@@ -245,7 +247,7 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
         } : undefined}
         onCopy={toolBusy || drag ? undefined : () => exportImage("copy")}
         onSave={toolBusy || drag ? undefined : () => exportImage("save")} />
-      <ToolRail active={tool} disabled={toolBusy} onSelect={value => {
+      <ToolRail active={tool} disabled={toolBusy || !!drag} onSelect={value => {
         setDrag(null);
         setSelectedId(null);
         setTool(value);
@@ -254,23 +256,11 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
       <div className="option-bar" aria-label="도구 설정">
         {tool === "pen" ? (
           <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
-        ) : selected?.tool === "pen" && selectedId !== null ? (
-          <PenSettings style={selected} disabled={toolBusy || !!drag}
-            onChange={style => {
-              if (style.color !== selected.color) recolor(selectedId, style.color);
-              else storeMark(selectedId, { ...selected, ...style });
-            }} />
-        ) : selected && selected.tool !== "pen" && selectedId !== null ? (
-          <MarkSettings key={selectedId} mark={selected} disabled={toolBusy || !!drag}
-            onColor={color => recolor(selectedId, color)}
-            onBold={() => { if (selected.tool === "memo") updateMemo({ bold: !selected.bold }); }}
-            onSize={fontSize => updateMemo({ fontSize })}
-            onText={() => {
-              if (selected.tool === "memo") setMemo({ id: selectedId, point: selected.area, text: selected.text });
-            }} />
         ) : <><strong>{toolNames[tool]}</strong><span className="tool-hint">{toolHints[tool]}</span></>}
       </div>
-      <div className="matte">
+      <div className="matte" onPointerDown={event => {
+        if (!toolBusy && (event.target === event.currentTarget || event.target === workspace.current)) setSelectedId(null);
+      }}>
         <div className="workspace" ref={workspace}>
           {scale > 0 && (
             <div className="sheet" style={{ width, height }}>
@@ -303,15 +293,38 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
                   </Layer>
                 </Stage>
                 {boxPreview && drag?.tool === "box" && drag.box === "crop" && (
-                  <div className="crop-preview" aria-hidden="true" style={{
-                    left: (boxPreview.x - view.x) * scale, top: (boxPreview.y - view.y) * scale,
-                    width: boxPreview.width * scale, height: boxPreview.height * scale,
-                  }}>
-                    <span className="crop-size">{boxPreview.width} × {boxPreview.height} px</span>
-                  </div>
+                  <CropPreview area={boxPreview} view={view} scale={scale} />
                 )}
               </div>
             </div>
+          )}
+          {selected && selectedId !== null && bounds && !memo && (
+            <SelectionBar key={selectedId} space={space} bounds={{
+              x: (space.width - width) / 2 + (bounds.x - view.x) * scale,
+              y: (space.height - height) / 2 + (bounds.y - view.y) * scale,
+              width: bounds.width * scale, height: bounds.height * scale,
+            }}>
+              <MarkColors value={selected.color} disabled={toolBusy || !!drag} onChange={color => recolor(selectedId, color)} />
+              {selected.tool === "pen" ? (
+                <PenSettings style={selected} disabled={toolBusy || !!drag} onChange={style => {
+                  if (style.color !== selected.color) recolor(selectedId, style.color);
+                  else storeMark(selectedId, { ...selected, ...style });
+                }} />
+              ) : (
+                <MarkSettings mark={selected} disabled={toolBusy || !!drag}
+                  onColor={color => recolor(selectedId, color)}
+                  onBold={() => { if (selected.tool === "memo") updateMemo({ bold: !selected.bold }); }}
+                  onSize={fontSize => updateMemo({ fontSize })}
+                  onText={() => {
+                    if (selected.tool === "memo") setMemo({ id: selectedId, point: selected.area, text: selected.text });
+                  }} />
+              )}
+              <button type="button" className="remove-mark" disabled={toolBusy || !!drag} onClick={() => {
+                setEdits(history => [...history, { tool: "remove", id: selectedId }]);
+                setSelectedId(null);
+                setMessage("");
+              }}>지우기</button>
+            </SelectionBar>
           )}
           {memo && (
             <form className="memo" style={{
@@ -345,4 +358,22 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
       {message && <div role="status" className="notice">{message}</div>}
     </section>
   );
+}
+
+function CropPreview({ area, view, scale }: { area: Region; view: Region; scale: number }) {
+  const left = (area.x - view.x) * scale;
+  const top = (area.y - view.y) * scale;
+  const width = area.width * scale;
+  const height = area.height * scale;
+  const right = left + width;
+  const bottom = top + height;
+  // 사진 가장자리에서 자르기 틀까지 한 바퀴 돌아 틀 바깥쪽만 흐리게 한다.
+  const hole = `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+    ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px ${top}px)`;
+  return <>
+    <div className="crop-outside" aria-hidden="true" style={{ clipPath: hole }} />
+    <div className="crop-preview" aria-hidden="true" style={{ left, top, width, height }}>
+      <span className="crop-size">{area.width} × {area.height} px</span>
+    </div>
+  </>;
 }

@@ -2,6 +2,26 @@ import { useState } from "react";
 import { toolNames } from "./document";
 import type { Mark, PenStyle } from "./document";
 
+const colors = [
+  ["먹색", "#191b20"], ["흰색", "#ffffff"], ["주황색", "#ee5319"],
+  ["연두색", "#dcf38a"], ["파란색", "#3575cb"],
+] as const;
+
+export function MarkColors({ value, disabled, onChange }: {
+  value: string; disabled: boolean; onChange: (color: string) => void;
+}) {
+  return (
+    <div className="mark-colors" role="group" aria-label="표시 색">
+      {colors.map(([name, color]) => (
+        <button key={color} type="button" aria-label={name} aria-pressed={value === color}
+          disabled={disabled} onClick={() => onChange(color)}>
+          <span style={{ backgroundColor: color }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PixelSize({ label, value, max, onApply }: {
   label: string; value: number; max: number; onApply: (size: number) => void;
 }) {
