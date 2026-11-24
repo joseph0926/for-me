@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Screen Note",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "identifier": "dev.forme.screennote",
   "build": {
     "frontendDist": "../dist",
