@@ -3,7 +3,7 @@ import type { Region } from "./document";
 
 export type CopyResult = "copied" | "render-failed" | "clipboard-failed";
 
-async function renderPng(image: HTMLImageElement, marks: Konva.Group, view: Region) {
+export async function renderPng(image: HTMLImageElement, marks: Konva.Group, view: Region) {
   const output = new Konva.Group();
   let canvas: HTMLCanvasElement | undefined;
   try {
