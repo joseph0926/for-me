@@ -2,12 +2,6 @@ import type Konva from "konva";
 import type { Region } from "./document";
 import { renderPng } from "./copy";
 
-declare global {
-  interface Window {
-    __TAURI__?: { core: { invoke<T>(command: string, body: ArrayBuffer): Promise<T> } };
-  }
-}
-
 function copyStem(name: string) {
   // 파일 이름의 접미사와 중복 번호를 붙일 공간을 남긴다. 한 글자는 UTF-8에서 최대 4바이트다.
   const stem = Array.from(name.replace(/\.[^.]+$/u, ""), char =>
