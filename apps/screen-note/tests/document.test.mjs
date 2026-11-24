@@ -21,6 +21,20 @@ test("소수점으로 선택한 가장자리 픽셀까지 가린다", () => {
   });
 });
 
+test("표시를 지웠다가 되돌리면 마지막 색과 겹친 순서가 복구된다", () => {
+  const cover = { tool: "cover", area: { x: 10, y: 20, width: 30, height: 40 }, color: "#191b20", strokeWidth: 3 };
+  const highlight = { ...cover, tool: "highlight" };
+  const edits = recolorMark([
+    { tool: "mark", id: 1, mark: cover },
+    { tool: "mark", id: 2, mark: highlight },
+  ], 1, "#ffffff");
+  const removed = [...edits, { tool: "remove", id: 1 }];
+  assert.deepEqual([...currentMarks(removed)], [[2, highlight]]);
+  assert.deepEqual([...currentMarks(removed.slice(0, -1))], [
+    [1, { ...cover, color: "#ffffff" }], [2, highlight],
+  ]);
+});
+
 test("겹친 표시의 색을 바꿔도 쌓인 순서가 유지되고 이동만 되돌릴 수 있다", () => {
   const view = { x: 0, y: 0, width: 600, height: 400 };
   const area = { x: 40, y: 50, width: 80, height: 60 };
