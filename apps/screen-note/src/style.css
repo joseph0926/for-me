@@ -84,7 +84,7 @@ svg { width: 19px; height: 19px; flex: none; }
 .tool-rail button[aria-pressed="true"] { background: #d4e2b9; color: #26321b; }
 .tool-tip { display: none; }
 @media (min-width: 701px) and (hover: hover) and (pointer: fine) {
-  .editing .studio { grid-template-columns: 56px minmax(0, 1fr); }
+  .editing .studio:not(.view-studio) { grid-template-columns: 56px minmax(0, 1fr); }
   .editing .tool-rail { overflow: visible; }
   .editing .tool-rail button { position: relative; min-height: 40px; }
   .editing .tool-name { display: none; }
@@ -255,4 +255,15 @@ kbd:last-child { margin-right: 4px; }
 @media (max-height: 560px) and (min-width: 701px) {
   .tool-rail { gap: 2px; padding-block: 4px; }
   .tool-rail button { min-height: 40px; gap: 0; }
+}
+
+.studio.view-studio {
+  grid-template: "head" 57px "stage" minmax(0,1fr) "foot" 32px / minmax(0,1fr);
+}
+.surface[data-mode="view"] { cursor: default; touch-action: auto; }
+.gif-player { display: block; width: 100%; height: 100%; object-fit: contain; }
+.header-actions .mode-button.primary { background: var(--accent); color: var(--ink); }
+.header-actions .mode-button.primary:hover { background: #cee57a; }
+@media (max-width: 700px) {
+  .studio.view-studio { grid-template-rows: 50px minmax(0,1fr) 28px; }
 }

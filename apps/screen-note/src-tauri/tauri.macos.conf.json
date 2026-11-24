@@ -1,0 +1,34 @@
+{
+  "bundle": {
+    "fileAssociations": [
+      {
+        "name": "PNG",
+        "ext": ["png"],
+        "contentTypes": ["public.png"],
+        "role": "Editor",
+        "rank": "Alternate"
+      },
+      {
+        "name": "JPEG",
+        "ext": ["jpg", "jpeg"],
+        "contentTypes": ["public.jpeg"],
+        "role": "Editor",
+        "rank": "Alternate"
+      },
+      {
+        "name": "WebP",
+        "ext": ["webp"],
+        "contentTypes": ["org.webmproject.webp"],
+        "role": "Editor",
+        "rank": "Alternate"
+      },
+      {
+        "name": "GIF",
+        "ext": ["gif"],
+        "contentTypes": ["com.compuserve.gif"],
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ]
+  }
+}

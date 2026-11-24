@@ -1,17 +1,22 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Icon } from "./Icon";
-import { StudioHeader, ToolRail } from "./Studio";
+import { StudioHeader } from "./Studio";
+import { GifViewer } from "./GifViewer";
 import "./style.css";
 
 const Editor = lazy(() => import("./Editor").then(module => ({ default: module.Editor })));
 
-type Picture = { image: HTMLImageElement; name: string; id: number };
+type Picture = { name: string; id: number } & (
+  | { kind: "still"; image: HTMLImageElement }
+  | { kind: "gif"; blob: Blob; width: number; height: number }
+);
 
 const formats = [
   { type: "image/png", name: "PNG" },
   { type: "image/jpeg", name: "JPEG" },
   { type: "image/webp", name: "WebP" },
+  { type: "image/gif", name: "GIF" },
 ];
 
 function takesText(target: EventTarget | null) {
@@ -26,13 +31,18 @@ function App() {
   const latestOpen = useRef(0);
   const edited = useRef(false);
 
-  async function openFile(file: File) {
+  async function openImage(name: string, read: () => Promise<Blob>) {
     const id = ++latestOpen.current;
     setError("");
     setReplacement(undefined);
     try {
-      const bytes = await file.arrayBuffer();
-      const url = URL.createObjectURL(new Blob([bytes], { type: file.type }));
+      const blob = await read();
+      if (id !== latestOpen.current) return;
+      // Finder와 클립보드에서는 파일 이름이나 MIME 형식이 비어 있을 수 있다.
+      const signature = await blob.slice(0, 6).text();
+      const gif = signature === "GIF87a" || signature === "GIF89a"
+        ? blob.slice(0, blob.size, "image/gif") : undefined;
+      const url = URL.createObjectURL(gif ?? blob);
       const image = new Image();
       try {
         image.src = url;
@@ -41,17 +51,38 @@ function App() {
         URL.revokeObjectURL(url);
       }
       if (id !== latestOpen.current) return;
-      const next = { image, name: file.name || "붙여 넣은 이미지", id };
+      const file = { id, name: name || "붙여 넣은 이미지" };
+      const next: Picture = gif
+        ? { ...file, kind: "gif", blob: gif, width: image.naturalWidth, height: image.naturalHeight }
+        : { ...file, kind: "still", image };
       if (edited.current) setReplacement(next);
       else setPicture(next);
-    } catch {
+    } catch (reason) {
       if (id === latestOpen.current) {
-        setError(`이미지를 열 수 없습니다. ${formats.map(format => format.name).join(", ")} 파일을 다시 선택하세요.`);
+        setError(typeof reason === "string" ? reason : `이미지를 열 수 없습니다. ${formats.map(format => format.name).join(", ")} 파일을 다시 선택하세요.`);
       }
     }
   }
 
+  function openFile(file: File) {
+    return openImage(file.name, async () => new Blob([await file.arrayBuffer()], { type: file.type }));
+  }
+
   useEffect(() => {
+    let active = true;
+    const core = window.__TAURI__?.core;
+    if (core && /Mac/i.test(navigator.platform)) {
+      const channel = new core.Channel<[number, string]>();
+      channel.onmessage = ([id, name]) => {
+        if (active) void openImage(name, async () => {
+          const bytes = await core.invoke<ArrayBuffer>("read_finder_image", { id });
+          return new Blob([bytes]);
+        });
+      };
+      void core.invoke("listen_finder", { channel }).catch(() => {
+        if (active) setError("Finder에서 파일을 열 수 없습니다. 이미지 열기 버튼을 사용하세요.");
+      });
+    }
     function paste(event: ClipboardEvent) {
       if (takesText(event.target)) return;
       const items = Array.from(event.clipboardData?.items ?? []);
@@ -91,6 +122,7 @@ function App() {
     document.addEventListener("contextmenu", blockReloadMenu, options);
     document.addEventListener("keydown", blockReloadKey, options);
     return () => {
+      active = false;
       listeners.abort();
       latestOpen.current++;
     };
@@ -109,7 +141,7 @@ function App() {
       {replacement && (
         <div className="replacement" role="group" aria-label="편집 중인 이미지 교체">
           <span>현재 편집을 닫고 {replacement.name} 파일을 열까요?</span>
-          <button onClick={() => setReplacement(undefined)}>계속 편집</button>
+          <button onClick={() => setReplacement(undefined)}>현재 이미지 유지</button>
           <button className="primary" onClick={() => {
             edited.current = false;
             setPicture(replacement);
@@ -117,15 +149,17 @@ function App() {
           }}>새 이미지 열기</button>
         </div>
       )}
-      {picture ? (
+      {picture?.kind === "gif" ? (
+        <GifViewer key={picture.id} blob={picture.blob} name={picture.name} width={picture.width}
+          height={picture.height} onOpen={() => fileInput.current?.click()} />
+      ) : picture ? (
         <Suspense fallback={<div className="workspace" role="status">편집기를 여는 중입니다.</div>}>
           <Editor key={picture.id} image={picture.image} name={picture.name} onOpen={() => fileInput.current?.click()}
             onEdited={value => { edited.current = value; }} />
         </Suspense>
       ) : (
-        <section className="studio empty-studio" aria-label="이미지 작업 공간">
+        <section className="studio empty-studio view-studio" aria-label="이미지 작업 공간">
           <StudioHeader onOpen={() => fileInput.current?.click()} />
-          <ToolRail disabled />
           <div className="empty-stage">
             <button className="drop-zone" aria-label="이미지 열기" onClick={() => fileInput.current?.click()}>
               <span className="empty-art" aria-hidden="true"><Icon name="picture" /></span>

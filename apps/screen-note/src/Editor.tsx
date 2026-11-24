@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type Konva from "konva";
 import { Group, Image as CanvasImage, Layer, Stage } from "react-konva";
+import { Icon } from "./Icon";
 import { StudioHeader, ToolRail } from "./Studio";
 import { saveCopy } from "./save";
 import { copyImage } from "./copy";
@@ -55,6 +56,7 @@ const copyMessages: Record<CopyResult, string> = {
 };
 
 export function Editor({ image, name, onOpen, onEdited }: Props) {
+  const [editing, setEditing] = useState(false);
   const [tool, setTool] = useState<Tool>("memo");
   const [edits, setEdits] = useState<Edit[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -239,25 +241,42 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
 
   const toolBusy = Boolean(memo || exporting);
   return (
-    <section className="studio" aria-label="이미지 편집">
-      <StudioHeader name={name} onOpen={onOpen}
-        onUndo={edits.length && !toolBusy && !drag ? () => {
-          setEdits(history => history.slice(0, -1));
+    <section className={editing ? "studio" : "studio view-studio"} aria-label={editing ? "이미지 편집" : "이미지 보기"}>
+      <StudioHeader name={name} onOpen={onOpen}>
+        <button type="button" className={editing ? "mode-button" : "mode-button primary"} disabled={toolBusy || !!drag}
+          onClick={() => {
+            setSelectedId(null);
+            setMessage("");
+            setEditing(!editing);
+          }}>
+          <Icon name={editing ? "picture" : "pen"} />{editing ? "보기로" : "편집"}
+        </button>
+        {editing && <>
+          <button className="undo" title="되돌리기" aria-label="되돌리기" disabled={!edits.length || toolBusy || !!drag}
+            onClick={() => {
+              setEdits(history => history.slice(0, -1));
+              setSelectedId(null);
+              setMessage("");
+            }}><Icon name="undo" /></button>
+          <button disabled={toolBusy || !!drag} onClick={() => exportImage("copy")}><Icon name="copy" />이미지 복사</button>
+          <button className="primary" disabled={toolBusy || !!drag} onClick={() => exportImage("save")}>
+            <Icon name="save" />복사본 저장
+          </button>
+        </>}
+      </StudioHeader>
+      {editing && <>
+        <ToolRail active={tool} disabled={toolBusy || !!drag} onSelect={value => {
+          setDrag(null);
+          setSelectedId(null);
+          setTool(value);
           setMessage("");
-        } : undefined}
-        onCopy={toolBusy || drag ? undefined : () => exportImage("copy")}
-        onSave={toolBusy || drag ? undefined : () => exportImage("save")} />
-      <ToolRail active={tool} disabled={toolBusy || !!drag} onSelect={value => {
-        setDrag(null);
-        setSelectedId(null);
-        setTool(value);
-        setMessage("");
-      }} />
-      <div className="option-bar" aria-label="도구 설정">
-        {tool === "pen" ? (
-          <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
-        ) : <><strong>{toolNames[tool]}</strong><span className="tool-hint">{toolHints[tool]}</span></>}
-      </div>
+        }} />
+        <div className="option-bar" aria-label="도구 설정">
+          {tool === "pen" ? (
+            <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
+          ) : <><strong>{toolNames[tool]}</strong><span className="tool-hint">{toolHints[tool]}</span></>}
+        </div>
+      </>}
       <div className="matte" onPointerDown={event => {
         if (!toolBusy && (event.target === event.currentTarget || event.target === workspace.current)) setSelectedId(null);
       }}>
@@ -266,13 +285,13 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
             <div className="sheet" style={{ width, height }}>
               <div
                 className="surface"
-                data-mode={tool}
+                data-mode={editing ? tool : "view"}
                 data-moving={drag?.tool === "move"}
-                aria-label={toolNames[tool] + " 작업 영역"}
+                aria-label={editing ? toolNames[tool] + " 작업 영역" : name}
                 style={drag?.tool === "resize" ? { cursor: drag.corner.cursor } : undefined}
-                onPointerDown={begin}
-                onPointerUp={finish}
-                onPointerMove={track}
+                onPointerDown={editing ? begin : undefined}
+                onPointerUp={editing ? finish : undefined}
+                onPointerMove={editing ? track : undefined}
                 onLostPointerCapture={cancelDrag}
                 onPointerCancel={cancelDrag}
               >
@@ -352,7 +371,8 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
       </div>
       <footer className="studio-status">
         <span className="status-file">{name}</span>
-        <span className="dimensions">결과 {view.width} × {view.height} px</span>
+        <span>{editing ? "편집" : "보기"}</span>
+        <span className="dimensions">{view.width} × {view.height} px</span>
         <span className="fit-scale">맞춤 {Math.round(scale * 100)}%</span>
       </footer>
       {message && <div role="status" className="notice">{message}</div>}

@@ -1,25 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./Icon";
 import logo from "./assets/screen-note-logo.png";
 import { toolNames } from "./document";
 import type { Tool } from "./document";
 
-export function StudioHeader({ name, onOpen, onUndo, onCopy, onSave }: {
+export function StudioHeader({ name, onOpen, children }: {
   name?: string;
   onOpen: () => void;
-  onUndo?: () => void;
-  onCopy?: () => void;
-  onSave?: () => void;
+  children?: ReactNode;
 }) {
   return (
     <header className="studio-header">
       <div className="brand"><img src={logo} width="34" height="34" alt="" />Screen Note</div>
       {name && <span className="document-name" title={name}>{name}</span>}
       <div className="header-actions">
-        {name && <button className="undo" title="되돌리기" aria-label="되돌리기" disabled={!onUndo} onClick={onUndo}><Icon name="undo" /></button>}
         <button onClick={onOpen} aria-label={name ? "다른 이미지 열기" : "파일 열기"}><Icon name="open" />열기</button>
-        {name && <button onClick={onCopy} disabled={!onCopy}><Icon name="copy" />이미지 복사</button>}
-        {name && <button className="primary" onClick={onSave} disabled={!onSave}><Icon name="save" />복사본 저장</button>}
+        {children}
       </div>
     </header>
   );
