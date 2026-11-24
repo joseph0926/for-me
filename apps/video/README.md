@@ -1,5 +1,7 @@
 # 장면
 
+![Android용 장면에서 해안 영상을 보던 위치와 가로 재생 화면의 조작 버튼](docs/images/overview.webp)
+
 휴대폰에 저장한 파일을 재생하는 동영상 앱입니다. 앱 이름은 **장면**이며, 저장소 폴더(`apps/video`)와 앱 식별자(`dev.forme.video`)는 기존 이어보기 기록과 파일 접근 권한을 지키기 위해 바꾸지 않습니다. Android부터 개발하고, 이후 Windows와 macOS로 확장합니다.
 
 공통 개발 절차는 [개발 절차](../../docs/development.md), 조작과 증거 수집 방법은 [QA 절차](../../docs/qa.md)를 따릅니다.
