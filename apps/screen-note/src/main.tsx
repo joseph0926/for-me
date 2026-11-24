@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Icon } from "./Icon";
+import { StudioHeader, ToolRail } from "./Studio";
 import "./style.css";
 
 const Editor = lazy(() => import("./Editor").then(module => ({ default: module.Editor })));
@@ -122,18 +123,18 @@ function App() {
             onEdited={value => { edited.current = value; }} />
         </Suspense>
       ) : (
-        <section className="opening" aria-label="이미지 열기">
-          <div className="wordmark"><Icon name="frame" />Screen Note</div>
-          <div className="opening-copy">
-            <h1>이미지 편집기</h1>
-            <div className="opening-actions">
-              <button className="primary" onClick={() => fileInput.current?.click()}>
-                <Icon name="open" />이미지 열기
-              </button>
-              <span className="paste-hint"><kbd>{/Mac/i.test(navigator.platform) ? "⌘" : "Ctrl"}</kbd><kbd>V</kbd> 붙여넣기</span>
-            </div>
+        <section className="studio empty-studio" aria-label="이미지 작업 공간">
+          <StudioHeader onOpen={() => fileInput.current?.click()} />
+          <ToolRail disabled />
+          <div className="empty-stage">
+            <button className="drop-zone" aria-label="이미지 열기" onClick={() => fileInput.current?.click()}>
+              <span className="empty-art" aria-hidden="true"><Icon name="picture" /></span>
+              <span className="drop-title">이미지 열기</span>
+              <span className="drop-help">여기를 누르거나 이미지 파일을 끌어다 놓으세요.</span>
+              <span className="paste-hint"><kbd>{/Mac/i.test(navigator.platform) ? "⌘" : "Ctrl"}</kbd><kbd>V</kbd>붙여넣기</span>
+            </button>
           </div>
-          <div className="formats" aria-label="열 수 있는 이미지 형식">{formats.map(format => format.name).join(" / ")}</div>
+          <footer className="studio-status"><span>지원 형식</span><span>{formats.map(format => format.name).join(" / ")}</span></footer>
         </section>
       )}
     </main>

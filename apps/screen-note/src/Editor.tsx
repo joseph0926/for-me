@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type Konva from "konva";
-import { Group, Image as CanvasImage, Layer, Rect, Stage } from "react-konva";
-import { Icon } from "./Icon";
+import { Group, Image as CanvasImage, Layer, Stage } from "react-konva";
+import { StudioHeader, ToolRail } from "./Studio";
+import { saveCopy } from "./save";
 import { copyImage } from "./copy";
 import type { CopyResult } from "./copy";
 import { currentMarks, hitMark, imagePoint, moveMark, recolorMark, selection, toolNames, visibleRegion } from "./document";
@@ -46,8 +47,6 @@ const toolHints: Record<Tool, string> = {
   pen: "",
 };
 
-const tools = Object.keys(toolNames) as Tool[];
-
 const copyMessages: Record<CopyResult, string> = {
   copied: "복사했습니다.",
   "render-failed": "복사할 이미지를 만들지 못했습니다. 자르기로 영역을 줄인 뒤 다시 시도하세요.",
@@ -71,7 +70,7 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
   const [penStyle, setPenStyle] = useState<PenStyle>({ color: "#ee5319", strokeWidth: 4 });
   const [memo, setMemo] = useState<{ point: Point; text: string; id?: number } | null>(null);
   const [message, setMessage] = useState("");
-  const [copying, setCopying] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const workspace = useRef<HTMLDivElement>(null);
   const marks = useRef<Konva.Group>(null);
   const [space, setSpace] = useState({ width: 0, height: 0 });
@@ -108,7 +107,7 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
   }
 
   function begin(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || !event.isPrimary || activeDrag.current || memo || copying) return;
+    if (event.button !== 0 || !event.isPrimary || activeDrag.current || memo || exporting) return;
     setMessage("");
     const point = pointer(event);
     if (tool === "select") {
@@ -219,36 +218,58 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
     setMemo(null);
   }
 
-  async function copy() {
-    if (!marks.current) return;
-    setCopying(true);
+  async function exportImage(action: "copy" | "save") {
+    if (!marks.current || exporting) return;
+    setExporting(true);
     setMessage("");
-    const result = await copyImage(image, marks.current, view);
-    setMessage(copyMessages[result]);
-    setCopying(false);
+    try {
+      const message = action === "save"
+        ? await saveCopy(image, marks.current, view, name)
+        : copyMessages[await copyImage(image, marks.current, view)];
+      setMessage(message);
+    } catch (error) {
+      const reason = typeof error === "string" ? error : "이미지를 만들 수 없습니다. 영역을 줄인 뒤 다시 시도하세요.";
+      setMessage(`복사본을 저장하지 못했습니다. ${reason}`);
+    } finally {
+      setExporting(false);
+    }
   }
 
-  const toolBusy = Boolean(memo || copying);
+  const toolBusy = Boolean(memo || exporting);
   return (
-    <section className="editor" aria-label="이미지 편집" data-dragging={!!drag}>
-      <header className="file-bar">
-        <div className="file-info">
-          <Icon name="frame" />
-          <div className="file-caption">
-            <span className="wordmark-small">Screen Note</span>
-            <h1 className="file-name" title={name}>{name}</h1>
-          </div>
-          <span className="dimensions">{view.width} × {view.height} px</span>
-        </div>
-        <div className="file-actions">
-          <button onClick={onOpen} aria-label="다른 이미지 열기"><Icon name="open" />열기</button>
-          <button disabled={!edits.length || toolBusy || !!drag} onClick={() => {
-            setEdits(history => history.slice(0, -1));
-            setMessage("");
-          }}><Icon name="undo" />되돌리기</button>
-          <button className="primary" disabled={toolBusy || !!drag} onClick={copy}><Icon name="copy" />이미지 복사</button>
-        </div>
-      </header>
+    <section className="studio" aria-label="이미지 편집">
+      <StudioHeader name={name} onOpen={onOpen}
+        onUndo={edits.length && !toolBusy && !drag ? () => {
+          setEdits(history => history.slice(0, -1));
+          setMessage("");
+        } : undefined}
+        onCopy={toolBusy || drag ? undefined : () => exportImage("copy")}
+        onSave={toolBusy || drag ? undefined : () => exportImage("save")} />
+      <ToolRail active={tool} disabled={toolBusy} onSelect={value => {
+        setDrag(null);
+        setSelectedId(null);
+        setTool(value);
+        setMessage("");
+      }} />
+      <div className="option-bar" aria-label="도구 설정">
+        {tool === "pen" ? (
+          <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
+        ) : selected?.tool === "pen" && selectedId !== null ? (
+          <PenSettings style={selected} disabled={toolBusy || !!drag}
+            onChange={style => {
+              if (style.color !== selected.color) recolor(selectedId, style.color);
+              else storeMark(selectedId, { ...selected, ...style });
+            }} />
+        ) : selected && selected.tool !== "pen" && selectedId !== null ? (
+          <MarkSettings key={selectedId} mark={selected} disabled={toolBusy || !!drag}
+            onColor={color => recolor(selectedId, color)}
+            onBold={() => { if (selected.tool === "memo") updateMemo({ bold: !selected.bold }); }}
+            onSize={fontSize => updateMemo({ fontSize })}
+            onText={() => {
+              if (selected.tool === "memo") setMemo({ id: selectedId, point: selected.area, text: selected.text });
+            }} />
+        ) : <><strong>{toolNames[tool]}</strong><span className="tool-hint">{toolHints[tool]}</span></>}
+      </div>
       <div className="matte">
         <div className="workspace" ref={workspace}>
           {scale > 0 && (
@@ -277,12 +298,18 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
                     </Group>
                     {outline && <MarkOutline mark={outline} scale={scale} view={view} />}
                     {drag?.tool === "pen" && <PenPath x={0} y={0} points={drag.points} {...drag.style} />}
-                    {boxPreview && drag?.tool === "box" && (drag.box === "crop"
-                      ? <Rect {...boxPreview} stroke="white" strokeWidth={2 / scale}
-                          dash={[6 / scale, 4 / scale]} fill="rgba(25, 27, 32, 0.2)" />
-                      : <MarkShape mark={{ tool: drag.box, area: boxPreview, strokeWidth: 3 / scale, color: boxColor(drag.box) }} />)}
+                    {boxPreview && drag?.tool === "box" && drag.box !== "crop" &&
+                      <MarkShape mark={{ tool: drag.box, area: boxPreview, strokeWidth: 3 / scale, color: boxColor(drag.box) }} />}
                   </Layer>
                 </Stage>
+                {boxPreview && drag?.tool === "box" && drag.box === "crop" && (
+                  <div className="crop-preview" aria-hidden="true" style={{
+                    left: (boxPreview.x - view.x) * scale, top: (boxPreview.y - view.y) * scale,
+                    width: boxPreview.width * scale, height: boxPreview.height * scale,
+                  }}>
+                    <span className="crop-size">{boxPreview.width} × {boxPreview.height} px</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -310,36 +337,12 @@ export function Editor({ image, name, onOpen, onEdited }: Props) {
           )}
         </div>
       </div>
-      <footer className="controls">
-        <div className="context-row">
-          {tool === "pen" ? (
-            <PenSettings style={penStyle} disabled={toolBusy || !!drag} onChange={setPenStyle} />
-          ) : selected?.tool === "pen" && selectedId !== null ? (
-            <PenSettings style={selected} disabled={toolBusy || !!drag}
-              onChange={style => {
-                if (style.color !== selected.color) recolor(selectedId, style.color);
-                else storeMark(selectedId, { ...selected, ...style });
-              }} />
-          ) : selected && selected.tool !== "pen" && selectedId !== null ? (
-            <MarkSettings key={selectedId} mark={selected} disabled={toolBusy || !!drag}
-              onColor={color => recolor(selectedId, color)}
-              onBold={() => { if (selected.tool === "memo") updateMemo({ bold: !selected.bold }); }}
-              onSize={fontSize => updateMemo({ fontSize })}
-              onText={() => {
-                if (selected.tool === "memo") setMemo({ id: selectedId, point: selected.area, text: selected.text });
-              }} />
-          ) : <span className="tool-hint">{toolHints[tool]}</span>}
-          <span role="status" className="copy-status">{message}</span>
-        </div>
-        <div className="tools" role="group" aria-label="편집 도구">
-          {tools.map(value => (
-            <button key={value} aria-pressed={value === tool} disabled={toolBusy}
-              onClick={() => { setDrag(null); setSelectedId(null); setTool(value); setMessage(""); }}>
-              <Icon name={value} />{toolNames[value]}
-            </button>
-          ))}
-        </div>
+      <footer className="studio-status">
+        <span className="status-file">{name}</span>
+        <span className="dimensions">결과 {view.width} × {view.height} px</span>
+        <span className="fit-scale">맞춤 {Math.round(scale * 100)}%</span>
       </footer>
+      {message && <div role="status" className="notice">{message}</div>}
     </section>
   );
 }
