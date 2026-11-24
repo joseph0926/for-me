@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/*
+  울림의 색. 무채색 바탕 위에 강조색(청록) 하나를 두고,
+  좋아요(장밋빛)와 재게시(강조색)는 눌린 상태를 알리는 데만 쓴다.
+*/
+:root {
+  --surface: #ffffff;
+  --page: #f5f6f7;
+  --ink: #15171a;
+  --muted: #5f6570;
+  --faint: #8b919b;
+  --line: #e6e8eb;
+  --hover: #f0f1f3;
+  --raised: #ffffff;
+  --accent: #0b7a6e;
+  --accent-soft: #e3f2ef;
+  --like: #d6336c;
+  --shadow: 0 8px 28px rgb(15 20 25 / 0.14), 0 1px 3px rgb(15 20 25 / 0.08);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #111315;
+    --page: #0b0c0d;
+    --ink: #eceef1;
+    --muted: #a0a6b0;
+    --faint: #7c838e;
+    --line: #262a2f;
+    --hover: #1c1f23;
+    --raised: #181b1e;
+    --accent: #3cc2b0;
+    --accent-soft: #123430;
+    --like: #f0628f;
+    --shadow: 0 8px 28px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 키보드 초점: 테두리에 붙은 옅은 강조색 번짐과 1px 강조색 선(tastepin 버튼 초점). */
+/* 입력칸은 감싼 상자가 초점을 보이므로 여기서 뺀다. */
+:where(button, a, [tabindex]):focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
