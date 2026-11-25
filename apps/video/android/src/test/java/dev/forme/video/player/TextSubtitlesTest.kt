@@ -7,6 +7,23 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class TextSubtitlesTest {
+    private fun TextSubtitles.textAt(timeMs: Long, languageId: String = defaultLanguage.id) =
+        frameAt(timeMs, languageId).text
+
+    @Test fun nextChangeFollowsOverlappingCuesAndGapsAfterBackwardSeek() {
+        val input = "1\n00:00:01,000 --> 00:00:04,000\nA\n\n" +
+            "2\n00:00:02,000 --> 00:00:03,000\nB\n\n" +
+            "3\n00:00:05,000 --> 00:00:06,000\nC"
+        val cues = TextSubtitles.read(input.byteInputStream())
+        assertEquals(SubtitleFrame("", 1000), cues.frameAt(-10))
+        assertEquals(SubtitleFrame("A", 2000), cues.frameAt(1000))
+        assertEquals(SubtitleFrame("A\nB", 3000), cues.frameAt(2000))
+        assertEquals(SubtitleFrame("A", 4000), cues.frameAt(3000))
+        assertEquals(SubtitleFrame("", 5000), cues.frameAt(4000))
+        assertEquals(SubtitleFrame("", null), cues.frameAt(6000))
+        assertEquals(SubtitleFrame("C", 6000), cues.frameAt(5500))
+    }
+
     @Test fun koreanCuesSurviveBomOverlapAndBackwardSeek() {
         val input = "\uFEFF2\r\n00:00:02,000 --> 00:00:03,000\r\n둘\r\n\r\n" +
             "1\r\n00:00:01,100 --> 00:00:04,000\r\n<i>하나</i>\r\n두 줄"
