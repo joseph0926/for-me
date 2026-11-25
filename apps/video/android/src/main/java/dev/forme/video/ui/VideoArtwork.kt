@@ -22,7 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.forme.video.VideoApplication
 import dev.forme.video.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
@@ -35,11 +39,33 @@ private val artworkCache = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
     override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount
 }
 
+private class ArtworkRequest(val result: Deferred<Bitmap?>, var consumers: Int = 0)
+
+// 요청 목록과 사용자 수는 Compose의 메인 스레드에서만 바꾼다.
+private val artworkScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+private val requests = mutableMapOf<String, ArtworkRequest>()
+
+private suspend fun loadArtwork(context: Context, uri: String): Bitmap? {
+    artworkCache.get(uri)?.let { return it }
+    val request = requests.getOrPut(uri) {
+        ArtworkRequest(artworkScope.async { artworkPermits.withPermit { extractArtwork(context, uri) } })
+    }
+    request.consumers++
+    try {
+        return request.result.await()
+    } finally {
+        if (--request.consumers == 0) {
+            requests.remove(uri)
+            request.result.cancel()
+        }
+    }
+}
+
 @Composable
 internal fun VideoArtwork(uri: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current.applicationContext
-    val bitmap by produceState<Bitmap?>(artworkCache.get(uri), uri) {
-        value = artworkCache.get(uri) ?: artworkPermits.withPermit { extractArtwork(context, uri) }
+    val bitmap by key(uri) {
+        produceState<Bitmap?>(artworkCache.get(uri)) { value = loadArtwork(context, uri) }
     }
     Box(modifier.background(Color(0xFF17212C)), contentAlignment = Alignment.Center) {
         val frame = bitmap
