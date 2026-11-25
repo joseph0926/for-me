@@ -17,6 +17,7 @@ import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
@@ -84,6 +85,9 @@ class VlcPlayback(
     private var lib: LibVLC? = null
     private var player: MediaPlayer? = null
     internal val subtitles = SubtitleControls(context, uri, folder) { player }
+    internal var subtitleSeekRevision by mutableLongStateOf(0L)
+        private set
+
     internal fun subtitleTimeMs(): Long = progress.pendingSeekMs ?: player?.time?.takeIf { it >= 0 } ?: state.positionMs
 
     private val replayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -260,6 +264,7 @@ class VlcPlayback(
         }
         seekClock.reset()
         progress.seek(positionMs)
+        subtitleSeekRevision++
         seekIssuedFor = null
         state = state.copy(positionMs = progress.positionMs)
         // 빠른 드래그는 최신 위치로 합치되, 손을 놓을 때는 마지막 위치를 바로 적용한다.

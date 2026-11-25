@@ -22,14 +22,16 @@ internal data class SubtitleLanguage(val id: String, val label: String, val tag:
         ?: (id.startsWith("kr", ignoreCase = true) || id.startsWith("ko", ignoreCase = true))
 }
 
+internal data class SubtitleFrame(val text: String, val nextChangeMs: Long?)
+
 internal class TextSubtitles private constructor(tracks: Map<SubtitleLanguage, CueTimeline>) {
     val languages = tracks.keys.toList()
     val defaultLanguage = languages.firstOrNull { it.tag != null && it.korean }
         ?: languages.firstOrNull { it.korean } ?: languages.first()
     private val timelines = tracks.mapKeys { it.key.id }
 
-    fun textAt(timeMs: Long, languageId: String = defaultLanguage.id): String =
-        timelines.getValue(languageId).textAt(timeMs)
+    fun frameAt(timeMs: Long, languageId: String = defaultLanguage.id): SubtitleFrame =
+        timelines.getValue(languageId).frameAt(timeMs)
 
     companion object {
         fun read(input: InputStream): TextSubtitles {
@@ -64,20 +66,25 @@ private class CueTimeline(private val cues: List<Cue>) {
         for (index in indices) this[index] = maxOf(cues[index].end, getOrElse(index - 1) { 0L })
     }
 
-    fun textAt(timeMs: Long): String {
+    fun frameAt(timeMs: Long): SubtitleFrame {
         var low = 0
         var high = cues.size
         while (low < high) {
             val middle = (low + high) / 2
             if (cues[middle].start <= timeMs) low = middle + 1 else high = middle
         }
+        var next = cues.getOrNull(low)?.start
         var index = low - 1
         val active = mutableListOf<String>()
         while (index >= 0 && latestEnd[index] > timeMs) {
-            if (cues[index].end > timeMs) active.add(cues[index].text)
+            val cue = cues[index]
+            if (cue.end > timeMs) {
+                active.add(cue.text)
+                next = minOf(next ?: cue.end, cue.end)
+            }
             index--
         }
-        return active.asReversed().joinToString("\n")
+        return SubtitleFrame(active.asReversed().joinToString("\n"), next)
     }
 }
 

@@ -23,17 +23,24 @@ import dev.forme.video.player.VlcPlayback
 import kotlinx.coroutines.delay
 
 @Composable
-internal fun ExternalSubtitle(playback: VlcPlayback, controlsVisible: Boolean, modifier: Modifier) {
+internal fun ExternalSubtitle(playback: VlcPlayback, controlsVisible: Boolean, rate: Float, modifier: Modifier) {
     val controls = playback.subtitles
     val cues = controls.external ?: return
     if (!controls.usingExternal) return
     val state = playback.state
     var text by remember(cues) { mutableStateOf("") }
     val languageId = controls.languageId
-    LaunchedEffect(cues, languageId, controls.delayMs, state.playing, if (state.playing) null else state.positionMs) {
+    val pausedPosition = if (state.playing) null else state.positionMs
+    LaunchedEffect(cues, languageId, controls.delayMs, state.playing, pausedPosition, playback.subtitleSeekRevision, rate) {
         do {
-            text = cues.textAt(playback.subtitleTimeMs() - controls.delayMs, languageId)
-            if (state.playing) delay(50)
+            val timeMs = playback.subtitleTimeMs() - controls.delayMs
+            val frame = cues.frameAt(timeMs, languageId)
+            text = frame.text
+            val next = frame.nextChangeMs ?: break
+            if (state.playing) {
+                val waitMs = kotlin.math.ceil((next - timeMs) / rate.toDouble()).toLong()
+                delay(waitMs.coerceAtLeast(16))
+            }
         } while (state.playing)
     }
     if (text.isNotEmpty()) {

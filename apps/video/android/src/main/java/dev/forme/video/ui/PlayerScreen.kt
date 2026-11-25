@@ -502,7 +502,7 @@ internal fun PlayerScreen(
                     }
                 }
             }
-            ExternalSubtitle(playback, controlsVisible && !screenLocked, Modifier.align(Alignment.BottomCenter).safeDrawingPadding())
+            ExternalSubtitle(playback, controlsVisible && !screenLocked, model.playbackRate, Modifier.align(Alignment.BottomCenter).safeDrawingPadding())
             if (state.error == R.string.audio_focus_failed) {
                 Text(stringResource(R.string.audio_focus_failed), color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp)
