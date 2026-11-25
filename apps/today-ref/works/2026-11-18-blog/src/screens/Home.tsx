@@ -1,12 +1,18 @@
 import { CoverArt } from "../components/CoverArt";
 import { CategoryBadge, SeriesBadge } from "../components/PostMeta";
 import { SubscribeForm } from "../components/SubscribeForm";
-import { blog, categories, formatDate, posts, series, seriesPosts, type Category, type Post } from "../data";
+import { blog, categories, posts, series, seriesPosts, type Category, type Post } from "../data";
 import { hrefFor } from "../route";
 
 const byNewest = [...posts].sort((a, b) => b.date.localeCompare(a.date));
 const featured = byNewest.filter((post) => post.featured);
 const popular = [...posts].sort((a, b) => b.views - a.views).slice(0, 3);
+const ongoingSeries = series.find((entry) => entry.ongoing);
+const latestPart = ongoingSeries ? seriesPosts(ongoingSeries.id).at(-1)?.series?.part : undefined;
+
+function dotDate(date: string): string {
+  return date.replaceAll("-", ".");
+}
 
 export function Home({
   category,
@@ -25,8 +31,8 @@ export function Home({
       <section className="archive" aria-labelledby="all-posts">
         <div className="wrap archive-grid">
           <div>
-            {category ? <h1 id="all-posts" className="section-title">{category} 글 {visible.length}편</h1>
-              : <h2 id="all-posts" className="section-title">전체 글 <small>{visible.length}편</small></h2>}
+            {category ? <h1 id="all-posts" className="section-title">{category}<sup>{visible.length}편</sup></h1>
+              : <h2 id="all-posts" className="section-title">전체 글<sup>{visible.length}편</sup></h2>}
             <nav aria-label="분류 고르기" className="mt-3 flex flex-wrap gap-3 border-b border-line">
               {[null, ...categories].map((entry) => {
                 const selected = entry === category;
@@ -71,19 +77,28 @@ function Featured() {
     <section className="edition hero" data-enter aria-labelledby="blog-name">
       <div className="wrap edition-page">
         <div className="masthead">
-          <h1 id="blog-name">{blog.name}</h1>
-          <div className="masthead-author">
-            <img src="/images/author.webp" width="48" height="48" alt="" />
-            <div><strong>{blog.author}</strong><p>{blog.intro}</p></div>
+          <h1 id="blog-name" className="sr-only">{blog.name}</h1>
+          <img src="/images/author.webp" width="52" height="52" alt="" />
+          <div>
+            <p className="intro"><strong>{blog.author}</strong>{blog.introAfterName}</p>
+            <dl className="facts">
+              <div><dt>글</dt><dd>{posts.length}편</dd></div>
+              <div><dt>연재</dt><dd>{ongoingSeries && latestPart ? `${ongoingSeries.name} ${latestPart}화` : "없음"}</dd></div>
+              <div><dt>최근</dt><dd className="mono">{dotDate(byNewest[0]?.date ?? "")}</dd></div>
+            </dl>
           </div>
         </div>
         <div className="lead-story">
+          <p className="side-label">대표 글</p>
           <a href={leadHref} className="lead-photo hero__media" aria-label={lead.title}>
             <CoverArt slug={lead.slug} develop className="h-full" />
           </a>
           <div className="lead-copy">
-            <div className="story-kicker">대표 글 <span>/</span> {seriesName && lead.series ? `${seriesName} ${lead.series.part}화` : lead.category}</div>
-            <a className="lead-title" href={leadHref}>{lead.series ? lead.title.replace(/^.*?:\s*/, "") : lead.title}</a>
+            <div className="story-kicker">{seriesName && lead.series ? `${seriesName} ${lead.series.part}화` : lead.category}</div>
+            <a className="lead-title" href={leadHref}>
+              {lead.series ? lead.title.replace(/^.*?:\s*/, "") : lead.title}
+              {lead === byNewest[0] ? <span className="new-mark">*새 글</span> : null}
+            </a>
             <p>{lead.summary}</p>
             <a className="btn read-link" href={leadHref}>글 읽기 <span aria-hidden="true">↗</span></a>
           </div>
@@ -102,8 +117,8 @@ function Featured() {
 
 function PostRow({ post }: { post: Post }) {
   return (
-    <li className="py-1">
-      <a href={hrefFor({ page: "post", slug: post.slug })} className="group flex items-center gap-4 py-[11px]">
+    <li className="post-row">
+      <a href={hrefFor({ page: "post", slug: post.slug })} className="group flex items-center gap-4 py-5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-1.5">
             <CategoryBadge post={post} />
@@ -111,9 +126,9 @@ function PostRow({ post }: { post: Post }) {
           </div>
           <h3 className="mt-2.5 article-title line-clamp-2 leading-snug group-hover:underline">{post.title}</h3>
           <p className="mt-1 line-clamp-2 text-[15px] leading-[1.55] text-body">{post.summary}</p>
-          <p className="mt-2 text-xs text-muted">{formatDate(post.date)}</p>
+          <p className="mono mt-2 text-xs text-muted"><time dateTime={post.date}>{dotDate(post.date)}</time></p>
         </div>
-        <CoverArt slug={post.slug} thumbnail className="aspect-square w-16 shrink-0 self-center sm:aspect-[4/3] sm:w-32" />
+        <CoverArt slug={post.slug} thumbnail className="post-thumb aspect-square w-16 shrink-0 self-center sm:aspect-[4/3] sm:w-32" />
       </a>
     </li>
   );
@@ -127,10 +142,10 @@ function PopularBox() {
         {popular.map((post, index) => (
           <li key={post.slug}>
             <a href={hrefFor({ page: "post", slug: post.slug })} className="group flex min-h-11 items-start gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-md bg-surface text-[13px] font-bold text-accent">{index + 1}</span>
+              <span className="mono w-6 shrink-0 pt-px text-[13px] text-muted">{String(index + 1).padStart(2, "0")}</span>
               <span className="min-w-0">
                 <span className="block text-[14px] leading-snug font-semibold group-hover:underline">{post.title}</span>
-                <span className="mt-1 block text-[12px] text-muted">{formatDate(post.date)}</span>
+                <span className="mono mt-1 block text-[12px] text-muted">{dotDate(post.date)}</span>
               </span>
             </a>
           </li>

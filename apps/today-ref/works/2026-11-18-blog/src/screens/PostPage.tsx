@@ -98,7 +98,11 @@ export function PostPage({
           <header className="reader-head">
             <CategoryBadge post={post} />
             <h1>{post.title}</h1>
-            <p className="reader-byline"><strong>{blog.author}</strong><time dateTime={post.date}>{formatDate(post.date)}</time><span>{readingMinutes(post)}분 분량</span></p>
+            <dl className="facts">
+              <div><dt>글쓴이</dt><dd>{blog.author}</dd></div>
+              <div><dt>날짜</dt><dd className="mono"><time dateTime={post.date}>{post.date.replaceAll("-", ".")}</time></dd></div>
+              <div><dt>분량</dt><dd>{readingMinutes(post)}분</dd></div>
+            </dl>
           </header>
           <CoverArt slug={post.slug} className="reader-cover" />
           <div className="reader-body">
