@@ -21,7 +21,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 
-data class VideoSelection(val uri: Uri, val sequence: Long, val accessUri: Uri = uri, val queue: FolderQueue? = null) {
+data class VideoSelection(
+    val uri: Uri,
+    val sequence: Long,
+    val accessUri: Uri = uri,
+    val queue: FolderQueue? = null,
+    val savedTitle: String? = null,
+) {
     var wantsToPlay by mutableStateOf(true)
 }
 
@@ -35,7 +41,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
     val recent = repository.recent.catch {
         mutableNotice.value = R.string.storage_failed
         emit(emptyList<PlaybackRecord>())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     private var sequence = 0L
     /** 앱을 쓰는 동안 다음 영상에도 이어지는 재생 속도. 앱을 다시 시작하면 1배로 돌아간다. */
     var playbackRate by mutableFloatStateOf(1f)
@@ -67,12 +73,18 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         val accessUri = if (fromPicker) uri else folders.readableUri(uri)
-        mutableSelection.value = VideoSelection(uri, ++sequence, accessUri)
+        selectVideo(uri, accessUri, null)
     }
 
     fun playFromFolder(access: Uri, queue: FolderQueue?) {
         mutableNotice.value = null
-        mutableSelection.value = VideoSelection(folders.rememberVideo(access), ++sequence, access, queue)
+        selectVideo(folders.rememberVideo(access), access, queue)
+    }
+
+    private fun selectVideo(uri: Uri, access: Uri, queue: FolderQueue?) {
+        val address = uri.toString()
+        val title = recent.value.firstOrNull { it.uri == address }?.title ?: queue?.current?.title
+        mutableSelection.value = VideoSelection(uri, ++sequence, access, queue, title)
     }
 
     /** 같은 폴더의 다음 영상을 폴더 목록에서 연 것과 같은 방식으로 연다. */

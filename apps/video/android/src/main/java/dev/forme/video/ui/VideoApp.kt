@@ -28,7 +28,6 @@ import java.util.Locale
 @Composable
 fun VideoApp(model: VideoViewModel) {
     val selection by model.selection.collectAsStateWithLifecycle()
-    val recent by model.recent.collectAsStateWithLifecycle()
     val notice by model.notice.collectAsStateWithLifecycle()
     val saveFailed by model.repository.saveFailed.collectAsStateWithLifecycle()
     val libraryState = rememberSaveableStateHolder()
@@ -71,10 +70,11 @@ fun VideoApp(model: VideoViewModel) {
             if (current != null) {
                 // 재생 화면을 교차 전환하면 두 재생기가 동시에 열리므로 한 인스턴스만 유지한다.
                 key(current.sequence) {
-                    PlayerScreen(current, model, recent.firstOrNull { it.uri == current.uri.toString() }?.title,
+                    PlayerScreen(current, model, current.savedTitle,
                         openFile, Modifier.weight(1f))
                 }
             } else {
+                val recent by model.recent.collectAsStateWithLifecycle()
                 libraryState.SaveableStateProvider("library") {
                     LibraryScreen(recent, openFile, model.folders, model::findFolderRecord, model::playFromFolder, Modifier.weight(1f)) { record ->
                         model.select(record.uri.toUri(), fromPicker = false)
