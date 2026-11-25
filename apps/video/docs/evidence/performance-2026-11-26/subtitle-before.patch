@@ -1,0 +1,18 @@
+--- a/android/src/main/java/dev/forme/video/ui/SubtitleDialog.kt
++++ b/android/src/main/java/dev/forme/video/ui/SubtitleDialog.kt
+@@ -33,7 +33,15 @@
+     LaunchedEffect(cues, languageId, controls.delayMs, state.playing, if (state.playing) null else state.positionMs) {
+         do {
++            dev.forme.video.Bench.log("LOOKUP")
+             text = cues.textAt(playback.subtitleTimeMs() - controls.delayMs, languageId)
+             if (state.playing) delay(50)
+         } while (state.playing)
++    }
++    var reported by remember(cues) { mutableStateOf("") }
++    SideEffect {
++        if (reported != text) {
++            reported = text
++            dev.forme.video.Bench.log("CUE " + text.replace("\n", "+").ifEmpty { "_" } + " " + playback.subtitleTimeMs())
++        }
+     }
+     if (text.isNotEmpty()) {

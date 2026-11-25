@@ -1,0 +1,7 @@
+variant,trial,home_extract_each_ms,home_extract_sum_ms,home_both_cards_ready_ms,visible_cards,recent_queries_during_play,nonzero_position_saves,subtitle_lookups,cue_A_ms,cue_A_B_ms,cue_B_ms,first_clear_ms,cue_C_ms,last_clear_ms,fresh_position_on_return_ms
+before,1,35.020 + 50.255,85.275,349,2,10,9,352,1650,4025,5150,8151,11067,15193,0
+after,1,40.410,40.41,583,2,0,9,17,1692,4234,5109,8109,11079,15109,0
+after,2,42.278,42.278,337,2,0,9,16,1609,4067,5109,8151,11234,15150,0
+before,2,38.930 + 65.798,104.728,330,2,10,9,354,1650,4067,5194,8276,11067,15151,0
+before,3,56.851 + 85.758,142.609,410,2,10,9,354,1650,4109,5235,8067,11110,15276,0
+after,3,45.226,45.226,361,2,0,9,12,1609,4025,5152,8192,11026,15026,0
