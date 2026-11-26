@@ -1,4 +1,5 @@
 // 사진 아래 수평 다이얼(r3). 눈금 줄을 좌우로 끌어 -45~45도를 고르고, 두 번 누르면 0도로 돌아온다.
+// 간격과 단위는 tastepin 자르기와 수평 값: 8px 끌면 1도, 0.5도 단위, 방향키 0.5도.
 import { useRef } from "react";
 
 interface StraightenDialProps {
@@ -9,12 +10,12 @@ interface StraightenDialProps {
   size: string;
 }
 
-const pxPerDegree = 6;
+const pxPerDegree = 8;
 const limit = 45;
 
 export function StraightenDial({ value, onChange, onCommit, size }: StraightenDialProps) {
   const drag = useRef<{ x: number; start: number } | null>(null);
-  const set = (next: number) => onChange(Math.round(Math.max(-limit, Math.min(limit, next)) * 10) / 10);
+  const set = (next: number) => onChange(Math.round(Math.max(-limit, Math.min(limit, next)) * 2) / 2);
 
   return (
     <div className="mt-5 flex w-full max-w-[420px] flex-col items-center gap-1.5 text-white" onPointerDown={(event) => event.stopPropagation()}>
@@ -48,7 +49,7 @@ export function StraightenDial({ value, onChange, onCommit, size }: StraightenDi
           onCommit();
         }}
         onKeyDown={(event) => {
-          const step = event.shiftKey ? 1 : 0.1;
+          const step = event.shiftKey ? 5 : 0.5;
           if (event.key === "ArrowLeft") set(value - step);
           if (event.key === "ArrowRight") set(value + step);
           if (event.key === "0") set(0);

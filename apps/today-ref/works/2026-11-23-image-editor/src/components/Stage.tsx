@@ -1,10 +1,13 @@
 // 가운데 작업 화면. 결과를 캔버스에 그리고, 도구에 따라 자르기 틀(r3), 표시 그리기, 원본 비교 막대(r2)를 겹친다.
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
 import { applyPoint, clampRect, cropOf, outputMatrix, toSource, turnedSize, type Size } from "../editor/geometry";
 import { canvasSize, counterFor, insidePolygon, markOutline, moveMark, render } from "../editor/render";
 import type { EditState, Mark, Rect } from "../editor/state";
 import type { MarkStyle, Tool } from "../tools";
+import { TrashIcon } from "./Icons";
+import { Range, Swatches } from "./OptionBar";
 import { StraightenDial } from "./StraightenDial";
 
 export type Zoom = "fit" | number;
@@ -21,6 +24,8 @@ interface StageProps {
   lockedRatio: number | null;
   selectedMarkId: string | null;
   onSelectMark: (id: string | null) => void;
+  onMarkChange: (patch: Partial<{ color: string; width: number; size: number }>, key?: string) => void;
+  onMarkDelete: () => void;
   // key가 같은 연속 변경은 되돌리기에서 한 번으로 합친다.
   onEdit: (next: EditState, key?: string) => void;
   onSeal: () => void;
@@ -28,10 +33,12 @@ interface StageProps {
 }
 
 const padding = 40;
+// 수평을 돌리거나 틀을 끈 뒤 3x3 안내선을 더 보여 주는 시간(tastepin 자르기와 수평 값).
+const guideLingerMs = 700;
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw" | "move";
 
 export function Stage(props: StageProps) {
-  const { image, source, edit, tool, zoom, compare, markStyle, lockedRatio, selectedMarkId, onSelectMark, onEdit, onSeal, onScale } = props;
+  const { image, source, edit, tool, zoom, compare, markStyle, lockedRatio, selectedMarkId, onSelectMark, onMarkChange, onMarkDelete, onEdit, onSeal, onScale } = props;
   const area = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const plainCanvas = useRef<HTMLCanvasElement>(null);
@@ -42,6 +49,18 @@ export function Stage(props: StageProps) {
   // 사각형은 화면에서 끈 시작점(결과 좌표)을 기억해 반듯한 네 꼭짓점을 만든다.
   const rectStart = useRef<[number, number] | null>(null);
   const [textDraft, setTextDraft] = useState<{ id: string | null; at: [number, number]; text: string } | null>(null);
+  // 3x3 안내선은 돌리거나 끄는 동안과 그 뒤 잠깐만 보인다.
+  const [guides, setGuides] = useState(false);
+  const guideTimer = useRef<number | undefined>(undefined);
+  const holdGuides = () => {
+    window.clearTimeout(guideTimer.current);
+    setGuides(true);
+  };
+  const releaseGuides = () => {
+    window.clearTimeout(guideTimer.current);
+    guideTimer.current = window.setTimeout(() => setGuides(false), guideLingerMs);
+  };
+  useEffect(() => () => window.clearTimeout(guideTimer.current), []);
   const drag = useRef<{ kind: "crop"; handle: Handle; start: [number, number]; rect: Rect } | { kind: "move"; id: string; last: [number, number] } | { kind: "split" } | null>(null);
 
   const cropping = tool === "crop";
@@ -187,6 +206,7 @@ export function Stage(props: StageProps) {
     event.stopPropagation();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     drag.current = { kind: "crop", handle, start: toOutput(event), rect: crop };
+    holdGuides();
   };
   const onCropMove = (event: ReactPointerEvent) => {
     const current = drag.current;
@@ -219,15 +239,23 @@ export function Stage(props: StageProps) {
 
   const canvasPx = canvasSize(source, edit, { scale, wholeBoard: cropping });
   const selected = edit.marks.find((mark) => mark.id === selectedMarkId);
-  const selectionOutline = selected && !cropping ? outlineOf(selected, source, edit, scale, canvas.current?.getContext("2d") ?? undefined) : null;
+  const selectionOutline = selected && !cropping && tool === "select" ? outlineOf(selected, source, edit, scale, canvas.current?.getContext("2d") ?? undefined) : null;
   const textAt = textDraft ? applyPoint(outputMatrix(source, edit), textDraft.at).map((v) => v * scale) : null;
   const cursor =
     compare ? "ew-resize" : tool === "pen" || tool === "shape" ? "crosshair" : tool === "text" ? "text" : tool === "select" ? "default" : "default";
 
   return (
-    <div ref={area} className="relative min-h-0 flex-1 overflow-auto bg-[var(--canvas)] thin-scroll">
+    <div
+      ref={area}
+      className="relative min-h-0 flex-1 overflow-auto bg-[var(--canvas)] thin-scroll"
+      // 사진 바깥 어두운 자리를 누르면 고른 표시를 놓는다.
+      onPointerDown={(event) => {
+        if (tool === "select" && !(event.target as Element).closest("[data-board]")) onSelectMark(null);
+      }}
+    >
       <div className="flex min-h-full min-w-full flex-col items-center justify-center p-10" style={{ width: Math.max(box.width, canvasPx.width + padding * 2) }}>
         <div
+          data-board
           className="relative shrink-0 shadow-[0_2px_16px_rgb(0_0_0/0.25)]"
           style={{ width: canvasPx.width, height: canvasPx.height, cursor }}
           onPointerDown={onPointerDown}
@@ -236,7 +264,10 @@ export function Stage(props: StageProps) {
             onCropMove(event);
           }}
           onPointerUp={() => {
-            if (drag.current?.kind === "crop") onSeal();
+            if (drag.current?.kind === "crop") {
+              onSeal();
+              releaseGuides();
+            }
             onPointerUp();
           }}
           onPointerCancel={onPointerUp}
@@ -289,16 +320,32 @@ export function Stage(props: StageProps) {
             <CropFrame
               rect={crop}
               scale={scale}
+              canvas={canvasPx}
+              guides={guides}
               onHandle={startCropDrag}
             />
           )}
 
           {selectionOutline && (
+            // 고른 표시는 둘레 4px 밖의 1px 파란 테두리로 보인다(tastepin 표시 고르고 고치기).
             <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden="true">
-              <polygon points={selectionOutline} fill="none" stroke="white" strokeWidth={1.5} strokeDasharray="5 4" />
-              <polygon points={selectionOutline} fill="none" stroke="black" strokeOpacity={0.5} strokeWidth={1.5} strokeDasharray="5 4" strokeDashoffset={4.5} />
+              <polygon points={selectionOutline.map((p) => p.join(",")).join(" ")} fill="none" stroke="#2f7cf6" strokeWidth={1} />
             </svg>
           )}
+
+          <AnimatePresence>
+            {selected && selectionOutline && !textDraft && !draft && (
+              <MarkBar
+                key={selected.id}
+                mark={selected}
+                outline={selectionOutline}
+                canvasWidth={canvasPx.width}
+                onChange={onMarkChange}
+                onCommit={onSeal}
+                onDelete={onMarkDelete}
+              />
+            )}
+          </AnimatePresence>
 
           {textDraft && textAt && (
             <textarea
@@ -333,8 +380,14 @@ export function Stage(props: StageProps) {
         {cropping && (
           <StraightenDial
             value={edit.straighten}
-            onChange={(straighten) => onEdit({ ...edit, straighten, crop: edit.crop ? clampRect(edit.crop, board) : null }, "straighten")}
-            onCommit={onSeal}
+            onChange={(straighten) => {
+              holdGuides();
+              onEdit({ ...edit, straighten, crop: edit.crop ? clampRect(edit.crop, board) : null }, "straighten");
+            }}
+            onCommit={() => {
+              onSeal();
+              releaseGuides();
+            }}
             size={`${Math.round(crop.w)} x ${Math.round(crop.h)}`}
           />
         )}
@@ -344,14 +397,94 @@ export function Stage(props: StageProps) {
 }
 
 // 고른 표시의 테두리를 화면 좌표 다각형으로. 돌린 이미지에서는 기울어진 사각형이 된다.
-function outlineOf(mark: Mark, source: Size, edit: EditState, scale: number, ctx?: CanvasRenderingContext2D): string {
+// 다각형은 늘 사각형이라 꼭짓점마다 두 변을 따라 바깥으로 밀면 테두리가 표시에서 일정하게 떨어진다.
+function outlineOf(mark: Mark, source: Size, edit: EditState, scale: number, ctx?: CanvasRenderingContext2D): [number, number][] {
   const matrix = new DOMMatrix().scale(scale).multiply(outputMatrix(source, edit));
-  return markOutline(mark, ctx)
-    .map((p) => applyPoint(matrix, p).join(","))
-    .join(" ");
+  const points = markOutline(mark, ctx).map((p) => applyPoint(matrix, p));
+  // 사각형 표시의 다각형은 선 한가운데를 지나므로 선 굵기의 절반을 더 띄운다.
+  const gap = 4 + (mark.kind === "rect" ? (mark.width * scale) / 2 : 0);
+  const unit = ([x, y]: [number, number]): [number, number] => {
+    const length = Math.hypot(x, y) || 1;
+    return [x / length, y / length];
+  };
+  return points.map((point, i) => {
+    const prev = points[(i + points.length - 1) % points.length];
+    const next = points[(i + 1) % points.length];
+    const a = unit([point[0] - prev[0], point[1] - prev[1]]);
+    const b = unit([point[0] - next[0], point[1] - next[1]]);
+    return [point[0] + (a[0] + b[0]) * gap, point[1] + (a[1] + b[1]) * gap];
+  });
 }
 
-function CropFrame({ rect, scale, onHandle }: { rect: Rect; scale: number; onHandle: (handle: Handle) => (event: ReactPointerEvent) => void }) {
+// 고른 표시 위 8px에 뜨는 작은 막대(tastepin 표시 고르고 고치기): 색 견본, 굵기나 크기, 지우기.
+// 표시를 끌어 옮기면 따라가고, 위에 자리가 없으면 표시 아래로 내려간다. 등장은 흐림이 걷히며 커진다(모션 기본값).
+function MarkBar({
+  mark,
+  outline,
+  canvasWidth,
+  onChange,
+  onCommit,
+  onDelete,
+}: {
+  mark: Mark;
+  outline: [number, number][];
+  canvasWidth: number;
+  onChange: (patch: Partial<{ color: string; width: number; size: number }>, key?: string) => void;
+  onCommit: () => void;
+  onDelete: () => void;
+}) {
+  const bar = useRef<HTMLDivElement>(null);
+  const [barSize, setBarSize] = useState<Size>({ width: 0, height: 0 });
+  useLayoutEffect(() => {
+    if (bar.current) setBarSize({ width: bar.current.offsetWidth, height: bar.current.offsetHeight });
+  }, []);
+  const xs = outline.map((p) => p[0]);
+  const ys = outline.map((p) => p[1]);
+  const center = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const above = Math.min(...ys) - 8 - barSize.height;
+  // 작업 화면의 여백(padding) 안에서만 움직여 가로 스크롤이 생기지 않게 한다.
+  const top = above >= -padding + 4 ? above : Math.max(...ys) + 8;
+  const left = Math.max(-padding + 8, Math.min(canvasWidth + padding - 8 - barSize.width, center - barSize.width / 2));
+  const isText = mark.kind === "text";
+  return (
+    <motion.div
+      ref={bar}
+      role="toolbar"
+      aria-label="고른 표시"
+      initial={{ opacity: 0, scale: 0.97, filter: "blur(4px)" }}
+      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, scale: 0.97, filter: "blur(4px)" }}
+      transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
+      onPointerDown={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      className="absolute z-20 flex items-center gap-2 rounded-md bg-[var(--raised)] py-1.5 pr-1.5 pl-2.5 whitespace-nowrap text-[var(--ink)] shadow-[var(--shadow)]"
+      style={{ left, top, visibility: barSize.width ? "visible" : "hidden" }}
+    >
+      <Swatches small value={mark.color} onChange={(color) => onChange({ color })} />
+      <Range
+        compact
+        label={isText ? "크기" : "굵기"}
+        value={isText ? mark.size : mark.width}
+        min={isText ? 12 : 2}
+        max={isText ? 200 : 60}
+        unit="px"
+        onChange={(value) => onChange(isText ? { size: value } : { width: value }, `mark-size-${mark.id}`)}
+        onCommit={onCommit}
+      />
+      <button
+        type="button"
+        aria-label="표시 지우기"
+        title="지우기 (Delete)"
+        onClick={onDelete}
+        className="grid size-8 shrink-0 place-items-center rounded-md text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+      >
+        <TrashIcon size={16} />
+      </button>
+    </motion.div>
+  );
+}
+
+function CropFrame({ rect, scale, canvas, guides, onHandle }: { rect: Rect; scale: number; canvas: Size; guides: boolean; onHandle: (handle: Handle) => (event: ReactPointerEvent) => void }) {
   const left = rect.x * scale;
   const top = rect.y * scale;
   const width = rect.w * scale;
@@ -366,22 +499,33 @@ function CropFrame({ rect, scale, onHandle }: { rect: Rect; scale: number; onHan
     { handle: "w", style: { top: "50%", left: -6, marginTop: -12 }, cursor: "ew-resize", corner: false },
     { handle: "e", style: { top: "50%", right: -6, marginTop: -12 }, cursor: "ew-resize", corner: false },
   ];
+  // 틀 밖은 6px 흐리고 검정 40%로 덮어 틀 안만 또렷하게 보인다(tastepin 자르기와 수평 값). 위, 아래, 왼쪽, 오른쪽 네 조각으로 덮는다.
+  const shades: CSSProperties[] = [
+    { left: 0, top: 0, width: canvas.width, height: top },
+    { left: 0, top: top + height, width: canvas.width, height: Math.max(0, canvas.height - top - height) },
+    { left: 0, top, width: left, height },
+    { left: left + width, top, width: Math.max(0, canvas.width - left - width), height },
+  ];
   return (
     <>
-      {/* 틀 밖은 어둡게 덮는다. 틀 자체에 큰 그림자를 둘러 한 번에 그린다. */}
+      {shades.map((style, i) => (
+        <div key={i} aria-hidden="true" className="pointer-events-none absolute bg-black/40 backdrop-blur-[6px]" style={style} />
+      ))}
       <div
         className="absolute cursor-move"
-        style={{ left, top, width, height, boxShadow: "0 0 0 9999px rgb(0 0 0 / 0.55)", outline: "1px solid rgb(255 255 255 / 0.9)" }}
+        style={{ left, top, width, height, outline: "1px solid rgb(255 255 255 / 0.9)" }}
         onPointerDown={onHandle("move")}
         role="group"
         aria-label="자르기 범위"
       >
-        {[1, 2].map((i) => (
-          <span key={`v${i}`} className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/45" style={{ left: `${(i * 100) / 3}%` }} />
-        ))}
-        {[1, 2].map((i) => (
-          <span key={`h${i}`} className="pointer-events-none absolute right-0 left-0 h-px bg-white/45" style={{ top: `${(i * 100) / 3}%` }} />
-        ))}
+        <div aria-hidden="true" className={`pointer-events-none absolute inset-0 transition-opacity duration-150 ${guides ? "opacity-100" : "opacity-0"}`}>
+          {[1, 2].map((i) => (
+            <span key={`v${i}`} className="absolute top-0 bottom-0 w-px bg-white/45" style={{ left: `${(i * 100) / 3}%` }} />
+          ))}
+          {[1, 2].map((i) => (
+            <span key={`h${i}`} className="absolute right-0 left-0 h-px bg-white/45" style={{ top: `${(i * 100) / 3}%` }} />
+          ))}
+        </div>
         {handles.map(({ handle, style, cursor, corner }) => (
           <span
             key={handle}
@@ -398,4 +542,3 @@ function CropFrame({ rect, scale, onHandle }: { rect: Rect; scale: number; onHan
     </>
   );
 }
-

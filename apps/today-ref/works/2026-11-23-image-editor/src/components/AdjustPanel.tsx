@@ -1,6 +1,6 @@
-// 오른쪽 조정 패널(r1): 묶음마다 제목, 되돌리기, 켜고 끄는 토글. 슬라이더는 이름과 값을 한 줄에 두고 그 아래 막대.
+// 오른쪽 조정 패널(r1): 묶음마다 제목, 초기화, 켜고 끄는 토글.
+// 슬라이더 행은 tastepin 조정 패널 값을 따른다: 행 전체가 28px 막대이고 이름과 값을 막대 안 한 줄에 쓰며, 손잡이 없이 0 자리부터 값까지 면을 채운다.
 import { motion } from "motion/react";
-import type { CSSProperties } from "react";
 
 import { adjustGroups, neutralAdjust, type AdjustSpec, type EditState, type GroupId } from "../editor/state";
 import { ResetIcon } from "./Icons";
@@ -29,7 +29,8 @@ export function AdjustPanel({ edit, onEdit, onSeal }: AdjustPanelProps) {
               </h3>
               <button
                 type="button"
-                aria-label={`${group.title} 값 되돌리기`}
+                aria-label={`${group.title} 초기화`}
+                title={`${group.title} 초기화`}
                 disabled={!changed}
                 onClick={() => {
                   const adjust = { ...edit.adjust };
@@ -42,7 +43,7 @@ export function AdjustPanel({ edit, onEdit, onSeal }: AdjustPanelProps) {
               </button>
               <Switch label={`${group.title} 켜기`} on={enabled} onChange={(next) => setGroupEnabled(group.id, next)} />
             </div>
-            <div className={`flex flex-col gap-4 transition-opacity duration-200 ${enabled ? "" : "opacity-45"}`}>
+            <div className={`flex flex-col gap-2 transition-opacity duration-200 ${enabled ? "" : "opacity-45"}`}>
               {group.specs.map((spec) => (
                 <SliderRow
                   key={spec.key}
@@ -71,32 +72,49 @@ export function AdjustPanel({ edit, onEdit, onSeal }: AdjustPanelProps) {
 function SliderRow({ spec, value, onChange, onCommit }: { spec: AdjustSpec; value: number; onChange: (value: number) => void; onCommit: () => void }) {
   const fill = ((value - spec.min) / (spec.max - spec.min)) * 100;
   const zero = ((0 - spec.min) / (spec.max - spec.min)) * 100;
-  // 0에서 값 쪽으로만 채워 원본에서 얼마나 움직였는지 보이게 한다.
-  const background = `linear-gradient(to right, var(--line) ${Math.min(fill, zero)}%, var(--ink) ${Math.min(fill, zero)}%, var(--ink) ${Math.max(fill, zero)}%, var(--line) ${Math.max(fill, zero)}%)`;
+  const reset = () => {
+    onChange(0);
+    onCommit();
+  };
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="flex items-baseline justify-between">
-        <span>{spec.label}</span>
-        <span className={`text-[13px] tabular-nums ${value === 0 ? "text-[var(--faint)]" : "text-[var(--ink)]"}`}>{value > 0 && spec.min < 0 ? `+${value}` : value}</span>
-      </span>
-      <input
-        type="range"
-        className="range"
-        min={spec.min}
-        max={spec.max}
-        step={1}
-        value={value}
-        style={{ background } as CSSProperties}
-        onChange={(event) => onChange(Number(event.target.value))}
-        onPointerUp={onCommit}
-        onKeyUp={onCommit}
-        // 막대를 두 번 누르면 원본 값으로 돌아간다.
-        onDoubleClick={() => {
-          onChange(0);
-          onCommit();
-        }}
-      />
-    </label>
+    <div className="flex items-center gap-1">
+      <label className="slider-row relative flex h-7 min-w-0 flex-1 items-center justify-between overflow-hidden rounded-md bg-[var(--hover)] px-2.5">
+        {/* 0에서 값 쪽으로만 채워 원본에서 얼마나 움직였는지 보이게 한다. 노출처럼 0이 가운데인 값은 가운데에서 좌우로 찬다. */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-0 bg-[var(--fill)]"
+          style={{ left: `${Math.min(fill, zero)}%`, width: `${Math.abs(fill - zero)}%` }}
+        />
+        {zero > 0 && <span aria-hidden="true" className="absolute inset-y-1.5 w-px bg-[var(--line)]" style={{ left: `${zero}%` }} />}
+        <span className="pointer-events-none relative">{spec.label}</span>
+        <span className={`pointer-events-none relative text-[13px] tabular-nums ${value === 0 ? "text-[var(--faint)]" : "text-[var(--ink)]"}`}>{value > 0 && spec.min < 0 ? `+${value}` : value}</span>
+        {/* 막대 전체를 덮는 보이지 않는 range가 끌기와 방향키를 받는다. */}
+        <input
+          type="range"
+          aria-label={spec.label}
+          className="absolute inset-0 size-full cursor-ew-resize opacity-0"
+          min={spec.min}
+          max={spec.max}
+          step={1}
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+          onPointerUp={onCommit}
+          onKeyUp={onCommit}
+          // 막대를 두 번 누르면 원본 값으로 돌아간다.
+          onDoubleClick={reset}
+        />
+      </label>
+      {/* 바뀐 행에만 그 값을 0으로 돌리는 아이콘을 둔다. 자리는 늘 비워 두어 막대 길이가 흔들리지 않게 한다. */}
+      <button
+        type="button"
+        aria-label={`${spec.label} 초기화`}
+        title={`${spec.label} 초기화`}
+        onClick={reset}
+        className={`grid size-7 shrink-0 place-items-center rounded-md text-[var(--muted)] hover:text-[var(--ink)] ${value === 0 ? "invisible" : ""}`}
+      >
+        <ResetIcon size={14} />
+      </button>
+    </div>
   );
 }
 

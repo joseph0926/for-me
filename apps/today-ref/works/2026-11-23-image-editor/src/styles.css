@@ -72,6 +72,15 @@ button {
   outline-offset: 2px;
 }
 
+/* 조정 패널의 슬라이더 행. 채운 면은 본문색을 막대 바탕에 22%만 섞어 그 위 글자가 묻히지 않게 한다. */
+.slider-row {
+  --fill: color-mix(in oklab, var(--ink) 22%, var(--hover));
+}
+.slider-row:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .thin-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;

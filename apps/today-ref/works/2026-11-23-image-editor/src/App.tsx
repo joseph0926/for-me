@@ -4,7 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState, type ReactNode } 
 
 import { AdjustPanel } from "./components/AdjustPanel";
 import { FilterStrip } from "./components/FilterStrip";
-import { ChevronDown, CompareIcon, CopyIcon, DownloadIcon, ImageIcon, ImportIcon, RedoIcon, UndoIcon, ZoomInIcon, ZoomOutIcon } from "./components/Icons";
+import { ChevronDown, CompareIcon, CopyIcon, DownloadIcon, FolderIcon, ImageIcon, ImportIcon, RedoIcon, UndoIcon, ZoomInIcon, ZoomOutIcon } from "./components/Icons";
 import { MenuList } from "./components/MenuList";
 import { OptionBar } from "./components/OptionBar";
 import { Popover } from "./components/Popover";
@@ -54,6 +54,8 @@ export function App() {
   const [dropping, setDropping] = useState(false);
   const [opening, setOpening] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // 마지막 입력이 마우스나 터치였는지. 단축키를 누르면 브라우저가 마우스로 누른 단추에 키보드 초점 표시를 켜므로 그때만 초점을 놓는다.
+  const pointerLast = useRef(false);
   const edit = history.present;
   const edited = isEdited(edit);
   const selectedMark = edit.marks.find((mark) => mark.id === selectedMarkId) ?? null;
@@ -170,32 +172,47 @@ export function App() {
     setZoom(next ?? (direction > 0 ? 4 : 0.1));
   };
 
+  useEffect(() => {
+    const onPointer = () => (pointerLast.current = true);
+    const onTab = (event: KeyboardEvent) => event.key === "Tab" && (pointerLast.current = false);
+    window.addEventListener("pointerdown", onPointer, true);
+    window.addEventListener("keydown", onTab, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer, true);
+      window.removeEventListener("keydown", onTab, true);
+    };
+  }, []);
+
   // 단축키. 입력칸에서는 받지 않는다.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.target instanceof Element && event.target.closest("input, textarea, select, [role='menu']")) return;
+      if (handleShortcut(event) && pointerLast.current && document.activeElement instanceof HTMLButtonElement) document.activeElement.blur();
+    };
+    // 처리한 단축키면 true.
+    const handleShortcut = (event: KeyboardEvent): boolean => {
       const mod = event.ctrlKey || event.metaKey;
       if (mod && event.key.toLowerCase() === "z") {
         event.preventDefault();
         dispatch({ type: event.shiftKey ? "redo" : "undo" });
-        return;
+        return true;
       }
       if (mod && event.key.toLowerCase() === "y") {
         event.preventDefault();
         dispatch({ type: "redo" });
-        return;
+        return true;
       }
       if (mod && event.key.toLowerCase() === "s" && doc) {
         event.preventDefault();
         void download("image/png");
-        return;
+        return true;
       }
       if (mod && event.key.toLowerCase() === "o") {
         event.preventDefault();
         fileInput.current?.click();
-        return;
+        return true;
       }
-      if (mod || !doc) return;
+      if (mod || !doc) return false;
       const toolHit = toolList.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
       if (toolHit) changeTool(toolHit.id);
       else if (event.key === "+" || event.key === "=") stepZoom(1);
@@ -205,6 +222,8 @@ export function App() {
       else if (event.key === "\\") setCompare((value) => !value);
       else if ((event.key === "Delete" || event.key === "Backspace") && selectedMark) deleteMark();
       else if (event.key === "Escape") setSelectedMarkId(null);
+      else return false;
+      return true;
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -359,9 +378,6 @@ export function App() {
               }}
               onFilterAmount={(amount) => onEdit({ ...edit, filter: { ...edit.filter, amount } }, "filter-amount")}
               onFilterCommit={onSeal}
-              selectedMark={tool === "select" ? selectedMark : null}
-              onMarkChange={patchMark}
-              onMarkDelete={deleteMark}
             />
             <Stage
               image={doc.image}
@@ -374,6 +390,8 @@ export function App() {
               lockedRatio={resolveRatio(cropRatio, doc.size, edit)}
               selectedMarkId={selectedMarkId}
               onSelectMark={setSelectedMarkId}
+              onMarkChange={patchMark}
+              onMarkDelete={deleteMark}
               onEdit={onEdit}
               onSeal={onSeal}
               onScale={onScale}
@@ -474,7 +492,8 @@ function HeaderButton({ label, pressed, disabled, onClick, children }: { label: 
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.12 }}
       onClick={onClick}
-      className={`grid size-8 place-items-center rounded-md hover:bg-[var(--hover)] disabled:opacity-35 disabled:hover:bg-transparent ${pressed ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+      // 올리면 글자색만 진해진다. 바탕은 눌린 상태(비교 켬)에만 칠해 올린 것이 켜진 것처럼 보이지 않게 한다.
+      className={`grid size-8 place-items-center rounded-md disabled:opacity-35 ${pressed ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--muted)] enabled:hover:text-[var(--ink)]"}`}
     >
       {children}
     </motion.button>
@@ -502,7 +521,7 @@ function TwoStepButton({ armed: needsConfirm, label, armedLabel, onConfirm }: { 
       }}
       className={`flex h-8 items-center gap-1.5 rounded-md px-2.5 whitespace-nowrap ${armed ? "bg-[#d8383e] font-[650] text-white" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
     >
-      <ImportIcon size={17} />
+      <FolderIcon size={17} />
       <span className={armed ? "" : "hidden sm:inline"}>{armed ? armedLabel : label}</span>
     </motion.button>
   );

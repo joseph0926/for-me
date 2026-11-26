@@ -1,10 +1,11 @@
 // 위 옵션 막대. 고른 도구의 설정만 보여 준다(tastepin 편집기 도구 이름).
+// 고른 표시의 색과 굵기는 여기가 아니라 표시 위 떠 있는 막대에서 고친다(tastepin 표시 고르고 고치기).
 import { motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 
-import type { EditState, Mark } from "../editor/state";
+import type { EditState } from "../editor/state";
 import { cropRatios, markColors, toolList, type MarkStyle, type Tool } from "../tools";
-import { FlipHIcon, FlipVIcon, ResetIcon, RotateLeftIcon, RotateRightIcon, TrashIcon } from "./Icons";
+import { FlipHIcon, FlipVIcon, ResetIcon, RotateLeftIcon, RotateRightIcon } from "./Icons";
 
 interface OptionBarProps {
   tool: Tool;
@@ -18,9 +19,6 @@ interface OptionBarProps {
   onResetGeometry: () => void;
   onFilterAmount: (amount: number) => void;
   onFilterCommit: () => void;
-  selectedMark: Mark | null;
-  onMarkChange: (patch: Partial<{ color: string; width: number; size: number }>, key?: string) => void;
-  onMarkDelete: () => void;
 }
 
 export function OptionBar(props: OptionBarProps) {
@@ -32,7 +30,7 @@ export function OptionBar(props: OptionBarProps) {
     const geometryChanged = edit.rotation !== 0 || edit.flipH || edit.flipV || edit.straighten !== 0 || edit.crop !== null;
     content = (
       <>
-        <Underline label="비율" options={cropRatios.map((r) => ({ key: String(r.value), label: r.label }))} value={String(props.cropRatio)} onChange={(key) => props.onCropRatio(key === "null" ? null : Number(key))} />
+        <Chips label="비율" options={cropRatios.map((r) => ({ key: String(r.value), label: r.label }))} value={String(props.cropRatio)} onChange={(key) => props.onCropRatio(key === "null" ? null : Number(key))} />
         <Divider />
         <IconButton label="왼쪽으로 90도" onClick={() => props.onRotate(-1)}>
           <RotateLeftIcon size={18} />
@@ -65,17 +63,15 @@ export function OptionBar(props: OptionBarProps) {
         onCommit={props.onFilterCommit}
       />
     );
-  } else if (tool === "pen" || tool === "text" || tool === "shape" || (tool === "select" && props.selectedMark)) {
-    // 고른 표시가 있으면 그 표시를, 없으면 다음에 그릴 표시의 설정을 바꾼다.
-    const mark = tool === "select" ? props.selectedMark : null;
-    const color = mark?.color ?? markStyle.color;
-    const isText = mark ? mark.kind === "text" : tool === "text";
-    const sizeValue = mark ? (mark.kind === "text" ? mark.size : mark.width) : isText ? markStyle.textSize : markStyle.width;
+  } else if (tool === "pen" || tool === "text" || tool === "shape") {
+    // 다음에 그릴 표시의 설정.
+    const isText = tool === "text";
     content = (
       <>
         {tool === "shape" && (
           <>
-            <Underline
+            {/* 자르기 비율과 같은 칩 모양으로 맞춘다. 한 막대 자리에서 단일 선택이 두 모양으로 보이지 않게 한다. */}
+            <Chips
               label="모양"
               options={[
                 { key: "rect", label: "사각형" },
@@ -87,43 +83,17 @@ export function OptionBar(props: OptionBarProps) {
             <Divider />
           </>
         )}
-        <div className="flex items-center gap-1.5" role="radiogroup" aria-label="색">
-          {markColors.map((hex) => (
-            <motion.button
-              key={hex}
-              type="button"
-              role="radio"
-              aria-checked={color === hex}
-              aria-label={`색 ${hex}`}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => (mark ? props.onMarkChange({ color: hex }) : onMarkStyle({ ...markStyle, color: hex }))}
-              className={`size-6 rounded-full ring-1 ring-black/20 ${color === hex ? "outline-2 outline-offset-2 outline-[var(--ink)]" : ""}`}
-              style={{ background: hex }}
-            />
-          ))}
-        </div>
+        <Swatches value={markStyle.color} onChange={(color) => onMarkStyle({ ...markStyle, color })} />
         <Divider />
         <Range
           label={isText ? "크기" : "굵기"}
-          value={sizeValue}
+          value={isText ? markStyle.textSize : markStyle.width}
           min={isText ? 12 : 2}
           max={isText ? 200 : 60}
           unit="px"
-          onChange={(value) =>
-            mark
-              ? props.onMarkChange(isText ? { size: value } : { width: value }, `mark-size-${mark.id}`)
-              : onMarkStyle(isText ? { ...markStyle, textSize: value } : { ...markStyle, width: value })
-          }
+          onChange={(value) => onMarkStyle(isText ? { ...markStyle, textSize: value } : { ...markStyle, width: value })}
           onCommit={props.onFilterCommit}
         />
-        {mark && (
-          <>
-            <Divider />
-            <TextButton onClick={props.onMarkDelete} icon={<TrashIcon size={16} />}>
-              지우기
-            </TextButton>
-          </>
-        )}
       </>
     );
   }
@@ -141,7 +111,8 @@ function Divider() {
   return <span className="h-5 w-px shrink-0 bg-[var(--line)]" />;
 }
 
-function IconButton({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: ReactNode }) {
+// 마우스를 올리면 글자색만 진해진다. 바탕을 칠하는 것은 눌린 상태뿐이라, 올린 것이 켜진 것처럼 보이지 않는다.
+export function IconButton({ label, pressed, onClick, children }: { label: string; pressed?: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <motion.button
       type="button"
@@ -151,7 +122,7 @@ function IconButton({ label, pressed, onClick, children }: { label: string; pres
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.12 }}
       onClick={onClick}
-      className={`grid size-8 shrink-0 place-items-center rounded-md hover:bg-[var(--hover)] ${pressed ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+      className={`grid size-8 shrink-0 place-items-center rounded-md ${pressed ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
     >
       {children}
     </motion.button>
@@ -172,10 +143,11 @@ function TextButton({ onClick, disabled, icon, children }: { onClick: () => void
   );
 }
 
-// 밑줄이 미끄러지는 단일 선택(tastepin 세그먼트 컨트롤).
-function Underline({ label, options, value, onChange }: { label: string; options: { key: string; label: string }[]; value: string; onChange: (key: string) => void }) {
+// 칩 한 줄의 단일 선택(tastepin 자르기와 수평: 옵션 막대의 비율 칩, 고른 칩을 채운다).
+// 고른 칩의 면은 도구 열과 머리줄의 눌린 단추와 같은 면을 쓴다.
+function Chips({ label, options, value, onChange }: { label: string; options: { key: string; label: string }[]; value: string; onChange: (key: string) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-3" role="radiogroup" aria-label={label}>
+    <div className="flex shrink-0 items-center gap-1" role="radiogroup" aria-label={label}>
       {options.map((option) => {
         const on = option.key === value;
         return (
@@ -185,10 +157,9 @@ function Underline({ label, options, value, onChange }: { label: string; options
             role="radio"
             aria-checked={on}
             onClick={() => onChange(option.key)}
-            className={`relative h-8 shrink-0 px-0.5 ${on ? "font-[650] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
+            className={`h-8 shrink-0 rounded-md px-2.5 ${on ? "bg-[var(--accent-soft)] font-[650] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
           >
             {option.label}
-            {on && <motion.span layoutId={`underline-${label}`} className="absolute right-0 bottom-0.5 left-0 h-0.5 rounded-full bg-[var(--ink)]" transition={{ duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }} />}
           </button>
         );
       })}
@@ -196,14 +167,36 @@ function Underline({ label, options, value, onChange }: { label: string; options
   );
 }
 
-function Range({ label, value, min, max, unit, disabled, onChange, onCommit }: { label: string; value: number; min: number; max: number; unit: string; disabled?: boolean; onChange: (value: number) => void; onCommit: () => void }) {
+// small은 표시 위 떠 있는 막대용이다. 휴대폰 너비에서도 막대가 작업 화면 안에 들어가게 견본을 조금 줄인다.
+export function Swatches({ value, small, onChange }: { value: string; small?: boolean; onChange: (hex: string) => void }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1.5" role="radiogroup" aria-label="색">
+      {markColors.map(({ hex, name }) => (
+        <motion.button
+          key={hex}
+          type="button"
+          role="radio"
+          aria-checked={value === hex}
+          aria-label={name}
+          title={name}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onChange(hex)}
+          className={`${small ? "size-5" : "size-6"} rounded-full ring-1 ring-black/20 ${value === hex ? "outline-2 outline-offset-2 outline-[var(--ink)]" : ""}`}
+          style={{ background: hex }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function Range({ label, value, min, max, unit, disabled, compact, onChange, onCommit }: { label: string; value: number; min: number; max: number; unit: string; disabled?: boolean; compact?: boolean; onChange: (value: number) => void; onCommit: () => void }) {
   const fill = ((value - min) / (max - min)) * 100;
   return (
     <label className={`flex shrink-0 items-center gap-2.5 ${disabled ? "opacity-40" : ""}`}>
-      <span className="text-[var(--muted)]">{label}</span>
+      <span className={`text-[var(--muted)] ${compact ? "max-sm:sr-only" : ""}`}>{label}</span>
       <input
         type="range"
-        className="range w-32"
+        className={`range ${compact ? "w-16 sm:w-20" : "w-32"}`}
         min={min}
         max={max}
         value={value}
@@ -213,7 +206,7 @@ function Range({ label, value, min, max, unit, disabled, onChange, onCommit }: {
         onPointerUp={onCommit}
         onKeyUp={onCommit}
       />
-      <span className="w-12 text-[13px] tabular-nums">
+      <span className={`text-[13px] tabular-nums ${compact ? "w-10" : "w-12"}`}>
         {value}
         {unit}
       </span>

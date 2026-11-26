@@ -22,7 +22,14 @@ export interface MarkStyle {
   shape: "rect" | "arrow";
 }
 
-export const markColors = ["#ffffff", "#111317", "#ff4d4f", "#ffb020", "#2fbf71", "#3a86ff", "#a259ff"];
+// 표시 색은 다섯 가지(tastepin 표시 고르고 고치기: 색 견본 5개). 보라는 AI 표시에만 쓰는 규칙이라 넣지 않는다.
+export const markColors = [
+  { hex: "#ffffff", name: "흰색" },
+  { hex: "#111317", name: "검정" },
+  { hex: "#ff4d4f", name: "빨강" },
+  { hex: "#ffb020", name: "노랑" },
+  { hex: "#3a86ff", name: "파랑" },
+];
 
 // -1은 원본 비율이다. 원본 비율은 90도 돌렸는지에 따라 달라져 값으로 미리 정해 둘 수 없다.
 export const cropRatios: { label: string; value: number | null }[] = [

@@ -63,7 +63,8 @@ export interface FilterPreset {
 }
 
 export const filterPresets: FilterPreset[] = [
-  { id: "none", label: "원본", adjust: {} },
+  // "원본"은 비교의 원본 이름표, 자르기의 원본 비율과 겹쳐 필터를 빼는 칸은 "없음"으로 부른다.
+  { id: "none", label: "없음", adjust: {} },
   { id: "clear", label: "맑음", adjust: { exposure: 10, contrast: 18, saturation: 22 } },
   { id: "warm", label: "노을", adjust: { warmth: 45, saturation: 12, exposure: 6, vignette: 25 } },
   { id: "cool", label: "새벽", adjust: { warmth: -40, tint: -10, contrast: 10, fade: 15 } },
