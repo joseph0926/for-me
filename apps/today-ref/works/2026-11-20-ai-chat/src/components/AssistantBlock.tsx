@@ -4,8 +4,10 @@ import { useState } from "react";
 
 import { models, tools } from "../answers";
 import { type AssistantTurn, progressOf } from "../chat";
+import { quick } from "../motion";
 import { AnswerText } from "./AnswerText";
 import { Icon } from "./Icon";
+import { QuestionList } from "./QuestionList";
 
 export function AssistantBlock({
   turn,
@@ -44,7 +46,7 @@ export function AssistantBlock({
               type="button"
               onClick={() => setStepsOpen((open) => !open)}
               aria-expanded={stepsOpen}
-              className="flex items-center gap-1 text-[13px] text-muted"
+              className="text-btn -ml-2 gap-1 font-normal text-muted"
             >
               작업 {stepsShown}단계
               <Icon name="chevronDown" size={16} className={`transition-transform ${stepsOpen ? "rotate-180" : ""}`} />
@@ -57,6 +59,8 @@ export function AssistantBlock({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
+                // 펼침 영역은 스프링 없이 곡선으로 열고 같은 길로 닫는다(tastepin 펼침 영역 예외)
+                transition={quick}
               >
                 {steps.slice(0, stepsShown).map((step, index) => {
                   const running = !finished && phase === "working" && index === stepsShown - 1;
@@ -90,30 +94,21 @@ export function AssistantBlock({
         <p className="mt-3 text-[13px] text-muted">{charsShown > 0 ? "답변을 중간에 멈췄어요." : "답변을 시작하기 전에 멈췄어요."}</p>
       )}
 
+      {/* 다시 생성, 출처, 복사는 같은 높이와 모서리의 바탕 없는 버튼 한 벌로 둔다. 출처만 테두리를 두르지 않는다. */}
       {finished && (
-        <div className="mt-4 flex items-center gap-1 border-b border-line pb-4">
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={!canAct}
-            className="flex h-9 items-center gap-1.5 rounded-full pr-3 pl-1 text-[13px] font-medium text-muted disabled:opacity-40"
-          >
+        <div className="-ml-2 mt-3 flex items-center gap-1">
+          <button type="button" onClick={onRegenerate} disabled={!canAct} className="text-btn text-muted">
             <Icon name="regenerate" size={18} />
             다시 생성
           </button>
-          <div className="flex-1" />
           {sources.length > 0 && phase === "done" && (
-            <button
-              type="button"
-              onClick={() => onCitation(null)}
-              className="tabular flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-medium"
-            >
-              <Icon name="sources" size={16} className="text-accent" />
+            <button type="button" onClick={() => onCitation(null)} className="text-btn text-muted">
+              <Icon name="sources" size={18} />
               출처 {sources.length}
             </button>
           )}
           {charsShown > 0 && (
-            <button type="button" onClick={onCopy} aria-label="답변 복사" className="grid size-9 place-items-center rounded-full text-muted">
+            <button type="button" onClick={onCopy} aria-label="답변 복사" className="icon-btn text-muted">
               <Icon name="copy" size={18} />
             </button>
           )}
@@ -121,23 +116,8 @@ export function AssistantBlock({
       )}
 
       {isLatest && phase === "done" && (
-        <div className="mt-3">
-          <p className="mb-1 text-[12px] font-medium text-muted">이어서 물어보기</p>
-          <ul>
-            {followUps.map((question) => (
-              <li key={question} className="border-b border-line last:border-0">
-                <button
-                  type="button"
-                  onClick={() => onFollowUp(question)}
-                  disabled={!canAct}
-                  className="flex w-full items-center gap-3 py-3 text-left text-[14px] disabled:opacity-40"
-                >
-                  <span className="flex-1">{question}</span>
-                  <Icon name="plus" size={18} className="shrink-0 text-accent" />
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-5">
+          <QuestionList label="이어서 물어보기" questions={followUps} disabled={!canAct} onPick={onFollowUp} />
         </div>
       )}
     </article>

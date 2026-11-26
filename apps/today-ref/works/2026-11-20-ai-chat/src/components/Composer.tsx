@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { type FormEvent, type KeyboardEvent, useState } from "react";
 
 import { type Tool, tools } from "../answers";
+import { quick } from "../motion";
 import { Icon, type IconName } from "./Icon";
 
 const toolIcons: Record<Tool, IconName> = { web: "globe", think: "bulb" };
@@ -49,11 +50,12 @@ export function Composer({
             <button type="button" aria-label="도구 메뉴 닫기" className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} />
             <motion.ul
               role="menu"
-              className="absolute bottom-full left-3 z-20 mb-2 w-[240px] rounded-2xl border border-line bg-surface p-1.5 shadow-[0_10px_30px_rgb(0_0_0/14%)]"
+              className="absolute bottom-full left-3 z-20 mb-2 w-[264px] origin-bottom-left rounded-md border border-line bg-surface p-1.5 shadow-[0_10px_30px_rgb(0_0_0/14%)]"
+              // 메뉴 패널은 220ms 곡선으로 열고 같은 길로 닫는다(tastepin 드로어 예외의 메뉴 패널 값)
               initial={{ opacity: 0, y: 6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={{ duration: 0.14 }}
+              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              transition={quick}
             >
               {(Object.keys(tools) as Tool[]).map((id) => (
                 <li key={id}>
@@ -65,7 +67,7 @@ export function Composer({
                       onToolChange(tool === id ? null : id);
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-start gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-raised"
+                    className="question-row flex w-full items-start gap-3 rounded-md px-2.5 py-2 text-left"
                   >
                     <Icon name={toolIcons[id]} size={20} className="mt-0.5 shrink-0 text-muted" />
                     <span className="min-w-0 flex-1">
@@ -87,7 +89,10 @@ export function Composer({
           다른 대화의 답을 마저 쓰고 있어요. 끝나면 보낼 수 있어요.
         </p>
       )}
-      <div className="rounded-[22px] border border-line bg-surface px-3 pt-2.5 pb-2 shadow-[0_2px_10px_rgb(0_0_0/5%)]">
+      {/* 입력 상자는 tastepin 입력 값대로 모서리 6px이고 글줄에 초점이 들어오면 테두리가 2px로 짙어진다. 보낸 뒤에도
+          초점이 남아 늘 보이는 테두리라, 출처와 선택 표시에만 쓰는 이끼 초록 대신 보조 글자색을 쓴다.
+          +나 보내기를 마우스로 눌렀을 때는 짙어지지 않게 글줄의 초점만 본다. */}
+      <div className="rounded-md border border-line bg-surface px-3 pt-2.5 pb-2 shadow-[0_2px_10px_rgb(0_0_0/5%)] transition-[border-color,box-shadow] duration-[120ms] has-[textarea:focus]:border-muted has-[textarea:focus]:shadow-[inset_0_0_0_1px_var(--muted)]">
         {tool && (
           <div className="mb-1.5">
             <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-accent-soft pr-1 pl-2.5 text-[13px] font-medium text-accent">
@@ -119,7 +124,7 @@ export function Composer({
             onClick={() => setMenuOpen((open) => !open)}
             aria-label="도구"
             aria-expanded={menuOpen}
-            className={`grid size-9 place-items-center rounded-full border border-line transition ${menuOpen ? "rotate-45 bg-raised" : ""}`}
+            className={`icon-btn -ml-1.5 [&>svg]:transition-transform [&>svg]:duration-200 ${menuOpen ? "bg-raised [&>svg]:rotate-45" : ""}`}
           >
             <Icon name="plus" size={18} />
           </button>
@@ -128,7 +133,7 @@ export function Composer({
               type="button"
               onClick={onStop}
               aria-label="답변 멈추기"
-              className="grid size-9 place-items-center rounded-full bg-ink text-surface"
+              className="press grid size-9 place-items-center rounded-full bg-ink text-surface transition-[scale] duration-[120ms]"
             >
               <span className="size-3 rounded-[3px] bg-current" />
             </button>
@@ -137,7 +142,7 @@ export function Composer({
               type="submit"
               disabled={!canSend}
               aria-label="보내기"
-              className="grid size-9 place-items-center rounded-full bg-ink text-surface transition disabled:bg-raised-2 disabled:text-faint"
+              className="press grid size-9 place-items-center rounded-full bg-ink text-surface transition-[scale,background-color,color] duration-[120ms] disabled:bg-raised-2 disabled:text-faint"
             >
               <Icon name="send" size={18} />
             </button>

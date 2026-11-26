@@ -8,8 +8,10 @@ import { AssistantBlock } from "./components/AssistantBlock";
 import { Composer } from "./components/Composer";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { Icon } from "./components/Icon";
+import { QuestionList } from "./components/QuestionList";
 import { Sheet } from "./components/Sheet";
 import { SourcesList } from "./components/SourcesList";
+import { quick } from "./motion";
 
 type Overlay =
   | { kind: "history" }
@@ -100,14 +102,14 @@ export function App() {
 
   return (
     <div className="relative flex h-full flex-col bg-surface">
-      <header className="flex h-14 shrink-0 items-center gap-1 px-2">
-        <button type="button" onClick={() => setOverlay({ kind: "history" })} aria-label="지난 대화" className="grid size-10 place-items-center rounded-full">
+      <header className="flex h-14 shrink-0 items-center gap-1 px-2.5">
+        <button type="button" onClick={() => setOverlay({ kind: "history" })} aria-label="지난 대화" className="icon-btn">
           <Icon name="menu" size={22} />
         </button>
         <button
           type="button"
           onClick={() => setOverlay({ kind: "model" })}
-          className="flex h-10 items-center gap-1 rounded-full px-2 text-[16px] font-semibold"
+          className="text-btn text-[16px] font-semibold"
           aria-label={`모델 바꾸기, 지금 ${models[model].name}`}
         >
           {models[model].name}
@@ -119,7 +121,7 @@ export function App() {
           onClick={() => dispatch({ type: "newChat" })}
           disabled={!conversation}
           aria-label="새 대화"
-          className="grid size-10 place-items-center rounded-full disabled:opacity-30"
+          className="icon-btn"
         >
           <Icon name="compose" size={21} />
         </button>
@@ -127,7 +129,7 @@ export function App() {
 
       <div ref={scrollRef} onScroll={onScroll} className="no-scrollbar relative min-h-0 flex-1 overflow-y-auto">
         {conversation ? (
-          <div className="space-y-6 pt-2 pb-6">
+          <div className="space-y-7 pt-2 pb-6">
             {conversation.turns.map((turn) =>
               turn.role === "user" ? (
                 <div key={turn.id} className="flex justify-end pl-14 pr-4">
@@ -164,7 +166,8 @@ export function App() {
             className="absolute bottom-[132px] left-1/2 z-10 grid size-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-surface shadow-md"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={quick}
           >
             <Icon name="arrowDown" size={18} />
           </motion.button>
@@ -208,22 +211,22 @@ export function App() {
                       setOverlay(null);
                     }}
                     aria-pressed={model === id}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left active:bg-raised"
+                    className="question-row flex w-full items-center gap-3 rounded-md px-3 py-[11px] text-left"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold">{models[id].name}</span>
-                      <span className="block text-[13px] text-muted">{models[id].description}</span>
+                      <span className="mt-0.5 block text-[13px] text-muted">{models[id].description}</span>
                     </span>
                     {model === id && <Icon name="check" className="text-accent" />}
                   </button>
                 </li>
               ))}
             </ul>
-            <p className="px-4 pt-2 text-[12px] text-faint">바꾼 모델은 다음 질문과 다시 생성부터 씁니다.</p>
           </Sheet>
         )}
         {overlay?.kind === "sources" && sourcesTurn && (
-          <Sheet key="sources" title={`출처 ${sourcesTurn.plan.sources.length}`} onClose={() => setOverlay(null)}>
+          // 개수는 묶음 제목에만 둔다. 시트 제목과 묶음 제목이 같은 숫자를 되풀이하지 않게 한다.
+          <Sheet key="sources" title="출처" onClose={() => setOverlay(null)}>
             <SourcesList sources={sourcesTurn.plan.sources} highlightId={overlay.highlightId} />
           </Sheet>
         )}
@@ -234,10 +237,11 @@ export function App() {
           <motion.p
             key={toast.key}
             role="status"
-            className="absolute top-16 left-1/2 z-50 max-w-[86%] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-center text-[13px] font-medium text-surface"
+            className="absolute top-16 left-1/2 z-50 max-w-[86%] -translate-x-1/2 rounded-md bg-ink px-4 py-2 text-center text-[13px] font-medium text-surface"
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={quick}
           >
             {toast.text}
           </motion.p>
@@ -257,22 +261,7 @@ function EmptyChat({ disabled, onPick }: { disabled: boolean; onPick: (question:
         <h1 className="mt-4 text-[22px] font-bold tracking-[-0.02em]">무엇을 도와드릴까요?</h1>
         <p className="mt-1 text-[14px] text-muted">궁금한 걸 묻고, 웹 검색을 켜면 출처까지 확인할 수 있어요.</p>
       </div>
-      <p className="mb-1.5 text-[12px] font-medium text-muted">이렇게 물어보세요</p>
-      <ul className="space-y-2">
-        {suggestions.map((question) => (
-          <li key={question}>
-            <button
-              type="button"
-              onClick={() => onPick(question)}
-              disabled={disabled}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line px-4 py-3 text-left text-[14px] active:bg-raised disabled:opacity-40"
-            >
-              <span className="flex-1">{question}</span>
-              <Icon name="chevronRight" size={16} className="shrink-0 text-faint" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <QuestionList label="이렇게 물어보세요" questions={suggestions} disabled={disabled} onPick={onPick} />
     </div>
   );
 }

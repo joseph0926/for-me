@@ -1,8 +1,9 @@
 // 왼쪽에서 열리는 지난 대화 목록. 오늘, 어제, 지난 7일로 묶는다.
+// 대화가 몇 개뿐이라 검색 칸 없이 목록 하나로 둔다(2026-11-26 tastepin 다듬기에서 뺌).
 import { motion } from "motion/react";
-import { useState } from "react";
 
 import type { Conversation } from "../chat";
+import { panel } from "../motion";
 import { Icon } from "./Icon";
 
 const groups: { label: string; test: (daysAgo: number) => boolean }[] = [
@@ -26,10 +27,6 @@ export function HistoryDrawer({
   onNewChat: () => void;
   onClose: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const keyword = query.trim();
-  const visible = keyword ? conversations.filter((conversation) => conversation.title.includes(keyword)) : conversations;
-
   return (
     <div className="absolute inset-0 z-40">
       <motion.button
@@ -40,6 +37,7 @@ export function HistoryDrawer({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={panel}
       />
       <motion.nav
         aria-label="지난 대화"
@@ -47,32 +45,26 @@ export function HistoryDrawer({
         initial={{ x: "-100%" }}
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
-        transition={{ type: "spring", stiffness: 420, damping: 42 }}
+        // 가장자리에서 들어오는 서랍은 스프링 없이 300ms 곡선으로 열고 같은 길로 닫는다(tastepin 드로어 예외)
+        transition={panel}
       >
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-raised px-3 text-muted">
-            <Icon name="search" size={18} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="대화 검색"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-faint"
-            />
-          </label>
-          <button type="button" onClick={onNewChat} aria-label="새 대화" className="grid size-10 place-items-center rounded-full">
-            <Icon name="compose" />
+        <div className="px-2 pt-3">
+          <button type="button" onClick={onNewChat} className="question-row flex w-full items-center gap-2 rounded-md px-3 py-[11px] text-left text-[15px] font-semibold">
+            <Icon name="compose" size={18} />새 대화
           </button>
         </div>
 
         <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-2 pb-4">
           {groups.map((group) => {
-            const items = visible.filter((conversation) => group.test(conversation.daysAgo));
+            const items = conversations.filter((conversation) => group.test(conversation.daysAgo));
             if (items.length === 0) return null;
             return (
-              <section key={group.label} className="mt-3">
-                <h2 className="px-3 pb-1 text-[12px] font-medium text-muted">{group.label}</h2>
+              // 묶음은 선 없이 28px 여백과 묶음 제목으로 나눈다(tastepin 묶음 나누기 값)
+              <section key={group.label} className="mt-7 first:mt-4">
+                <h2 className="px-3 pb-1 text-[13px] font-semibold text-muted">{group.label}</h2>
                 <ul>
                   {items.map((conversation) => {
+                    // 지금 대화는 이 앱의 선택 표시인 이끼 초록 면으로, 마우스를 올린 행은 회색 면으로 둬 서로 헷갈리지 않게 한다
                     const selected = conversation.id === currentId;
                     return (
                       <li key={conversation.id}>
@@ -80,7 +72,7 @@ export function HistoryDrawer({
                           type="button"
                           onClick={() => onOpen(conversation.id)}
                           aria-current={selected ? "page" : undefined}
-                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[14px] ${selected ? "bg-raised font-semibold" : ""}`}
+                          className={`flex w-full items-center gap-2 rounded-md px-3 py-[11px] text-left text-[15px] ${selected ? "bg-accent-soft font-semibold" : "question-row"}`}
                         >
                           <span className="min-w-0 flex-1 truncate">{conversation.title}</span>
                           {conversation.id === generatingId && <span className="spinner shrink-0" aria-label="답을 쓰는 중" />}
@@ -92,7 +84,6 @@ export function HistoryDrawer({
               </section>
             );
           })}
-          {visible.length === 0 && <p className="px-3 pt-6 text-center text-[13px] text-muted">"{keyword}"가 들어간 대화가 없어요.</p>}
         </div>
       </motion.nav>
     </div>

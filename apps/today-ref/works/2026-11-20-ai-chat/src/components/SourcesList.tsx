@@ -10,7 +10,8 @@ export function SourcesList({ sources, highlightId }: { sources: Source[]; highl
       {groups.map((group) => {
         const items = sources.filter((source) => source.group === group);
         return (
-          <section key={group} className="border-b border-line py-2 last:border-0">
+          // 묶음은 선 없이 여백으로 나눈다
+          <section key={group} className="pt-1 pb-3">
             <h3 className="tabular flex items-center justify-between py-1 text-[13px] font-semibold">
               {groupLabels[group]}
               <span className="font-normal text-muted">{items.length}</span>
@@ -19,14 +20,13 @@ export function SourcesList({ sources, highlightId }: { sources: Source[]; highl
               {items.map((source) => (
                 <li
                   key={source.id}
-                  className={`flex gap-3 rounded-xl px-2 py-2.5 ${source.id === highlightId ? "bg-accent-soft" : ""}`}
+                  className={`flex gap-3 rounded-md px-2 py-[11px] ${source.id === highlightId ? "bg-accent-soft" : ""}`}
                 >
-                  <span className="tabular mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-raised text-[11px] font-semibold text-muted">
-                    {source.id}
-                  </span>
+                  {/* 출처 번호는 식별 번호라 면 없이 보조색 고정폭 숫자로 둔다(tastepin 배지 값) */}
+                  <span className="tabular w-4 shrink-0 pt-px text-right text-[13px] text-muted">{source.id}</span>
                   <span className="min-w-0">
                     <span className="block text-[12px] text-muted">{source.publisher}</span>
-                    <span className="block text-[14px] leading-snug">{source.title}</span>
+                    <span className="mt-0.5 block text-[15px] leading-snug">{source.title}</span>
                   </span>
                 </li>
               ))}
