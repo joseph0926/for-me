@@ -19,6 +19,7 @@ for-me/
 │   ├── screen-note/        개인용 이미지 편집기(Tauri 2, Rust, React, Konva)
 │   ├── journal/            사용과 개발 기록 로컬 웹과 CLI(Node, 외부 패키지 없음)
 │   └── today-ref/          주제별 UI 레퍼런스 수집과 조합 구현(React, Vite, pnpm 작업 공간)
+├── scripts/                여러 앱을 함께 점검하는 스크립트(Node, 외부 패키지 없음)
 ├── docs/                   모든 앱에 공통인 개발 절차와 QA 절차
 ├── .docs/                  Git 규칙
 ├── AGENTS.md               작업 규칙
@@ -59,6 +60,32 @@ Mac에 설치해 사용하는 제품은 기존 설치 경로를 기준으로 관
    ```sh
    mdfind 'kMDItemCFBundleIdentifier == "제품의 번들 식별자"'
    ```
+
+### 빌드와 설치본 점검
+
+제품마다 소스 버전을 빌드 산출물, 이 머신의 설치본, 의존성 설치 상태와 한 번에 대조합니다. 읽기만 하고 빌드, 설치, 삭제는 하지 않습니다. 저장소 루트에서 실행합니다.
+
+```sh
+node scripts/build-status.mjs
+node scripts/build-status.mjs --json
+```
+
+| 표시 | 뜻 |
+|---|---|
+| 최신 | 소스 버전과 같고, 빌드 뒤 바뀐 소스가 없음 |
+| 오래됨 | 버전이 다르거나, 빌드 뒤 소스가 바뀌었거나, 설치본이 최신 빌드와 다른 파일이거나, 마지막 `pnpm install` 뒤 lockfile이 바뀜 |
+| 없음 | 산출물이나 설치본이 없음 |
+| 미확인 | 기기가 없거나 이 운영체제에서 볼 수 없음 |
+
+오래됨이나 없음이 하나라도 있으면 종료 코드 1, 모두 최신이거나 미확인이면 0입니다.
+
+- 대조 대상과 경로는 스크립트 위쪽의 `products`가 정합니다. 제품, 산출물 경로나 설치 위치가 바뀌면 그 표를 함께 고칩니다.
+- 빌드 뒤 소스 변경은 파일 수정 시각으로 판정합니다. `git pull`이나 브랜치 이동처럼 내용 없이 수정 시각만 바뀐 경우에도 오래됨으로 나옵니다.
+- 의존성은 pnpm이 설치할 때 남기는 `node_modules/.pnpm/lock.yaml`과 `pnpm-lock.yaml`의 수정 시각을 비교합니다. Cargo와 Gradle 의존성은 빌드할 때 받으므로 따로 보지 않습니다.
+- Windows 설치본은 실행 파일의 제품 버전과 SHA-256을 릴리스 빌드와 비교합니다. Screen Note는 설치 프로그램의 기본 경로, screen-gif는 실행 파일을 복사해 둔 `%LOCALAPPDATA%\Programs\screen-gif`를 봅니다.
+- Android는 `adb devices`로 연결된 기기와 가상 기기마다 설치된 `versionName`을 읽습니다. adb 서버가 꺼져 있으면 이 명령이 서버를 켭니다. 기기가 없으면 미확인으로 남깁니다.
+- macOS 설치본 대조는 아직 없습니다. macOS에서는 앞 절의 절차로 확인하고, TermKeys는 Windows에서 점검하지 않습니다.
+- 테스트는 `node --test scripts/*.test.mjs`입니다.
 
 ### Node와 pnpm 버전
 
