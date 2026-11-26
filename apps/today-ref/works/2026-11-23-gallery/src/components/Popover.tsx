@@ -1,6 +1,6 @@
 // 단추 아래에 붙는 작은 떠 있는 창. 바깥을 누르거나 Esc를 누르면 닫힌다.
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 interface PopoverProps {
   label: ReactNode;
@@ -12,7 +12,28 @@ interface PopoverProps {
 
 export function Popover({ label, active, align = "left", ariaLabel, children }: PopoverProps) {
   const [open, setOpen] = useState(false);
+  const [shift, setShift] = useState(0);
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  // 단추가 화면 가장자리 가까이 있으면 창이 화면 밖으로 나가 휴대폰 폭에서 가로로 넘쳤다(2026-11-26 refine, 색과 태그 메뉴).
+  // 열린 직후 창의 실제 폭을 재서 양쪽 8px 안으로 당긴다. 크기 변화는 motion이 transform으로 하므로 위치는 margin으로 옮긴다.
+  useLayoutEffect(() => {
+    if (!open) {
+      setShift(0);
+      return;
+    }
+    const element = panel.current;
+    if (!element) return;
+    const gutter = 8;
+    const rect = element.getBoundingClientRect();
+    const left = rect.left - shift;
+    const right = left + element.offsetWidth;
+    let next = 0;
+    if (right > window.innerWidth - gutter) next = window.innerWidth - gutter - right;
+    if (left + next < gutter) next = gutter - left;
+    if (next !== shift) setShift(next);
+  }, [open, shift]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +72,8 @@ export function Popover({ label, active, align = "left", ariaLabel, children }: 
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={panel}
+            style={{ marginLeft: shift }}
             // 버튼 쪽 모서리를 기준으로 0.96배에서 커지며 열리고 같은 길로 닫힌다(140ms).
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
