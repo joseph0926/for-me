@@ -132,7 +132,7 @@ export function ContextMenu(props: ContextMenuProps) {
           <Divider />
           <div onPointerEnter={() => setSubmenu(null)}>
             <MenuList
-              entries={[{ key: "favorite", label: allFavorite ? "즐겨찾기에서 빼기" : "즐겨찾기", hint: "F", onSelect: run(props.onFavorite) }]}
+              entries={[{ key: "favorite", label: allFavorite ? "즐겨찾기 빼기" : "즐겨찾기", hint: "F", onSelect: run(props.onFavorite) }]}
             />
             <div className="px-2.5 pt-1.5 pb-1">
               <p className="pb-1.5 text-[13px] text-[var(--faint)]">색 태그</p>

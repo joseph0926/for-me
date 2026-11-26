@@ -1,6 +1,6 @@
 // 좁은 화면에서 아래에서 올라오는 시트(tastepin 드로어): 내용 높이만큼, 최대 85%. 곡선 300ms로 들어오고 같은 길로 나간다.
 import { motion } from "motion/react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 const ease = [0.2, 0, 0, 1] as const;
 
@@ -12,16 +12,19 @@ export function Sheet({ label, onClose, raised = false, className = "", children
   className?: string;
   children: ReactNode;
 }) {
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      // 넓은 화면에서는 className의 md:hidden, lg:hidden으로 시트가 숨어 있어도 그려져 있다.
+      // 숨은 시트가 Esc를 받으면 옆 정보 패널이 닫히므로 화면에 보일 때만 닫는다.
+      if (event.key === "Escape" && (root.current?.getClientRects().length ?? 0) > 0) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   return (
-    <div className={`fixed inset-0 ${raised ? "z-40" : "z-20"} ${className}`}>
+    <div ref={root} className={`fixed inset-0 ${raised ? "z-40" : "z-20"} ${className}`}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

@@ -20,10 +20,12 @@ import {
   countByKind,
   createLibrary,
   emptyFilters,
+  folders,
   groupItems,
   itemsInPlace,
   libraryReducer,
   placeLabel,
+  kindSummary,
   sortItems,
   type Filters,
   type MediaItem,
@@ -41,7 +43,7 @@ export function App() {
   const [place, setPlace] = useState<Place>({ type: "all" });
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [sort, setSort] = useState<SortKey>("taken");
-  const [rowHeight, setRowHeight] = useState(190);
+  const [rowHeight, setRowHeight] = useState(150);
   const [selected, setSelected] = useState<string[]>([]);
   const [anchor, setAnchor] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -109,6 +111,12 @@ export function App() {
     dispatch({ type: "patch", ids, patch: { trashed: true } });
     setSelected((current) => current.filter((id) => !ids.includes(id)));
     showToast(`${ids.length}개를 휴지통으로 옮겼습니다`, () => dispatch({ type: "patch", ids, patch: { trashed: false } }));
+  };
+
+  // 오른쪽 클릭 메뉴와 일괄 작업 막대가 함께 쓴다.
+  const moveTo = (ids: string[], folder: string) => {
+    dispatch({ type: "patch", ids, patch: { folder } });
+    showToast(`${ids.length}개를 ${folder} 폴더로 옮겼습니다`);
   };
 
   const deleteForever = (ids: string[]) => {
@@ -231,15 +239,12 @@ export function App() {
 
   const emptyMessage =
     place.type === "trash" && placeItems.length === 0 ? (
-      <EmptyState title="휴지통이 비어 있습니다" body="지운 항목은 여기에서 복원하거나 영구 삭제할 수 있습니다." />
+      <EmptyState title="휴지통이 비어 있습니다" />
     ) : placeItems.length === 0 ? (
-      <EmptyState title={`${placeLabel(place)}에 항목이 없습니다`} body="파일을 창에 끌어다 놓거나 가져오기로 추가하세요." />
+      // 사용법 안내문 대신 할 일을 단추로 둔다. 끌어 놓기는 창 전체가 받는다.
+      <EmptyState title={`${placeLabel(place)}에 항목이 없습니다`} action={{ label: "가져오기", run: () => fileInput.current?.click() }} />
     ) : (
-      <EmptyState
-        title="조건에 맞는 항목이 없습니다"
-        body={`${placeLabel(place)}의 ${placeItems.length}개 중 거르기와 검색에 맞는 항목이 없습니다.`}
-        action={{ label: "거르기와 검색 지우기", run: () => setFilters(emptyFilters) }}
-      />
+      <EmptyState title="조건에 맞는 항목이 없습니다" action={{ label: "거르기와 검색 지우기", run: () => setFilters(emptyFilters) }} />
     );
 
   const sheetOpen = sidebarOpen || (infoOpen && (viewerId !== null || !wideLayout()));
@@ -267,8 +272,9 @@ export function App() {
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15px] leading-tight font-[650]">{placeLabel(place)}</h1>
+          {/* 달 머리글과 같은 꼴(사진 4, 동영상 1)로 쓰고 없는 형식은 빼서 휴지통에 "동영상 0개, GIF 0개"가 남지 않게 한다. */}
           <p className="truncate text-[13px] leading-tight text-[var(--muted)]">
-            사진 {counts.image.toLocaleString()}장, 동영상 {counts.video}개, GIF {counts.gif}개
+            {kindSummary(counts) || "항목 없음"}
             {ordered.length !== placeItems.length && ` (전체 ${placeItems.length}개 중)`}
           </p>
         </div>
@@ -302,7 +308,8 @@ export function App() {
           aria-label="정보 패널"
           aria-pressed={infoOpen}
           onClick={() => setInfoOpen((open) => !open)}
-          className={`grid size-8 place-items-center rounded-md hover:bg-[var(--hover)] ${infoOpen ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
+          // 켜진 상태는 크게 보기의 정보 단추처럼 면으로 보인다. 글자색만 바꾸면 본문색과 보조색 차이라 잘 보이지 않았다.
+          className={`grid size-8 place-items-center rounded-md ${infoOpen ? "bg-[var(--accent-soft)] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"}`}
         >
           <InfoIcon size={18} />
         </button>
@@ -346,6 +353,9 @@ export function App() {
               dispatch({ type: "patch", ids, patch: { trashed: false } });
               showToast(`${ids.length}개를 복원했습니다`);
             }}
+            folders={folders}
+            sharedFolder={visibleSelection.every((item) => item.folder === visibleSelection[0]?.folder) ? visibleSelection[0]?.folder : undefined}
+            onMove={(folder) => moveTo(visibleSelection.map((item) => item.id), folder)}
             onClear={clearSelection}
           />
         </main>
@@ -414,10 +424,7 @@ export function App() {
           onFavorite={() => dispatch({ type: "toggleFavorite", ids: menu.ids })}
           onColorTag={(colorTag) => dispatch({ type: "patch", ids: menu.ids, patch: { colorTag } })}
           onRating={(rating) => dispatch({ type: "patch", ids: menu.ids, patch: { rating } })}
-          onMove={(folder) => {
-            dispatch({ type: "patch", ids: menu.ids, patch: { folder } });
-            showToast(`${menu.ids.length}개를 ${folder} 폴더로 옮겼습니다`);
-          }}
+          onMove={(folder) => moveTo(menu.ids, folder)}
           onTrash={() => trash(menu.ids)}
           onRestore={() => {
             dispatch({ type: "patch", ids: menu.ids, patch: { trashed: false } });
@@ -485,11 +492,10 @@ function neighbour(current: string | null, key: string, ids: string[]): string |
   return row[0].id;
 }
 
-function EmptyState({ title, body, action }: { title: string; body: string; action?: { label: string; run: () => void } }) {
+function EmptyState({ title, action }: { title: string; action?: { label: string; run: () => void } }) {
   return (
     <div className="flex max-w-xs flex-col items-center gap-2 text-center">
       <p className="text-[15px] font-[650]">{title}</p>
-      <p className="text-[13px] leading-relaxed text-[var(--muted)]">{body}</p>
       {action && (
         <button type="button" onClick={action.run} className="mt-2 h-8 rounded-md border border-[var(--line)] px-3 hover:bg-[var(--hover)]">
           {action.label}

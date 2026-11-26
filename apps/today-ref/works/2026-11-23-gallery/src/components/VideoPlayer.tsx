@@ -213,7 +213,8 @@ export function VideoPlayer({ item }: { item: MediaItem }) {
             aria-label="반복 재생"
             aria-pressed={loop}
             onClick={() => setLoop((v) => !v)}
-            className={`grid size-8 place-items-center rounded-full hover:bg-white/15 ${loop ? "text-[#9db8ff]" : ""}`}
+            // 켜진 반복은 크게 보기의 다른 켜짐 단추처럼 흰 면으로 보인다. 전에는 이 단추만 토큰에 없는 파란 글자였다.
+            className={`grid size-8 place-items-center rounded-full ${loop ? "bg-white/15 text-white" : "hover:bg-white/15"}`}
           >
             <LoopIcon size={18} />
           </button>

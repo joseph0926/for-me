@@ -2,7 +2,7 @@
 import { useState, type Dispatch, type ReactNode } from "react";
 
 import { extensionOf, formatBytes, formatDuration, formatTaken } from "../format";
-import { colorTags, countByKind, thumbSrc, type LibraryAction, type MediaItem } from "../library";
+import { colorTags, countByKind, kindSummary, thumbSrc, type LibraryAction, type MediaItem } from "../library";
 import { colorTagHex, colorTagLabels } from "./colorTags";
 import { CloseIcon, HeartIcon, StarIcon, TagIcon, TrashIcon } from "./Icons";
 
@@ -25,20 +25,13 @@ export function InfoPanel(props: InfoPanelProps) {
   return <SingleInfo key={selection[0].id} {...props} item={selection[0]} />;
 }
 
+// 고른 것이 없을 때. 형식별 개수는 머리줄 제목 아래에 이미 있어 여기서는 되풀이하지 않고 합계 용량만 둔다.
 function Summary({ items }: { items: MediaItem[] }) {
-  const counts = countByKind(items);
   const bytes = items.reduce((sum, item) => sum + item.bytes, 0);
   return (
     <div className="flex flex-col gap-5 p-4">
       <h3 className="text-[16px] font-[650]">이곳의 항목</h3>
-      <Rows
-        rows={[
-          ["사진", counts.image.toLocaleString()],
-          ["동영상", counts.video.toLocaleString()],
-          ["GIF", counts.gif.toLocaleString()],
-          ["합계 용량", formatBytes(bytes)],
-        ]}
-      />
+      <Rows rows={[["합계 용량", formatBytes(bytes)]]} />
     </div>
   );
 }
@@ -62,15 +55,18 @@ function SingleInfo({ item, palette, allTags, colorFilter, dispatch, onColorFilt
   return (
     <div className="flex flex-col gap-5 p-4">
       <div className="relative grid h-44 place-items-center overflow-hidden rounded-md bg-[var(--hover)]">
-        <img src={thumbSrc(item)} alt="" className="max-h-full max-w-full object-contain" />
-        <span className="absolute top-2 left-2 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[13px] font-[650] text-white">
+        {/* grid 칸의 높이가 사진 높이를 따라 늘어나 max-h-full이 풀리지 않았고, 세로 사진은 아래가 잘렸다.
+            상자에 붙여 그 안에서 비율대로 줄인다. */}
+        <img src={thumbSrc(item)} alt="" className="absolute inset-0 size-full object-contain" />
+        <span className="absolute top-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[13px] font-[650] text-white">
           {extensionOf(item.name)}
         </span>
       </div>
 
       <div className="flex items-center gap-2" aria-label="대표 색">
+        {/* tastepin 파일 정보 값: 대표 색 3개. 뽑은 6개 중 많이 나온 앞의 셋만 보인다. */}
         {palette ? (
-          palette.map((hex) => (
+          palette.slice(0, 3).map((hex) => (
             <button
               key={hex}
               type="button"
@@ -169,7 +165,6 @@ function SingleInfo({ item, palette, allTags, colorFilter, dispatch, onColorFilt
           rows={[
             ["크기", `${item.width} x ${item.height}px`],
             ["용량", formatBytes(item.bytes)],
-            ["형식", extensionOf(item.name)],
             ...(item.duration !== undefined ? [["길이", formatDuration(item.duration)] as [string, string]] : []),
             ["찍은 날", formatTaken(item.takenAt)],
             ["폴더", item.folder],
@@ -220,18 +215,17 @@ function MultiInfo({ selection, allTags, dispatch }: InfoPanelProps) {
           />
         ))}
       </div>
+      {/* 고른 개수는 격자 아래 일괄 작업 막대가 보여 주므로 여기서는 형식별 개수와 합친 용량만 쓴다. */}
       <div>
-        <p className="text-[15px] font-[650]">{selection.length}개 선택</p>
-        <p className="text-[13px] text-[var(--muted)]">
-          {[counts.image && `사진 ${counts.image}`, counts.video && `동영상 ${counts.video}`, counts.gif && `GIF ${counts.gif}`].filter(Boolean).join(", ")}, {formatBytes(bytes)}
-        </p>
+        <p className="text-[15px] font-[650]">{kindSummary(counts)}</p>
+        <p className="text-[13px] text-[var(--muted)]">합쳐서 {formatBytes(bytes)}</p>
       </div>
       <Section title="한꺼번에 바꾸기">
         <div className="flex items-center justify-between">
           <Stars value={0} onChange={(rating) => dispatch({ type: "patch", ids, patch: { rating } })} />
           <button
             type="button"
-            aria-label={allFavorite ? "즐겨찾기에서 빼기" : "모두 즐겨찾기"}
+            aria-label={allFavorite ? "즐겨찾기 빼기" : "즐겨찾기"}
             aria-pressed={allFavorite}
             onClick={() => dispatch({ type: "toggleFavorite", ids })}
             className={`grid size-7 place-items-center rounded-md hover:bg-[var(--hover)] ${allFavorite ? "text-[#d8383e] dark:text-[#ff6b70]" : "text-[var(--muted)]"}`}

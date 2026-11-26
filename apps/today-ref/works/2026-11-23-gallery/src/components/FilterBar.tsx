@@ -21,7 +21,8 @@ interface FilterBarProps {
 }
 
 const kinds: (MediaKind | null)[] = [null, "image", "video", "gif"];
-export const rowHeightRange = { min: 110, max: 320 };
+// tastepin 사진 갤러리 격자 값: 썸네일 크기 막대는 60~160px. 많은 파일을 훑는 자리라 작은 쪽까지 내린다.
+export const rowHeightRange = { min: 60, max: 160 };
 
 export function FilterBar({ filters, onFilters, placeItems, tags, sort, onSort, rowHeight, onRowHeight }: FilterBarProps) {
   const set = (patch: Partial<Filters>) => onFilters({ ...filters, ...patch });

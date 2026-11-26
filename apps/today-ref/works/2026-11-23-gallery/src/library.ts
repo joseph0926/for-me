@@ -226,3 +226,14 @@ export function countByKind(items: MediaItem[]): Record<MediaKind, number> {
   for (const item of items) counts[item.kind] += 1;
   return counts;
 }
+
+// 형식별 개수를 "사진 4, 동영상 1"처럼 적는다. 없는 형식은 뺀다. 머리줄, 달 머리글, 정보 패널이 같은 꼴을 쓴다.
+export function kindSummary(counts: Record<MediaKind, number>): string {
+  return [
+    counts.image > 0 && `사진 ${counts.image.toLocaleString()}`,
+    counts.video > 0 && `동영상 ${counts.video.toLocaleString()}`,
+    counts.gif > 0 && `GIF ${counts.gif.toLocaleString()}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}

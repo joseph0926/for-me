@@ -40,10 +40,10 @@ export function Popover({ label, active, align = "left", ariaLabel, children }: 
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((value) => !value)}
+        // 거르기가 걸린 단추는 굵기와 본문색으로, 열린 단추만 면을 깐다. 걸린 상태와 올린 상태가 같은 회색 면이면
+        // 마우스를 올린 단추가 거르기가 걸린 것처럼 보였다. 걸린 값(색 견본, 태그 수, 별 수)은 단추 글자가 보여 준다.
         className={`flex h-8 items-center gap-1.5 rounded-md px-2.5 transition-colors ${
-          active || open
-            ? "bg-[var(--accent-soft)] text-[var(--ink)]"
-            : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+          open ? "bg-[var(--hover)] text-[var(--ink)]" : active ? "font-[650] text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--ink)]"
         }`}
       >
         {label}

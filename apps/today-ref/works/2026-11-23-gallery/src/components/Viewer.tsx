@@ -1,10 +1,10 @@
 // 크게 보기(r2): 위쪽 파일 이름과 동작, 이미지 확대와 끌어 옮기기, 아래 필름 띠와 크기, 배율 막대.
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent as ReactPointerEvent } from "react";
 
-import { extensionOf, formatBytes } from "../format";
+import { formatBytes } from "../format";
 import { thumbSrc, type MediaItem } from "../library";
-import { ChevronLeft, ChevronRight, CloseIcon, FilmIcon, FitIcon, HeartIcon, InfoIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from "./Icons";
+import { ChevronLeft, FilmIcon, FitIcon, HeartIcon, InfoIcon, TrashIcon, ZoomInIcon, ZoomOutIcon } from "./Icons";
 import { VideoPlayer } from "./VideoPlayer";
 
 interface ViewerProps {
@@ -23,6 +23,9 @@ type Zoom = "fit" | number;
 const zoomSteps = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4];
 const maxZoom = 4;
 const stagePadding = 32;
+// tastepin 사진 갤러리 크게 보기 값: 마우스를 2초 움직이지 않으면 막대와 필름 띠를 160ms에 흐리게 숨기고 커서도 숨긴다.
+const idleMs = 2000;
+const chromeFade = { duration: 0.16, ease: "easeOut" } as const;
 
 export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, infoOpen, onToggleInfo }: ViewerProps) {
   const item = items[index];
@@ -33,6 +36,43 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
   const strip = useRef<HTMLDivElement>(null);
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
+  const [idle, setIdle] = useState(false);
+  const idleTimer = useRef<number | undefined>(undefined);
+  // 막대 위에 마우스가 있거나 키보드 초점이 막대 안에 있으면 숨기지 않는다. 누르려는 단추가 사라지지 않게 한다.
+  const holding = useRef(false);
+
+  const wake = () => {
+    setIdle(false);
+    window.clearTimeout(idleTimer.current);
+    // 마우스가 없는 터치 화면에서는 숨기지 않는다. 보이지 않는 단추를 눌러 버리게 된다.
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    idleTimer.current = window.setTimeout(() => {
+      if (!holding.current) setIdle(true);
+    }, idleMs);
+  };
+  const hold = (on: boolean) => {
+    holding.current = on;
+    wake();
+  };
+  // 열 때와 사진을 넘길 때 다시 보이고 시계를 새로 건다.
+  useEffect(() => {
+    wake();
+    return () => window.clearTimeout(idleTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+  const chromeProps = {
+    animate: { opacity: idle ? 0 : 1 },
+    transition: chromeFade,
+    onPointerEnter: () => hold(true),
+    onPointerLeave: () => hold(false),
+    // 마우스로 누른 단추에 남은 초점은 세지 않는다. 그러면 필름 띠를 한 번 누른 뒤로 막대가 숨지 않는다.
+    onFocusCapture: (event: FocusEvent<HTMLElement>) => {
+      if ((event.target as HTMLElement).matches(":focus-visible")) hold(true);
+    },
+    onBlurCapture: () => {
+      if (holding.current) hold(false);
+    },
+  };
 
   const fitScale = box.width > 0 ? Math.min(1, (box.width - stagePadding) / item.width, (box.height - stagePadding) / item.height) : 1;
   const scale = zoom === "fit" ? fitScale : zoom;
@@ -97,17 +137,17 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
       animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
       exit={{ opacity: 0, scale: 0.97, filter: "blur(4px)" }}
       transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
-      className="on-dark flex size-full flex-col bg-[var(--viewer)] text-white"
+      onPointerMove={wake}
+      onKeyDownCapture={wake}
+      className={`on-dark flex size-full flex-col bg-[var(--viewer)] text-white ${idle ? "cursor-none" : ""}`}
     >
-      <header className="flex h-11 shrink-0 items-center gap-1 px-2">
+      <motion.header {...chromeProps} className="flex h-11 shrink-0 items-center gap-1 px-2">
         <button type="button" onClick={onClose} aria-label="목록으로" className="flex h-8 items-center gap-1 rounded-md px-2 text-white/85 hover:bg-white/10">
           <ChevronLeft size={18} />
           <span className="hidden sm:inline">목록</span>
         </button>
+        {/* 몇 번째인지는 아래 필름 띠가 보여 주므로 "2 / 44" 같은 숫자는 두지 않는다. */}
         <p className="min-w-0 flex-1 truncate text-center text-[13px] text-white/90">{item.name}</p>
-        <span className="hidden pr-1 text-[13px] tabular-nums text-white/50 sm:inline">
-          {index + 1} / {items.length}
-        </span>
         <button
           type="button"
           aria-label="즐겨찾기"
@@ -129,10 +169,8 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
         >
           <InfoIcon size={18} />
         </button>
-        <button type="button" aria-label="닫기" onClick={onClose} className="grid size-8 place-items-center rounded-md text-white/85 hover:bg-white/10">
-          <CloseIcon size={18} />
-        </button>
-      </header>
+        {/* 닫기는 왼쪽 "목록" 하나로 한다. 오른쪽 끝에 같은 일을 하는 X가 따로 있었다. */}
+      </motion.header>
 
       <div ref={stage} className="relative min-h-0 flex-1">
         {item.kind === "video" ? (
@@ -140,37 +178,23 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
         ) : (
           <ImageStage key={item.id} item={item} scale={scale} box={box} onToggleZoom={() => (zoom === "fit" ? setScale(1) : setZoom("fit"))} onWheelZoom={stepZoom} />
         )}
-        {hasPrev && (
-          <button
-            type="button"
-            aria-label="이전 항목"
-            onClick={() => go(index - 1)}
-            className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white/90 backdrop-blur hover:bg-black/65"
-          >
-            <ChevronLeft size={20} />
-          </button>
-        )}
-        {hasNext && (
-          <button
-            type="button"
-            aria-label="다음 항목"
-            onClick={() => go(index + 1)}
-            className="absolute top-1/2 right-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white/90 backdrop-blur hover:bg-black/65"
-          >
-            <ChevronRight size={20} />
-          </button>
-        )}
+        {/* 앞뒤 이동은 아래 필름 띠와 ←, →가 맡는다(tastepin 크게 보기: 아래 필름 띠). 사진 양옆에 떠 있던 둥근 화살표는 뺐다. */}
       </div>
 
+      {/* 필름 띠는 높이 56px에 44px 정사각 썸네일을 늘어놓고 지금 항목을 흰 테두리로 표시한다(tastepin 크게 보기 값). */}
       <AnimatePresence initial={false}>
         {filmstrip && (
           <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 56 }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.18, ease: [0.215, 0.61, 0.355, 1] }}
+            className="shrink-0 overflow-hidden"
+          >
+          <motion.div
             ref={strip}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 64, opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="flex shrink-0 items-center gap-1 overflow-x-auto px-3 thin-scroll"
+            {...chromeProps}
+            className="flex h-14 items-center gap-1 overflow-x-auto px-3 thin-scroll"
             aria-label="필름 띠"
           >
             {items.map((other, i) => (
@@ -180,19 +204,19 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
                 aria-label={other.name}
                 aria-current={i === index ? "true" : undefined}
                 onClick={() => go(i)}
-                className={`relative h-12 shrink-0 overflow-hidden rounded-[3px] transition-opacity ${
-                  i === index ? "opacity-100 ring-2 ring-white" : "opacity-55 hover:opacity-90"
+                className={`relative size-11 shrink-0 overflow-hidden rounded-[3px] transition-opacity ${
+                  i === index ? "opacity-100 outline-2 -outline-offset-2 outline-white" : "opacity-55 hover:opacity-90"
                 }`}
-                style={{ width: Math.round((other.width / other.height) * 48) }}
               >
                 <img src={thumbSrc(other)} alt="" loading="lazy" className="size-full object-cover" />
               </button>
             ))}
           </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      <footer className="flex h-11 shrink-0 items-center gap-1 px-2 text-[13px] text-white/70">
+      <motion.footer {...chromeProps} className="flex h-11 shrink-0 items-center gap-1 px-2 text-[13px] text-white/70">
         <button
           type="button"
           aria-label="필름 띠"
@@ -205,8 +229,8 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
         <span className="ml-1 hidden tabular-nums sm:inline">
           {item.width} x {item.height}px
         </span>
+        {/* 형식은 위 막대의 파일 이름 확장자가 이미 보여 주어 고정폭 글자 칩을 따로 두지 않는다. */}
         <span className="ml-3 hidden tabular-nums sm:inline">{formatBytes(item.bytes)}</span>
-        <span className="ml-3 rounded bg-white/10 px-1.5 py-px font-mono text-[13px]">{extensionOf(item.name)}</span>
 
         {item.kind !== "video" && (
           <div className="ml-auto flex items-center">
@@ -252,7 +276,7 @@ export function Viewer({ items, index, onIndex, onClose, onFavorite, onTrash, in
             </button>
           </div>
         )}
-      </footer>
+      </motion.footer>
     </motion.div>
   );
 }

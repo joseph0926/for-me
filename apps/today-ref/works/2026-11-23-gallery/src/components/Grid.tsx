@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type Rea
 
 import { formatDuration } from "../format";
 import { justifyRows } from "../layout";
-import { countByKind, thumbSrc, type Group, type MediaItem } from "../library";
+import { countByKind, kindSummary, thumbSrc, type Group, type MediaItem } from "../library";
 import { ArrowUpIcon, CheckIcon, HeartIcon, VideoBadgeIcon } from "./Icons";
 import { colorTagHex } from "./colorTags";
 
@@ -151,16 +151,10 @@ export function Grid({ groups, rowHeight, selected, focusId, empty, onSelect, on
 }
 
 function GroupHeader({ group }: { group: Group }) {
-  const counts = countByKind(group.items);
-  const parts = [
-    counts.image > 0 && `사진 ${counts.image}`,
-    counts.video > 0 && `동영상 ${counts.video}`,
-    counts.gif > 0 && `GIF ${counts.gif}`,
-  ].filter(Boolean);
   return (
     <h2 className="sticky top-0 z-10 -mx-1 flex items-baseline gap-2 bg-[var(--surface)]/92 px-1 py-2 backdrop-blur">
       <span className="text-[16px] font-[650] text-[var(--ink)]">{group.label}</span>
-      <span className="text-[13px] text-[var(--faint)]">{parts.join(", ")}</span>
+      <span className="text-[13px] text-[var(--faint)]">{kindSummary(countByKind(group.items))}</span>
     </h2>
   );
 }
@@ -266,16 +260,16 @@ function Tile({ item, width, height, selected, focused, selecting, onSelect, onO
         <CheckIcon size={13} strokeWidth={2.6} />
       </motion.button>
 
-      {item.kind === "gif" && (
-        <span className="absolute top-1.5 right-1.5 rounded bg-black/55 px-1.5 py-px text-[13px] font-[650] tracking-wide text-white">GIF</span>
-      )}
+      {/* 동영상 길이와 GIF 표시는 같은 형식 표시라 왼쪽 아래 한 자리에 같은 모양으로 둔다.
+          전에는 GIF만 오른쪽 위에 더 진한 면과 넓은 자간으로 따로 붙어 있었다. */}
       <div className="pointer-events-none absolute right-1.5 bottom-1.5 left-1.5 flex items-center gap-1.5 text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]">
         {item.kind === "video" && (
-          <span className="flex items-center gap-1 rounded bg-black/45 px-1.5 py-px text-[12px] tabular-nums">
+          <span className="flex items-center gap-1 rounded bg-black/45 px-1.5 py-px text-[13px] tabular-nums">
             <VideoBadgeIcon size={13} />
             {formatDuration(item.duration ?? 0)}
           </span>
         )}
+        {item.kind === "gif" && <span className="rounded bg-black/45 px-1.5 py-px text-[13px]">GIF</span>}
         <span className="ml-auto flex items-center gap-1">
           {item.colorTag && <span className="size-2.5 rounded-full ring-1 ring-white/80" style={{ background: colorTagHex[item.colorTag] }} />}
           {item.favorite && <HeartIcon size={14} filled />}
