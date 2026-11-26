@@ -105,6 +105,28 @@ describe("주제 형식", () => {
       ],
     );
   });
+
+  test("정체성은 없어도 받고, 있으면 모든 칸을 검사한다", () => {
+    const identity = {
+      fonts: { body: "IBM Plex Sans KR", title: "IBM Plex Sans KR" },
+      colors: { ground: "#f4efe6", accent: "#b4441f" },
+      radius: "2px",
+      motion: "짧고 단단하게 멈추는 160ms 곡선, 흐림 없음",
+      title: "굵기 700, 숫자는 고정폭",
+      basis: "영수증과 장부의 종이 느낌. 직전 완성작의 푸른 회색과 6px에서 벗어남",
+    };
+    assert.deepEqual(errorsOf(topic()), [], "정체성 칸이 생기기 전 주제");
+    assert.deepEqual(errorsOf(topic({ identity })), []);
+    assert.deepEqual(errorsOf(topic({ identity: { ...identity, radius: "0" } })), []);
+    assert.match(errorsOf(topic({ identity: { ...identity, radius: "0~6px" } })).join(), /identity\.radius/, "범위가 아니라 한 값");
+    assert.match(errorsOf(topic({ identity: { ...identity, radius: "1rem" } })).join(), /identity\.radius/);
+    assert.match(errorsOf(topic({ identity: { ...identity, colors: { ground: "#fff", accent: "#b4441f" } } })).join(), /colors\.ground/);
+    assert.match(errorsOf(topic({ identity: { ...identity, fonts: { body: "" , title: "A" } } })).join(), /fonts\.body/);
+    assert.match(errorsOf(topic({ identity: { ...identity, basis: " " } })).join(), /identity\.basis/);
+    assert.match(errorsOf(topic({ identity: "Pretendard" })).join(), /identity는 객체/);
+    const { motion: _motion, ...missing } = identity;
+    assert.match(errorsOf(topic({ identity: missing })).join(), /identity\.motion/);
+  });
 });
 
 describe("검사 명령", () => {
