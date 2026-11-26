@@ -127,6 +127,15 @@ describe("주제 형식", () => {
     const { motion: _motion, ...missing } = identity;
     assert.match(errorsOf(topic({ identity: missing })).join(), /identity\.motion/);
   });
+
+  test("대상은 없어도 받고, 있으면 저장소와 화면이 모두 있어야 한다", () => {
+    const target = { repo: "~/dev/p/screen-note", screen: "보관함 목록" };
+    assert.deepEqual(errorsOf(topic({ target })), []);
+    assert.match(errorsOf(topic({ target: { ...target, repo: " " } })).join(), /target\.repo/);
+    assert.match(errorsOf(topic({ target: { repo: target.repo } })).join(), /target\.screen/);
+    assert.match(errorsOf(topic({ target: { ...target, screen: 3 } })).join(), /target\.screen/);
+    assert.match(errorsOf(topic({ target: "screen-note" })).join(), /target은 객체/);
+  });
 });
 
 describe("검사 명령", () => {
