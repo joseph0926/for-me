@@ -37,13 +37,6 @@ export const CalendarIcon = (props: IconProps) => (
   </Icon>
 );
 
-export const UserIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <circle cx="12" cy="8.5" r="3.5" />
-    <path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" />
-  </Icon>
-);
-
 export const ChevronLeft = (props: IconProps) => (
   <Icon {...props}>
     <path d="m14.5 6-6 6 6 6" />
@@ -137,13 +130,6 @@ export const GridIcon = (props: IconProps) => (
     <rect x="14" y="4" width="6" height="6" rx="1" />
     <rect x="4" y="14" width="6" height="6" rx="1" />
     <rect x="14" y="14" width="6" height="6" rx="1" />
-  </Icon>
-);
-
-export const PinIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
-    <circle cx="12" cy="10" r="2.3" />
   </Icon>
 );
 

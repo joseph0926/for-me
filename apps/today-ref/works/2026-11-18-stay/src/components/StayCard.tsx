@@ -78,9 +78,10 @@ export function StayCard({
       onMouseLeave={() => onHoverChange(false)}
       // 카드 어디를 눌러도 상세로 간다. 사진 화살표와 찜 버튼은 이벤트를 여기까지 올리지 않는다.
       onClick={onOpen}
-      className={`group relative -m-2 cursor-pointer scroll-mt-28 rounded-2xl p-2 transition-[background-color,box-shadow] duration-150 ${surface} ${justViewed ? "just-viewed" : ""}`}
+      className={`group relative -m-2 cursor-pointer scroll-mt-28 rounded-md p-2 transition-[background-color,box-shadow] duration-150 ${surface} ${justViewed ? "just-viewed" : ""}`}
     >
-      <div className="relative aspect-[20/17] overflow-hidden rounded-xl bg-canvas">
+      {/* 사진 위에는 넘기는 점과 화살표만 둔다. 찜은 이름 줄로 옮겼다. */}
+      <div className="relative aspect-[20/17] overflow-hidden rounded-md bg-canvas">
         <AnimatePresence initial={false} custom={photo.direction}>
           <motion.div
             key={photo.index}
@@ -95,23 +96,6 @@ export function StayCard({
             <StayPhoto tone={stay.tone} scene={stay.photos[photo.index]} />
           </motion.div>
         </AnimatePresence>
-        {stay.badge && (
-          <span className="absolute left-3 top-3 z-10 rounded-md bg-white/95 px-2 py-1 text-[12px] font-semibold text-ink shadow-[0_1px_2px_rgb(0_0_0/0.12)]">
-            {stay.badge === "인기" ? "예약 많은 숙소" : "새로 열었어요"}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSave();
-          }}
-          aria-label={saved ? "찜 해제" : "찜하기"}
-          aria-pressed={saved}
-          className="absolute right-2.5 top-2.5 z-10 grid h-9 w-9 place-items-center rounded-full text-white drop-shadow-[0_1px_2px_rgb(0_0_0/0.45)] hover:scale-105"
-        >
-          <HeartIcon size={24} filled={saved} className={saved ? "text-[#e0475b]" : ""} strokeWidth={2} />
-        </button>
         <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between opacity-0 transition-opacity group-hover:opacity-100">
           <PhotoArrow label="이전 사진" onClick={() => showPhoto(-1)}>
             <ChevronLeft size={16} />
@@ -144,14 +128,28 @@ export function StayCard({
               {stay.name}
             </button>
           </h3>
-          <span className="tabular flex shrink-0 items-center gap-1 text-[14px]">
-            <StarIcon size={13} />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleSave();
+            }}
+            aria-label="찜"
+            aria-pressed={saved}
+            className="-mr-1.5 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted hover:text-ink"
+          >
+            <HeartIcon size={18} filled={saved} className={saved ? "text-[#e0475b]" : ""} />
+          </button>
+        </div>
+        <p className="mt-0.5 flex items-center gap-2 text-[14px] text-muted">
+          <span className="min-w-0 truncate">
+            {stay.area} {stay.type}, {stay.access}
+          </span>
+          <span className="tabular flex shrink-0 items-center gap-1 text-ink">
+            <StarIcon size={12} />
             {stay.rating.toFixed(2)}
             <span className="text-muted">({stay.reviewCount.toLocaleString("ko-KR")})</span>
           </span>
-        </div>
-        <p className="mt-0.5 truncate text-[14px] text-muted">
-          {stay.area} {stay.type}, {stay.access}
         </p>
         <p className="mt-2 text-[15px]">
           <span className="tabular font-semibold">{won(nightly)}</span>
@@ -159,12 +157,11 @@ export function StayCard({
         </p>
         {nights > 0 && (
           <p className="tabular text-[14px] text-muted">
-            {nights}박 총 <span className="underline underline-offset-2">{won(price.total)}</span>
+            {nights}박 총액 <span className="underline underline-offset-2">{won(price.total)}</span>
           </p>
         )}
-        {stay.cancellation.kind === "free" && (
-          <p className="mt-2 inline-block rounded bg-accent-soft px-1.5 py-0.5 text-[12px] font-medium text-accent">무료 취소</p>
-        )}
+        {/* 무료 취소는 분류라 면 없이 보조색 글자로만 둔다. */}
+        {stay.cancellation.kind === "free" && <p className="mt-1 text-[13px] font-medium text-muted">무료 취소</p>}
       </div>
     </article>
   );
@@ -179,7 +176,7 @@ function PhotoArrow({ label, onClick, children }: { label: string; onClick: () =
         event.stopPropagation();
         onClick();
       }}
-      className="pointer-events-auto grid h-8 w-8 place-items-center rounded-full bg-white/90 text-ink shadow-[0_1px_3px_rgb(0_0_0/0.2)] hover:bg-white"
+      className="pointer-events-auto grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink shadow-[0_1px_3px_rgb(0_0_0/0.2)] hover:bg-white"
     >
       {children}
     </button>

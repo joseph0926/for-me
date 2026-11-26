@@ -32,15 +32,11 @@ export function ResultsToolbar({
           <button
             type="button"
             onClick={onOpenFilters}
-            className="flex h-9 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-[14px] font-medium hover:border-ink lg:hidden"
+            className="flex h-9 items-center gap-1.5 rounded-md border border-line-strong px-3 text-[14px] font-medium hover:border-ink lg:hidden"
           >
             <SlidersIcon size={16} />
             필터
-            {chips.length > 0 && (
-              <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-ink px-1 text-[12px] text-white">
-                {chips.length}
-              </span>
-            )}
+            {chips.length > 0 && <span className="tabular text-muted">{chips.length}</span>}
           </button>
           <SortMenu value={sort} onChange={onSortChange} />
         </div>

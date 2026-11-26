@@ -88,7 +88,6 @@ export interface Stay {
   cancellation: Cancellation;
   tone: PhotoTone;
   photos: PhotoScene[];
-  badge?: "인기" | "신규";
   access: string;
   checkIn: string;
   checkOut: string;
@@ -125,7 +124,6 @@ const INPUTS: StayInput[] = [
     amenities: ["kitchen", "washer", "wifi", "workspace", "selfCheckin", "parking"],
     cancellation: { kind: "free", daysBefore: 3 },
     tone: "concrete",
-    badge: "인기",
     access: "성수역 도보 4분",
     description:
       "1970년대 구두 공장을 고쳐 만든 층고 높은 레지던스입니다. 큰 철제 창으로 오후 내내 볕이 들고, 1층에는 투숙객 전용 라운지와 자전거 보관소가 있습니다.",
@@ -144,7 +142,6 @@ const INPUTS: StayInput[] = [
     amenities: ["wifi", "kitchen", "washer", "selfCheckin"],
     cancellation: { kind: "free", daysBefore: 3 },
     tone: "sage",
-    badge: "인기",
     access: "홍대입구역 3번 출구 도보 5분",
     description:
       "경의선숲길이 창밖으로 내려다보이는 4층 주택의 게스트하우스입니다. 아침에는 공용 주방에서 원두와 토스트를 자유롭게 드실 수 있습니다.",
@@ -178,7 +175,6 @@ const INPUTS: StayInput[] = [
     amenities: ["wifi", "kitchen", "bathtub", "workspace", "selfCheckin"],
     cancellation: { kind: "partial", daysBefore: 7 },
     tone: "hanok",
-    badge: "인기",
     access: "경복궁역 도보 8분",
     checkIn: "16:00",
     description:
@@ -213,7 +209,6 @@ const INPUTS: StayInput[] = [
     amenities: ["kitchen", "washer", "wifi", "bathtub", "workspace", "parking", "pet"],
     cancellation: { kind: "partial", daysBefore: 7 },
     tone: "oak",
-    badge: "인기",
     access: "한강진역 도보 6분",
     description:
       "남향 테라스에서 한강과 남산이 함께 보이는 스위트 한 채입니다. 소형 반려견 동반이 가능하며 지하 주차장 1대를 무료로 드립니다.",
@@ -340,7 +335,6 @@ const INPUTS: StayInput[] = [
     amenities: ["wifi", "bathtub", "breakfast"],
     cancellation: { kind: "free", daysBefore: 7 },
     tone: "hanok",
-    badge: "신규",
     access: "경복궁역 2번 출구 도보 4분",
     description: "체부동 시장 뒤편의 작은 한옥입니다. 아침에는 집주인이 차린 한식 상차림을 툇마루에서 드실 수 있습니다.",
   },
@@ -375,7 +369,6 @@ const INPUTS: StayInput[] = [
     amenities: ["wifi", "washer", "kitchen", "selfCheckin"],
     cancellation: { kind: "free", daysBefore: 3 },
     tone: "linen",
-    badge: "신규",
     access: "성수역 3번 출구 도보 5분",
     description: "연무장길 카페 거리 한복판에 새로 연 게스트하우스입니다. 모든 객실에 개별 욕실이 있습니다.",
   },
@@ -530,7 +523,6 @@ const INPUTS: StayInput[] = [
     amenities: ["wifi", "breakfast", "parking", "workspace", "bathtub"],
     cancellation: { kind: "free", daysBefore: 3 },
     tone: "clay",
-    badge: "인기",
     access: "충무로역 도보 3분",
     description: "남산 북쪽 기슭을 마주한 호텔입니다. 남산뷰 객실의 통창 너머로 계절마다 바뀌는 숲을 볼 수 있습니다.",
   },
@@ -642,15 +634,21 @@ const INPUTS: StayInput[] = [
   },
 ];
 
-// 같은 유형과 색 조합의 숙소가 같은 대표 사진을 쓰지 않도록 순서를 돌리되, 욕실은 대표 사진이 되지 않게 한 칸 뒤로 보낸다.
-function coverFirst(scenes: PhotoScene[]): PhotoScene[] {
-  if (scenes[0] !== "bath") return scenes;
-  const [bath, next, ...rest] = scenes;
-  return [next, bath, ...rest];
+// 사진 순서는 숙소마다 한 칸씩 돌리되, 대표 사진(첫 장)은 앞의 숙소가 아직 쓰지 않은 사진을 고른다.
+// 같은 색 조합의 숙소가 같은 대표 사진을 쓰면 결과 목록에서 다른 숙소가 같은 숙소처럼 보인다. 욕실은 대표 사진으로 쓰지 않는다.
+function pickPhotoOrder(scenes: PhotoScene[], tone: PhotoTone, firstRotation: number, usedCovers: Set<string>): PhotoScene[] {
+  const rotations = scenes.map((_, step) => (firstRotation + step) % scenes.length);
+  const rotate = (rotation: number) => [...scenes.slice(rotation), ...scenes.slice(0, rotation)];
+  const fresh = rotations.find((rotation) => scenes[rotation] !== "bath" && !usedCovers.has(`${scenes[rotation]}-${tone}`));
+  const fallback = rotations.find((rotation) => scenes[rotation] !== "bath") ?? firstRotation;
+  const order = rotate(fresh ?? fallback);
+  usedCovers.add(`${order[0]}-${tone}`);
+  return order;
 }
 
 function buildStays(inputs: StayInput[]): Stay[] {
   const slotUsedByArea = new Map<Area, number>();
+  const usedCovers = new Set<string>();
 
   return inputs.map((input, index) => {
     const slotIndex = slotUsedByArea.get(input.area) ?? 0;
@@ -661,7 +659,6 @@ function buildStays(inputs: StayInput[]): Stay[] {
     const slot = AREA_SLOTS[slotIndex % AREA_SLOTS.length];
 
     const scenes = SCENES_BY_TYPE[input.type];
-    const rotation = index % 3;
     const id = `stay-${String(index + 1).padStart(2, "0")}`;
 
     return {
@@ -670,7 +667,7 @@ function buildStays(inputs: StayInput[]): Stay[] {
       rooms: input.rooms.map((room, roomIndex) => ({ ...room, id: `${id}-room-${roomIndex + 1}` })),
       checkIn: input.checkIn ?? "15:00",
       checkOut: input.checkOut ?? "11:00",
-      photos: coverFirst([...scenes.slice(rotation), ...scenes.slice(0, rotation)]),
+      photos: pickPhotoOrder(scenes, input.tone, index % 3, usedCovers),
       pos: { x: area.center.x + slot.x, y: area.center.y + slot.y },
     };
   });

@@ -14,17 +14,25 @@ import {
 } from "../search";
 import { CheckIcon, MinusIcon, PlusIcon } from "./icons";
 
+// 펼침 영역은 스프링 없이 곡선으로만 열고 닫는다.
+const EASE_OUT_CUBIC = [0.215, 0.61, 0.355, 1] as const;
 const INITIALLY_OPEN: FilterGroup[] = ["price", "type", "amenity"];
 
-/** 왼쪽 필터 열. 각 항목 옆 숫자는 그 항목을 고르면 남을 숙소 수다. */
+/**
+ * 왼쪽 필터 열. 각 항목 옆 숫자는 그 항목을 고르면 남을 숙소 수다.
+ * 묶음 사이는 선 없이 여백과 굵은 묶음 제목으로만 나눈다.
+ */
 export function FilterPanel({
   stays,
   filters,
   onChange,
+  showClearAll,
 }: {
   stays: Stay[];
   filters: Filters;
   onChange: (filters: Filters) => void;
+  /** 목록 위 조건 칩 줄이 보이지 않는 서랍에서만 모두 지우기를 둔다. */
+  showClearAll: boolean;
 }) {
   const [openGroups, setOpenGroups] = useState<FilterGroup[]>(INITIALLY_OPEN);
   const hasApplied = appliedChips(filters).length > 0;
@@ -37,7 +45,7 @@ export function FilterPanel({
     <div>
       <div className="flex h-9 items-center justify-between">
         <h2 className="text-[17px] font-semibold">필터</h2>
-        {hasApplied && (
+        {showClearAll && hasApplied && (
           <button
             type="button"
             onClick={() => onChange(EMPTY_FILTERS)}
@@ -136,13 +144,13 @@ function FilterSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-b border-line last:border-b-0">
+    <section className="mt-3 first-of-type:mt-2">
       <h3>
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
-          className="flex h-[52px] w-full items-center justify-between text-left text-[15px] font-semibold"
+          className="flex h-10 w-full items-center justify-between text-left text-[15px] font-semibold"
         >
           {title}
           {open ? <MinusIcon size={18} className="text-muted" /> : <PlusIcon size={18} className="text-muted" />}
@@ -154,7 +162,7 @@ function FilterSection({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            transition={{ duration: 0.22, ease: EASE_OUT_CUBIC }}
             className="overflow-hidden"
           >
             <div className="pb-4">{children}</div>

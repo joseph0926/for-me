@@ -8,7 +8,7 @@ import { type SearchCriteria, guestsLabel, normalizeQuery, placeLabel } from "..
 import { Calendar } from "./Calendar";
 import { GuestStepper } from "./GuestStepper";
 import { Popover } from "./Popover";
-import { PinIcon, SearchIcon } from "./icons";
+import { SearchIcon } from "./icons";
 
 type Panel = "destination" | "dates" | "guests" | null;
 
@@ -41,9 +41,9 @@ export function SearchBar({
 
   return (
     <div ref={rootRef} className="relative">
-      <div className="flex flex-wrap rounded-xl border border-line-strong bg-white sm:h-14 sm:flex-nowrap">
+      <div className="flex flex-wrap rounded-md border border-line-strong bg-white sm:h-14 sm:flex-nowrap">
         <label
-          className={`order-1 flex min-w-0 basis-[calc(100%-60px)] cursor-text flex-col justify-center rounded-tl-xl px-4 py-2 sm:flex-[1.25] sm:basis-0 sm:rounded-l-xl sm:py-0 ${panel === "destination" ? "bg-canvas" : ""}`}
+          className={`order-1 flex min-w-0 basis-[calc(100%-60px)] cursor-text flex-col justify-center rounded-tl-md px-4 py-2 sm:flex-[1.25] sm:basis-0 sm:rounded-l-md sm:py-0 ${panel === "destination" ? "bg-canvas" : ""}`}
         >
           <span className="text-[12px] text-muted">목적지</span>
           <input
@@ -87,7 +87,7 @@ export function SearchBar({
           <button
             type="button"
             onClick={() => (typedQuery !== null ? commitQuery(typedQuery) : close())}
-            className="flex h-10 items-center gap-1.5 rounded-lg bg-accent px-3 text-[15px] font-semibold text-white hover:bg-accent-hover sm:h-full sm:px-5"
+            className="press flex h-10 items-center gap-1.5 rounded-md bg-accent px-3 text-[15px] font-semibold text-white hover:bg-accent-hover sm:h-full sm:px-5"
           >
             <SearchIcon size={18} />
             <span className="hidden sm:inline">검색</span>
@@ -173,11 +173,8 @@ function DestinationOption({ label, detail, onPick }: { label: string; detail: s
       <button
         type="button"
         onClick={onPick}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-canvas"
+        className="flex w-full items-center rounded-md px-3 py-2.5 text-left hover:bg-canvas"
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-canvas text-muted">
-          <PinIcon size={18} />
-        </span>
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-medium">{label}</span>
           <span className="block truncate text-[13px] text-muted">{detail}</span>

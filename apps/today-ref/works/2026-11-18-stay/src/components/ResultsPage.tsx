@@ -22,6 +22,9 @@ import { StayCard } from "./StayCard";
 import { StayMap } from "./StayMap";
 import { StayPhoto } from "./StayPhoto";
 
+// 서랍은 가장자리에서 300ms 곡선으로 들어오고 같은 길로 나간다.
+const EASE_OUT_CUBIC = [0.215, 0.61, 0.355, 1] as const;
+
 export function ResultsPage({
   criteria,
   filters,
@@ -48,7 +51,9 @@ export function ResultsPage({
 }) {
   const wideMap = useMediaQuery("(min-width: 1240px)");
   const phone = useMediaQuery("(max-width: 639px)");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // 카드에 올린 숙소는 지도 마커만, 마커에 올린 숙소는 카드만 강조한다. 올린 쪽은 그대로 둬서 hover가 선택처럼 보이지 않게 한다.
+  const [cardHoverId, setCardHoverId] = useState<string | null>(null);
+  const [markerHoverId, setMarkerHoverId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [narrowView, setNarrowView] = useState<"list" | "map">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -58,7 +63,7 @@ export function ResultsPage({
   const matching = searchStays(STAYS, criteria);
   const results = sortStays(applyFilters(matching, filters), sort);
   const nights = nightsBetween(criteria.range);
-  const activeId = hoveredId ?? pinnedId;
+  const mapActiveId = cardHoverId ?? markerHoverId ?? pinnedId;
   const showList = wideMap || narrowView === "list";
   const showMap = wideMap || narrowView === "map";
   const pinnedStay = results.find((stay) => stay.id === pinnedId);
@@ -93,13 +98,16 @@ export function ResultsPage({
     window.scrollTo({ top: 0 });
   }
 
-  const filterPanel = <FilterPanel stays={matching} filters={filters} onChange={changeFilters} />;
+  const filterPanel = (showClearAll: boolean) => (
+    <FilterPanel stays={matching} filters={filters} onChange={changeFilters} showClearAll={showClearAll} />
+  );
 
   return (
     <div className="mx-auto flex max-w-[1760px] gap-6 px-4 sm:px-6">
       <aside className="hidden w-[216px] shrink-0 lg:block">
         <div className="sticky top-[calc(var(--header-h)+8px)] max-h-[calc(100dvh-var(--header-h)-8px)] overflow-y-auto pb-10 pr-1 pt-6 [scrollbar-width:thin]">
-          {filterPanel}
+          {/* 넓은 화면은 목록 위 조건 칩 줄에 모두 지우기가 있어 필터 열에는 두지 않는다. */}
+          {filterPanel(false)}
         </div>
       </aside>
 
@@ -122,7 +130,7 @@ export function ResultsPage({
               <button
                 type="button"
                 onClick={() => changeFilters(EMPTY_FILTERS)}
-                className="mt-5 h-10 rounded-lg border border-ink px-4 text-[14px] font-semibold hover:bg-canvas"
+                className="mt-5 h-10 rounded-md border border-ink px-4 text-[14px] font-semibold hover:bg-canvas"
               >
                 필터 모두 지우기
               </button>
@@ -134,13 +142,13 @@ export function ResultsPage({
                   key={stay.id}
                   stay={stay}
                   nights={nights}
-                  highlighted={stay.id === activeId}
+                  highlighted={stay.id === markerHoverId}
                   pinned={stay.id === pinnedId}
                   justViewed={stay.id === returnedFromId}
                   saved={savedIds.includes(stay.id)}
                   onOpen={() => onOpenStay(stay.id)}
                   onToggleSave={() => onToggleSave(stay.id)}
-                  onHoverChange={(hovering) => setHoveredId(hovering ? stay.id : null)}
+                  onHoverChange={(hovering) => setCardHoverId(hovering ? stay.id : null)}
                   cardRef={(element) => {
                     if (element) cardRefs.current.set(stay.id, element);
                     else cardRefs.current.delete(stay.id);
@@ -154,11 +162,11 @@ export function ResultsPage({
 
       {showMap && (
         <div ref={mapAreaRef} className={wideMap ? "w-[clamp(400px,34vw,640px)] shrink-0" : "min-w-0 flex-1"}>
-          <div className="sticky top-[calc(var(--header-h)+16px)] my-4 h-[calc(100dvh-var(--header-h)-32px)] overflow-hidden rounded-xl border border-line">
+          <div className="sticky top-[calc(var(--header-h)+16px)] my-4 h-[calc(100dvh-var(--header-h)-32px)] overflow-hidden rounded-md border border-line">
             <StayMap
               stays={results}
-              activeId={activeId}
-              onHover={setHoveredId}
+              activeId={mapActiveId}
+              onHover={setMarkerHoverId}
               onSelect={selectFromMap}
               initialZoom={phone ? 1 : 0}
             />
@@ -177,7 +185,7 @@ export function ResultsPage({
         <button
           type="button"
           onClick={toggleNarrowView}
-          className="fixed bottom-6 left-1/2 z-30 flex h-11 -translate-x-1/2 items-center gap-2 rounded-full bg-ink px-5 text-[14px] font-semibold text-white shadow-[0_6px_20px_-6px_rgb(0_0_0/0.5)] hover:scale-[1.03]"
+          className="press fixed bottom-6 left-1/2 z-30 flex h-11 -translate-x-1/2 items-center gap-2 rounded-md bg-ink px-5 text-[14px] font-semibold text-white shadow-[0_6px_20px_-6px_rgb(0_0_0/0.5)] hover:bg-black"
         >
           {narrowView === "list" ? <MapIcon size={18} /> : <ListIcon size={18} />}
           {narrowView === "list" ? "지도 보기" : "목록 보기"}
@@ -187,7 +195,7 @@ export function ResultsPage({
       <AnimatePresence>
         {filtersOpen && (
           <FilterDrawer count={results.length} onClose={() => setFiltersOpen(false)}>
-            {filterPanel}
+            {filterPanel(true)}
           </FilterDrawer>
         )}
       </AnimatePresence>
@@ -197,7 +205,7 @@ export function ResultsPage({
 
 function MapPreview({ stay, onOpen, onClose }: { stay: Stay; onOpen: () => void; onClose: () => void }) {
   return (
-    <div className="absolute inset-x-3 bottom-20 flex overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_-8px_rgb(0_0_0/0.35)]">
+    <div className="absolute inset-x-3 bottom-20 flex overflow-hidden rounded-md bg-white shadow-[0_8px_28px_-8px_rgb(0_0_0/0.35)]">
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 text-left">
         <span className="h-[104px] w-[112px] shrink-0">
           <StayPhoto tone={stay.tone} scene={stay.photos[0]} />
@@ -230,6 +238,7 @@ function FilterDrawer({ count, onClose, children }: { count: number; onClose: ()
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.3, ease: EASE_OUT_CUBIC }}
         onClick={onClose}
       />
       <motion.div
@@ -237,14 +246,14 @@ function FilterDrawer({ count, onClose, children }: { count: number; onClose: ()
         initial={{ x: "-100%" }}
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
-        transition={{ duration: 0.24, ease: [0.2, 0.8, 0.2, 1] }}
+        transition={{ duration: 0.3, ease: EASE_OUT_CUBIC }}
       >
         <div className="flex-1 overflow-y-auto px-5 pt-4">{children}</div>
         <div className="border-t border-line p-4">
           <button
             type="button"
             onClick={onClose}
-            className="tabular h-12 w-full rounded-lg bg-ink text-[15px] font-semibold text-white"
+            className="press tabular h-12 w-full rounded-md bg-accent text-[15px] font-semibold text-white hover:bg-accent-hover"
           >
             숙소 {count}개 보기
           </button>

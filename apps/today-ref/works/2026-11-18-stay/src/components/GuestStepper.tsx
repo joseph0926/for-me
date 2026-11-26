@@ -11,11 +11,11 @@ export function GuestStepper({ guests, onChange }: { guests: Guests; onChange: (
   ];
 
   return (
-    <div className="divide-y divide-line">
+    <div className="space-y-5">
       {rows.map((row) => {
         const value = guests[row.key];
         return (
-          <div key={row.key} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+          <div key={row.key} className="flex items-center justify-between">
             <div>
               <p className="text-[15px] font-medium">{row.label}</p>
               <p className="text-[13px] text-muted">{row.detail}</p>
@@ -26,7 +26,7 @@ export function GuestStepper({ guests, onChange }: { guests: Guests; onChange: (
                 aria-label={`${row.label} 줄이기`}
                 disabled={value <= row.min}
                 onClick={() => onChange({ ...guests, [row.key]: value - 1 })}
-                className="grid h-8 w-8 place-items-center rounded-full border border-line-strong text-ink hover:border-ink disabled:border-line disabled:text-line-strong"
+                className="grid h-8 w-8 place-items-center rounded-md border border-line-strong text-ink hover:border-ink disabled:border-line disabled:text-line-strong"
               >
                 <MinusIcon size={16} />
               </button>
@@ -36,7 +36,7 @@ export function GuestStepper({ guests, onChange }: { guests: Guests; onChange: (
                 aria-label={`${row.label} 늘리기`}
                 disabled={total >= MAX_GUESTS}
                 onClick={() => onChange({ ...guests, [row.key]: value + 1 })}
-                className="grid h-8 w-8 place-items-center rounded-full border border-line-strong text-ink hover:border-ink disabled:border-line disabled:text-line-strong"
+                className="grid h-8 w-8 place-items-center rounded-md border border-line-strong text-ink hover:border-ink disabled:border-line disabled:text-line-strong"
               >
                 <PlusIcon size={16} />
               </button>

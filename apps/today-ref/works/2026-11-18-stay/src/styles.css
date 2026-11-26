@@ -38,7 +38,7 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "tnum" 0;
 }
@@ -58,6 +58,15 @@ button:disabled {
 :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+/* 주 동작 버튼은 누르는 동안 0.95배로 준다. translate와 따로 도는 scale 속성을 써서 위치 지정과 겹치지 않는다. */
+.press {
+  transition: scale 120ms ease-out;
+}
+
+.press:active:not(:disabled) {
+  scale: 0.95;
 }
 
 /* 상세에서 돌아온 숙소 카드: 옅은 면을 1초 둔 뒤 220ms에 걷는다(1000 / 1220 = 82%). */

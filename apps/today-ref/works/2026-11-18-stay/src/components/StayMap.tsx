@@ -158,7 +158,7 @@ export function StayMap({
         })}
       </motion.div>
 
-      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-[0_1px_3px_rgb(0_0_0/0.12)]">
+      <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-md border border-black/10 bg-white shadow-[0_1px_3px_rgb(0_0_0/0.12)]">
         <button
           type="button"
           aria-label="지도 확대"

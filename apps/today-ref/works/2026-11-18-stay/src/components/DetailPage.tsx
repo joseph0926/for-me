@@ -12,6 +12,7 @@ import { StayMap } from "./StayMap";
 import { StayPhoto } from "./StayPhoto";
 
 const CONFIRM_DELAY_MS = 900;
+const EASE_OUT_CUBIC = [0.215, 0.61, 0.355, 1] as const;
 
 export function DetailPage({
   stay,
@@ -34,6 +35,7 @@ export function DetailPage({
   );
   const [booking, setBooking] = useState<BookingState>({ kind: "idle" });
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [bookingBoxVisible, setBookingBoxVisible] = useState(false);
 
   const room = stay.rooms.find((candidate) => candidate.id === roomId) ?? stay.rooms[0];
   const nights = nightsBetween(criteria.range);
@@ -42,6 +44,17 @@ export function DetailPage({
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  // 휴대폰 너비에서 예약 상자가 화면에 들어오면 아래 고정 줄을 내려 같은 요금과 버튼을 두 번 보이지 않는다.
+  useEffect(() => {
+    const box = document.getElementById("booking");
+    if (!box) return;
+    const observer = new IntersectionObserver(([entry]) => setBookingBoxVisible(entry.isIntersecting), {
+      rootMargin: "0px 0px -72px 0px",
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
   }, []);
 
   // 가짜 결제 요청이 끝나면 확정 화면으로 넘긴다. 상세를 떠나면 타이머를 버린다.
@@ -72,7 +85,7 @@ export function DetailPage({
       <button
         type="button"
         onClick={onBack}
-        className="-ml-2 flex h-9 items-center gap-1 rounded-lg px-2 text-[14px] font-medium hover:bg-canvas"
+        className="-ml-2 flex h-9 items-center gap-1 rounded-md px-2 text-[14px] font-medium hover:bg-canvas"
       >
         <ChevronLeft size={18} />
         검색 결과
@@ -86,7 +99,7 @@ export function DetailPage({
               <StarIcon size={14} />
               {stay.rating.toFixed(2)}
             </span>
-            <span className="tabular underline underline-offset-4">후기 {stay.reviewCount.toLocaleString("ko-KR")}개</span>
+            <span className="tabular">후기 {stay.reviewCount.toLocaleString("ko-KR")}개</span>
             <Divider />
             <span className="text-muted">
               서울 {district} {stay.area}
@@ -97,14 +110,15 @@ export function DetailPage({
           type="button"
           onClick={onToggleSave}
           aria-pressed={saved}
-          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[14px] font-medium underline-offset-4 hover:bg-canvas"
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[14px] font-medium hover:bg-canvas"
         >
+          {/* 결과 카드와 같은 이름(찜)을 쓰고, 찜한 상태는 채운 하트로만 보인다. */}
           <HeartIcon size={18} filled={saved} className={saved ? "text-[#e0475b]" : ""} />
-          {saved ? "저장됨" : "저장"}
+          찜
         </button>
       </div>
 
-      <div className="relative mt-5 grid h-[260px] grid-cols-1 gap-2 overflow-hidden rounded-xl sm:h-[380px] md:grid-cols-4 md:grid-rows-2 lg:h-[440px]">
+      <div className="relative mt-5 grid h-[260px] grid-cols-1 gap-2 overflow-hidden rounded-md sm:h-[380px] md:grid-cols-4 md:grid-rows-2 lg:h-[440px]">
         {stay.photos.map((scene, index) => (
           <button
             key={scene}
@@ -119,7 +133,7 @@ export function DetailPage({
         <button
           type="button"
           onClick={() => setGalleryOpen(true)}
-          className="absolute bottom-4 right-4 flex h-9 items-center gap-1.5 rounded-lg border border-ink/70 bg-white px-3 text-[14px] font-medium hover:bg-canvas"
+          className="absolute bottom-4 right-4 flex h-9 items-center gap-1.5 rounded-md border border-ink/70 bg-white px-3 text-[14px] font-medium hover:bg-canvas"
         >
           <GridIcon size={16} />
           사진 {stay.photos.length}장 모두 보기
@@ -136,24 +150,8 @@ export function DetailPage({
               최대 {maxCapacity(stay)}명, 객실 {stay.rooms.length}종, {stay.access}
             </p>
 
-            <div className="mt-6 grid grid-cols-3 divide-x divide-line rounded-xl border border-line py-4 text-center">
-              <div>
-                <p className="tabular text-[20px] font-semibold">{stay.rating.toFixed(2)}</p>
-                <Stars rating={stay.rating} />
-              </div>
-              <div>
-                <p className="tabular text-[20px] font-semibold">{stay.reviewCount.toLocaleString("ko-KR")}</p>
-                <p className="text-[13px] text-muted">후기</p>
-              </div>
-              <div className="px-3">
-                <p className="text-[16px] font-semibold leading-[30px]">
-                  {stay.cancellation.kind === "free" ? "무료 취소" : "부분 환불"}
-                </p>
-                <p className="text-[13px] text-muted">체크인 {stay.cancellation.kind === "none" ? 0 : stay.cancellation.daysBefore}일 전까지</p>
-              </div>
-            </div>
-
-            <p className="mt-6 text-[15px] leading-7">{stay.description}</p>
+            {/* 평점과 후기 수는 제목 아래, 취소 조건은 알아 두어야 할 사항에 있어 숫자 띠로 되풀이하지 않는다. */}
+            <p className="mt-5 text-[15px] leading-7">{stay.description}</p>
           </section>
 
           <Section title="객실 선택">
@@ -168,7 +166,7 @@ export function DetailPage({
                     role="radio"
                     aria-checked={selected}
                     onClick={() => setRoomId(option.id)}
-                    className={`flex w-full items-center justify-between gap-4 rounded-xl border p-4 text-left transition-colors ${
+                    className={`flex w-full items-center justify-between gap-4 rounded-md border p-4 text-left transition-colors ${
                       selected ? "border-ink shadow-[inset_0_0_0_1px_var(--ink)]" : "border-line hover:border-line-strong"
                     }`}
                   >
@@ -214,7 +212,7 @@ export function DetailPage({
               서울 {district} {stay.area}
               <span className="text-muted">, {stay.access}</span>
             </p>
-            <div className="mt-4 h-[300px] overflow-hidden rounded-xl border border-line sm:h-[340px]">
+            <div className="mt-4 h-[300px] overflow-hidden rounded-md border border-line sm:h-[340px]">
               <StayMap stays={[stay]} focus={stay.pos} initialZoom={1} variant="pin" />
             </div>
           </Section>
@@ -234,7 +232,7 @@ export function DetailPage({
                 <h3 className="font-semibold">취소 정책</h3>
                 <ul className="mt-2 space-y-1.5 text-muted">
                   <li>{cancellationText(stay.cancellation)}</li>
-                  <li>그 이후 취소 시 첫 1박 요금 부과</li>
+                  {stay.cancellation.kind !== "none" && <li>그 이후 취소 시 첫 1박 요금 부과</li>}
                   <li>체크인 당일 취소와 노쇼는 환불 불가</li>
                 </ul>
               </div>
@@ -258,6 +256,7 @@ export function DetailPage({
       </div>
 
       <MobileReserveBar
+        hidden={bookingBoxVisible}
         total={nights > 0 ? won(price.total) : `${won(room.price)} /박`}
         detail={criteria.range ? `${formatShort(criteria.range.checkIn)} - ${formatShort(criteria.range.checkOut)}` : "날짜를 선택하세요"}
         confirmed={booking.kind === "confirmed"}
@@ -273,51 +272,53 @@ function Divider() {
   return <span className="h-3.5 w-px bg-line-strong" aria-hidden="true" />;
 }
 
+// 절 사이는 선 없이 제목 아래 여백의 두 배로 띄운다.
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-10 border-t border-line pt-10">
+    <section className="mt-12">
       <h2 className="mb-5 text-[19px] font-semibold tracking-[-0.01em]">{title}</h2>
       {children}
     </section>
   );
 }
 
-function Stars({ rating }: { rating: number }) {
-  const full = Math.round(rating);
-  return (
-    <span className="mt-1 flex justify-center gap-0.5" aria-label={`별점 ${rating}`}>
-      {Array.from({ length: 5 }, (_, index) => (
-        <StarIcon key={index} size={11} className={index < full ? "text-ink" : "text-line-strong"} />
-      ))}
-    </span>
-  );
-}
-
 function MobileReserveBar({
+  hidden,
   total,
   detail,
   confirmed,
   onClick,
 }: {
+  hidden: boolean;
   total: string;
   detail: string;
   confirmed: boolean;
   onClick: () => void;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 border-t border-line bg-white px-4 py-3 lg:hidden">
-      <div className="min-w-0">
-        <p className="tabular text-[16px] font-semibold">{total}</p>
-        <p className="tabular truncate text-[13px] text-muted underline underline-offset-2">{detail}</p>
-      </div>
-      <button
-        type="button"
-        onClick={onClick}
-        className="h-11 shrink-0 rounded-lg bg-accent px-6 text-[15px] font-semibold text-white hover:bg-accent-hover"
-      >
-        {confirmed ? "예약 내역" : "예약하기"}
-      </button>
-    </div>
+    <AnimatePresence initial={false}>
+      {!hidden && (
+        <motion.div
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ duration: 0.22, ease: EASE_OUT_CUBIC }}
+          className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-4 border-t border-line bg-white px-4 py-3 lg:hidden"
+        >
+          <div className="min-w-0">
+            <p className="tabular text-[16px] font-semibold">{total}</p>
+            <p className="tabular truncate text-[13px] text-muted">{detail}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClick}
+            className="press h-11 shrink-0 rounded-md bg-accent px-6 text-[15px] font-semibold text-white hover:bg-accent-hover"
+          >
+            {confirmed ? "예약 내역" : "예약하기"}
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -343,13 +344,13 @@ function Gallery({ stay, onClose }: { stay: Stay; onClose: () => void }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 16 }}
-      transition={{ duration: 0.22 }}
+      transition={{ duration: 0.22, ease: EASE_OUT_CUBIC }}
     >
       <div className="sticky top-0 z-10 flex h-16 items-center gap-2 border-b border-line bg-white px-4 sm:px-6">
         <button
           type="button"
           onClick={onClose}
-          className="-ml-2 flex h-9 items-center gap-1 rounded-lg px-2 text-[14px] font-medium hover:bg-canvas"
+          className="-ml-2 flex h-9 items-center gap-1 rounded-md px-2 text-[14px] font-medium hover:bg-canvas"
         >
           <ChevronLeft size={18} />
           돌아가기
@@ -358,7 +359,7 @@ function Gallery({ stay, onClose }: { stay: Stay; onClose: () => void }) {
       </div>
       <div className="mx-auto grid max-w-[880px] grid-cols-2 gap-2 px-4 py-8 sm:px-6">
         {stay.photos.map((scene, index) => (
-          <div key={scene} className={`overflow-hidden rounded-lg ${index % 3 === 0 ? "col-span-2 aspect-[16/10]" : "aspect-[4/3]"}`}>
+          <div key={scene} className={`overflow-hidden rounded-md ${index % 3 === 0 ? "col-span-2 aspect-[16/10]" : "aspect-[4/3]"}`}>
             <StayPhoto tone={stay.tone} scene={scene} />
           </div>
         ))}

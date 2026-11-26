@@ -9,7 +9,7 @@ import { quote, won } from "../pricing";
 import { type SearchCriteria, guestsLabel, totalGuests } from "../search";
 import { Calendar } from "./Calendar";
 import { GuestStepper } from "./GuestStepper";
-import { CheckIcon, ChevronDown, StarIcon } from "./icons";
+import { CheckIcon, ChevronDown } from "./icons";
 import { Popover } from "./Popover";
 
 type Panel = "dates" | "guests" | null;
@@ -51,21 +51,15 @@ export function BookingBox({
 
   return (
     <BoxFrame>
-      <div className="flex items-baseline justify-between gap-3">
-        <p>
-          <span className="tabular text-[22px] font-semibold tracking-[-0.01em]">{won(room.price)}</span>
-          <span className="text-[15px] text-muted"> /박</span>
-        </p>
-        <span className="tabular flex items-center gap-1 text-[14px]">
-          <StarIcon size={13} />
-          {stay.rating.toFixed(2)}
-          <span className="text-muted">({stay.reviewCount.toLocaleString("ko-KR")})</span>
-        </span>
-      </div>
+      {/* 평점은 상세 제목 아래에 있어 상자에서 되풀이하지 않는다. */}
+      <p>
+        <span className="tabular text-[22px] font-semibold tracking-[-0.01em]">{won(room.price)}</span>
+        <span className="text-[15px] text-muted"> /박</span>
+      </p>
       <p className="mt-0.5 text-[14px] text-muted">{room.name}</p>
 
       <div ref={fieldsRef} className="relative mt-5">
-        <div className="rounded-lg border border-line-strong">
+        <div className="rounded-md border border-line-strong">
           <div className="grid grid-cols-2">
             <Field label="체크인" value={criteria.range ? formatShort(criteria.range.checkIn) : null} onClick={() => setPanel("dates")} />
             <Field
@@ -117,7 +111,7 @@ export function BookingBox({
         type="button"
         disabled={overCapacity || submitting}
         onClick={() => (criteria.range ? onReserve() : setPanel("dates"))}
-        className={`mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[16px] font-semibold text-white hover:bg-accent-hover disabled:hover:bg-accent ${overCapacity ? "disabled:bg-line-strong" : ""}`}
+        className={`press mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-md bg-accent text-[16px] font-semibold text-white hover:bg-accent-hover disabled:hover:bg-accent ${overCapacity ? "disabled:bg-line-strong" : ""}`}
       >
         {submitting && (
           <motion.span
@@ -148,7 +142,7 @@ export function BookingBox({
 
 function BoxFrame({ children }: { children: ReactNode }) {
   return (
-    <div id="booking" className="scroll-mt-28 rounded-xl border border-line bg-white p-6 shadow-[0_6px_28px_-14px_rgb(0_0_0/0.22)]">
+    <div id="booking" className="scroll-mt-28 rounded-md border border-line bg-white p-6">
       {children}
     </div>
   );
@@ -212,7 +206,7 @@ function Confirmation({ receipt, onReset }: { receipt: Receipt; onReset: () => v
       <button
         type="button"
         onClick={onReset}
-        className="mt-5 h-11 w-full rounded-lg border border-ink text-[15px] font-semibold hover:bg-canvas"
+        className="mt-5 h-11 w-full rounded-md border border-ink text-[15px] font-semibold hover:bg-canvas"
       >
         다른 일정으로 예약하기
       </button>

@@ -73,7 +73,7 @@ export function SortMenu({ value, onChange }: { value: SortKey; onChange: (value
             openMenu();
           }
         }}
-        className={`flex h-9 items-center gap-1.5 rounded-lg border bg-white pl-3 pr-2.5 text-[14px] font-medium ${
+        className={`flex h-9 items-center gap-1.5 rounded-md border bg-white pl-3 pr-2.5 text-[14px] font-medium ${
           open ? "border-ink" : "border-line-strong hover:border-ink"
         }`}
       >
@@ -96,9 +96,9 @@ export function SortMenu({ value, onChange }: { value: SortKey; onChange: (value
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.14, ease: EASE_OUT_CUBIC }}
+            transition={{ duration: 0.22, ease: EASE_OUT_CUBIC }}
             style={{ transformOrigin: "top right" }}
-            className="absolute right-0 top-full z-40 mt-1 min-w-[150px] rounded-lg border border-line bg-white p-1 shadow-[0_12px_40px_-12px_rgb(20_20_30/0.25)] outline-none"
+            className="absolute right-0 top-full z-40 mt-1 min-w-[150px] rounded-md border border-line bg-white p-1 shadow-[0_12px_40px_-12px_rgb(20_20_30/0.25)] outline-none"
           >
             {SORT_OPTIONS.map((option, index) => (
               <div
@@ -108,13 +108,13 @@ export function SortMenu({ value, onChange }: { value: SortKey; onChange: (value
                 aria-checked={option.value === value}
                 onPointerMove={() => setActiveIndex(index)}
                 onClick={() => choose(option.value)}
-                className="relative flex h-[30px] cursor-pointer items-center gap-3 rounded-md px-2 text-[14px]"
+                className="relative flex h-[30px] cursor-pointer items-center gap-3 rounded-[4px] px-2 text-[14px]"
               >
                 {index === activeIndex && (
                   <motion.span
                     layoutId={`${menuId}-highlight`}
                     transition={{ duration: 0.12, ease: EASE_OUT_CUBIC }}
-                    className="absolute inset-0 rounded-md bg-canvas"
+                    className="absolute inset-0 rounded-[4px] bg-canvas"
                   />
                 )}
                 <span className="relative flex-1 whitespace-nowrap">{option.label}</span>
