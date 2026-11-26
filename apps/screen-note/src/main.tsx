@@ -38,7 +38,7 @@ function App() {
     try {
       const blob = await read();
       if (id !== latestOpen.current) return;
-      // Finder와 클립보드에서는 파일 이름이나 MIME 형식이 비어 있을 수 있다.
+      // 운영체제에서 연 파일과 클립보드에서는 파일 이름이나 MIME 형식이 비어 있을 수 있다.
       const signature = await blob.slice(0, 6).text();
       const gif = signature === "GIF87a" || signature === "GIF89a"
         ? blob.slice(0, blob.size, "image/gif") : undefined;
@@ -71,16 +71,17 @@ function App() {
   useEffect(() => {
     let active = true;
     const core = window.__TAURI__?.core;
-    if (core && /Mac/i.test(navigator.platform)) {
+    if (core) {
+      const fileManager = /Mac/i.test(navigator.platform) ? "Finder" : "파일 탐색기";
       const channel = new core.Channel<[number, string]>();
       channel.onmessage = ([id, name]) => {
         if (active) void openImage(name, async () => {
-          const bytes = await core.invoke<ArrayBuffer>("read_finder_image", { id });
+          const bytes = await core.invoke<ArrayBuffer>("read_opened_image", { id });
           return new Blob([bytes]);
         });
       };
-      void core.invoke("listen_finder", { channel }).catch(() => {
-        if (active) setError("Finder에서 파일을 열 수 없습니다. 이미지 열기 버튼을 사용하세요.");
+      void core.invoke("listen_opened_files", { channel }).catch(() => {
+        if (active) setError(`${fileManager}에서 파일을 열 수 없습니다. 이미지 열기 버튼을 사용하세요.`);
       });
     }
     function paste(event: ClipboardEvent) {

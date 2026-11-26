@@ -1,0 +1,10 @@
+{
+  "bundle": {
+    "fileAssociations": [
+      { "name": "ScreenNote.png", "ext": ["png"], "description": "PNG 이미지", "mimeType": "image/png" },
+      { "name": "ScreenNote.jpeg", "ext": ["jpg", "jpeg"], "description": "JPEG 이미지", "mimeType": "image/jpeg" },
+      { "name": "ScreenNote.webp", "ext": ["webp"], "description": "WebP 이미지", "mimeType": "image/webp" },
+      { "name": "ScreenNote.gif", "ext": ["gif"], "description": "GIF 이미지", "mimeType": "image/gif" }
+    ]
+  }
+}
