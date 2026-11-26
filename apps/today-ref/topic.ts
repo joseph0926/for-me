@@ -67,6 +67,15 @@ export interface Identity {
   basis: string;
 }
 
+// 고객 제품의 화면을 위해 연 주제의 대상. 사용자가 주제를 주고 그 화면에 옮길 완성작을 만들 때만 적는다.
+// 실제 수요에서 나온 완성작을 세고, 활용할 때 어느 화면을 위한 것인지 바로 찾기 위해 남긴다.
+export interface Target {
+  // 대상 저장소. 머신마다 경로가 달라 저장소 이름이나 홈 기준 경로로 적는다(예: ~/dev/p/screen-note).
+  repo: string;
+  // 대상 화면이나 부분(예: "보관함 목록").
+  screen: string;
+}
+
 export interface Topic {
   id: string;
   date: string;
@@ -78,6 +87,7 @@ export interface Topic {
   selection: Selection | null;
   status: Status;
   identity?: Identity;
+  target?: Target;
 }
 
 export type TopicResult = { ok: true; topic: Topic } | { ok: false; errors: string[] };
@@ -168,6 +178,7 @@ export function validateTopic(input: unknown, expectedId?: string): TopicResult 
   }
 
   if (input.identity !== undefined) validateIdentity(input.identity, fail);
+  if (input.target !== undefined) validateTarget(input.target, fail);
 
   return errors.length === 0 ? { ok: true, topic: input as unknown as Topic } : { ok: false, errors };
 }
@@ -195,6 +206,15 @@ function validateIdentity(input: unknown, fail: (message: string) => void) {
   text(input.motion, "identity.motion", limits.longText, fail);
   text(input.title, "identity.title", limits.longText, fail);
   text(input.basis, "identity.basis", limits.longText, fail);
+}
+
+function validateTarget(input: unknown, fail: (message: string) => void) {
+  if (!isRecord(input)) {
+    fail("target은 객체여야 합니다");
+    return;
+  }
+  text(input.repo, "target.repo", limits.shortText, fail);
+  text(input.screen, "target.screen", limits.shortText, fail);
 }
 
 function validateReference(input: unknown, at: string, fail: (message: string) => void): string | null {
