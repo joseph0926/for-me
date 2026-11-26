@@ -12,6 +12,8 @@
 
 macOS에서는 Finder에서 이미지의 **다음으로 열기 → Screen Note**를 선택할 수 있습니다. 더블클릭할 때마다 Screen Note로 열려면 PNG, JPEG, WebP 각각에 대해 **정보 가져오기 → 다음으로 열기 → Screen Note → 모두 변경**을 선택합니다. 여러 파일을 한꺼번에 열면 첫 파일을 열고, 편집 중이면 기존 이미지를 교체할지 먼저 묻습니다.
 
+Windows에서는 설치 파일로 설치한 뒤 파일 탐색기에서 이미지를 오른쪽 클릭하고 **연결 프로그램 → Screen Note**를 선택합니다. 설치만으로 기본 앱이 바뀌지는 않습니다. 더블클릭할 때마다 Screen Note로 열려면 같은 메뉴의 **다른 앱 선택**에서 Screen Note를 고르고 **항상**을 누릅니다. 앱이 이미 켜져 있으면 새 창을 띄우지 않고 기존 창에서 엽니다.
+
 파일은 보기 모드로 열립니다. GIF는 바로 재생됩니다. 정지 이미지에서 **편집**을 누르면 도구가 나타납니다. **보기로**를 누르면 작업 중인 결과를 볼 수 있고, 다시 편집을 누르면 되돌리기 기록도 이어집니다. [보기 모드와 GIF 재생 조사](docs/view-mode-and-gif.md)
 
 편집 모드에서 왼쪽 도구 아이콘에 마우스를 올리거나 Tab 키로 이동하면 이름과 단축키가 나타납니다. 선택(V), 자르기(C), 펜(P), 메모(T), 가리기(R), 강조(H)는 키를 눌러 바로 고를 수 있습니다. 좁은 창에서는 도구 이름이 아래쪽에 표시됩니다. 맨 아래에는 자른 결과의 픽셀 크기와 화면에 맞춘 배율이 표시됩니다.
@@ -35,7 +37,7 @@ corepack pnpm build
 corepack pnpm tauri dev
 ```
 
-macOS 앱은 `corepack pnpm tauri build --bundles app -- --locked`로 만들며, 결과는 `src-tauri/target/release/bundle/macos/Screen Note.app`에 있습니다. 개발 머신의 로컬 실행용으로 서명합니다. Windows 빌드와 실제 편집 확인 범위는 [검증 기록](docs/verification.md)에 남깁니다.
+macOS 앱은 `corepack pnpm tauri build --bundles app -- --locked`로 만들며, 결과는 `src-tauri/target/release/bundle/macos/Screen Note.app`에 있습니다. 개발 머신의 로컬 실행용으로 서명합니다. Windows 설치 파일은 Windows에서 `corepack pnpm tauri build --bundles nsis -- --locked`로 만들며, 결과는 `src-tauri/target/release/bundle/nsis/`에 있습니다. Claude 데스크톱 앱 안의 터미널에서 설치 파일을 실행하면 Windows 앱 가상화 때문에 파일 탐색기에 연결이 보이지 않을 수 있으니, 설치는 파일 탐색기에서 설치 파일을 직접 실행합니다. Windows 빌드와 실제 편집 확인 범위는 [검증 기록](docs/verification.md)에 남깁니다.
 
 ## 설계 문서
 
