@@ -19,20 +19,20 @@ export function SubscribeForm({ subscribedEmail, onSubscribe }: { subscribedEmai
   };
 
   return (
-    <section id="subscribe" className="scroll-mt-24 border-t-2 border-ink bg-sunken p-5">
+    <section id="subscribe" className="scroll-mt-24 rounded-md bg-sunken p-5">
       <h2 className="text-[15px] font-bold">새 글 구독</h2>
       {subscribedEmail ? (
         <p className="mt-3 flex items-start gap-2 text-[14px] text-body">
           <Icon name="check" className="mt-0.5 size-4 shrink-0 text-accent" />
           <span>
-            이번 방문에 등록한 이메일
+            구독한 주소
             <strong className="mt-1 block font-semibold break-all text-ink">{subscribedEmail}</strong>
           </span>
         </p>
       ) : (
         <form onSubmit={submit} noValidate className="mt-3">
-          <p className="text-[13px] text-muted">이메일 주소는 이번 방문 동안만 저장됩니다.</p>
-          <label className="mt-3 block text-sm font-semibold" htmlFor="subscribe-email">이메일 주소</label>
+          {/* 저장 방식을 알리던 안내문은 읽는 사람의 할 일과 상관이 없어 뺐다. 새로고침하면 처음 상태라는 점은 README가 맡는다. */}
+          <label className="block text-sm font-semibold" htmlFor="subscribe-email">이메일 주소</label>
           <div className="mt-1 flex gap-2">
             <input
               id="subscribe-email"
@@ -44,9 +44,9 @@ export function SubscribeForm({ subscribedEmail, onSubscribe }: { subscribedEmai
               aria-invalid={showError && invalid}
               aria-describedby={showError && invalid ? "subscribe-error" : undefined}
               onChange={(event) => setDraft(event.target.value)}
-              className="h-11 min-w-0 flex-1 rounded-sm border border-line bg-surface px-3 text-[14px] outline-none focus:border-accent"
+              className="h-11 min-w-0 flex-1 rounded-md border border-line bg-surface px-3 text-[14px] outline-none focus:border-accent"
             />
-            <button type="submit" className="h-11 shrink-0 rounded-sm bg-ink px-4 text-[14px] font-semibold text-surface">
+            <button type="submit" className="btn-primary shrink-0">
               구독
             </button>
           </div>

@@ -1,18 +1,12 @@
 import { CoverArt } from "../components/CoverArt";
-import { CategoryBadge, SeriesBadge } from "../components/PostMeta";
+import { CategoryBadge, OngoingMark, SeriesBadge } from "../components/PostMeta";
 import { SubscribeForm } from "../components/SubscribeForm";
-import { blog, categories, posts, series, seriesPosts, type Category, type Post } from "../data";
+import { blog, categories, formatDate, posts, series, seriesPosts, type Category, type Post } from "../data";
 import { hrefFor } from "../route";
 
 const byNewest = [...posts].sort((a, b) => b.date.localeCompare(a.date));
 const featured = byNewest.filter((post) => post.featured);
 const popular = [...posts].sort((a, b) => b.views - a.views).slice(0, 3);
-const ongoingSeries = series.find((entry) => entry.ongoing);
-const latestPart = ongoingSeries ? seriesPosts(ongoingSeries.id).at(-1)?.series?.part : undefined;
-
-function dotDate(date: string): string {
-  return date.replaceAll("-", ".");
-}
 
 export function Home({
   category,
@@ -57,7 +51,8 @@ export function Home({
             </ul>
           </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          {/* 곁 상자들은 선과 면 대신 28px 여백과 굵은 제목으로 나눈다. 구독만 입력이 있어 옅은 면에 둔다. */}
+          <aside className="space-y-7 lg:sticky lg:top-24 lg:self-start">
             <PopularBox />
             <SeriesBox />
             <SubscribeForm subscribedEmail={subscribedEmail} onSubscribe={onSubscribe} />
@@ -79,14 +74,9 @@ function Featured() {
         <div className="masthead">
           <h1 id="blog-name" className="sr-only">{blog.name}</h1>
           <img src="/images/author.webp" width="52" height="52" alt="" />
-          <div>
-            <p className="intro"><strong>{blog.author}</strong>{blog.introAfterName}</p>
-            <dl className="facts">
-              <div><dt>글</dt><dd>{posts.length}편</dd></div>
-              <div><dt>연재</dt><dd>{ongoingSeries && latestPart ? `${ongoingSeries.name} ${latestPart}화` : "없음"}</dd></div>
-              <div><dt>최근</dt><dd className="mono">{dotDate(byNewest[0]?.date ?? "")}</dd></div>
-            </dl>
-          </div>
+          {/* 글 수, 연재 회차, 최근 날짜를 세 칸으로 따로 두던 줄은 바로 아래 대표 글, '전체 글 8편', 연재 상자가
+              같은 값을 다시 보여 줘 통계 띠로만 읽혀 뺐다. */}
+          <p className="intro"><strong>{blog.author}</strong>{blog.introAfterName}</p>
         </div>
         <div className="lead-story">
           <p className="side-label">대표 글</p>
@@ -100,13 +90,13 @@ function Featured() {
               {lead === byNewest[0] ? <span className="new-mark">*새 글</span> : null}
             </a>
             <p>{lead.summary}</p>
-            <a className="btn read-link" href={leadHref}>글 읽기 <span aria-hidden="true">↗</span></a>
+            <a className="read-link" href={leadHref}>글 읽기 <span aria-hidden="true">→</span></a>
           </div>
         </div>
         <div className="other-stories" aria-label="다른 대표 글">
           {otherFeatured.map((post) => (
             <a key={post.slug} href={hrefFor({ page: "post", slug: post.slug })}>
-              <span>{post.category}</span><strong>{post.title}</strong><i aria-hidden="true">↗</i>
+              <span>{post.category}</span><strong>{post.title}</strong><i aria-hidden="true">→</i>
             </a>
           ))}
         </div>
@@ -126,7 +116,7 @@ function PostRow({ post }: { post: Post }) {
           </div>
           <h3 className="mt-2.5 article-title line-clamp-2 leading-snug group-hover:underline">{post.title}</h3>
           <p className="mt-1 line-clamp-2 text-[15px] leading-[1.55] text-body">{post.summary}</p>
-          <p className="mono mt-2 text-xs text-muted"><time dateTime={post.date}>{dotDate(post.date)}</time></p>
+          <p className="mt-2 text-xs text-muted tabular-nums"><time dateTime={post.date}>{formatDate(post.date)}</time></p>
         </div>
         <CoverArt slug={post.slug} thumbnail className="post-thumb aspect-square w-16 shrink-0 self-center sm:aspect-[4/3] sm:w-32" />
       </a>
@@ -136,16 +126,16 @@ function PostRow({ post }: { post: Post }) {
 
 function PopularBox() {
   return (
-    <section className="border-t-2 border-ink py-4">
-      <h2 className="text-[15px] font-bold text-muted">인기 있는 글</h2>
-      <ol className="mt-4 space-y-4">
+    <section>
+      <h2 className="text-[15px] font-bold">인기 있는 글</h2>
+      <ol className="mt-3 space-y-3">
         {popular.map((post, index) => (
           <li key={post.slug}>
             <a href={hrefFor({ page: "post", slug: post.slug })} className="group flex min-h-11 items-start gap-3">
-              <span className="mono w-6 shrink-0 pt-px text-[13px] text-muted">{String(index + 1).padStart(2, "0")}</span>
+              <span className="w-4 shrink-0 text-[14px] leading-snug font-semibold text-muted tabular-nums">{index + 1}</span>
               <span className="min-w-0">
                 <span className="block text-[14px] leading-snug font-semibold group-hover:underline">{post.title}</span>
-                <span className="mono mt-1 block text-[12px] text-muted">{dotDate(post.date)}</span>
+                <span className="mt-0.5 block text-[12px] text-muted tabular-nums">{formatDate(post.date)}</span>
               </span>
             </a>
           </li>
@@ -161,12 +151,12 @@ function SeriesBox() {
       {series.map((entry) => {
         const parts = seriesPosts(entry.id);
         return (
-          <section key={entry.id} className="border-t border-line py-4">
-            <div className="flex items-center gap-2">
-              {entry.ongoing ? <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-surface">연재 중</span> : null}
+          <section key={entry.id}>
+            <div className="flex items-center gap-3">
               <h2 className="text-[15px] font-bold">{entry.name}</h2>
+              {entry.ongoing ? <OngoingMark /> : null}
             </div>
-            <ol className="mt-3 space-y-2">
+            <ol className="mt-1">
               {parts.map((post) => (
                 <li key={post.slug}>
                   <a href={hrefFor({ page: "post", slug: post.slug })} className="flex min-h-11 items-center gap-2 text-[14px] text-body hover:text-ink hover:underline">

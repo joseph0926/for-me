@@ -49,7 +49,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
           if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) onClose();
         }
       }}
-      className="fixed inset-x-0 top-[12vh] mx-auto w-[min(36rem,calc(100%-2rem))] border border-line bg-surface text-ink shadow-xl backdrop:bg-black/45"
+      className="fixed inset-x-0 top-[12vh] mx-auto w-[min(36rem,calc(100%-2rem))] overflow-hidden rounded-md border border-line bg-surface text-ink shadow-xl backdrop:bg-black/45"
     >
         <div className="flex items-center gap-3 border-b border-line px-4">
           <Icon name="search" className="size-5 text-muted" />
@@ -75,7 +75,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
             aria-label="검색어"
             className="h-14 min-w-0 flex-1 bg-transparent text-[16px] outline-none"
           />
-          <button type="button" onClick={onClose} aria-label="검색 닫기" className="grid size-9 place-items-center rounded-full text-muted hover:bg-sunken">
+          <button type="button" onClick={onClose} aria-label="검색 닫기" className="icon-button size-9 text-muted">
             <Icon name="close" className="size-4" />
           </button>
         </div>
@@ -96,7 +96,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
                   <span className="block text-[15px] font-semibold">{highlight(post.title, trimmed)}</span>
                   <span className="mt-0.5 line-clamp-1 block text-[13px] text-muted">{highlight(post.summary, trimmed)}</span>
                   <span className="mt-1 block text-[12px] text-muted">
-                    {post.category}, {formatDate(post.date)}
+                    {post.category}, <span className="tabular-nums">{formatDate(post.date)}</span>
                   </span>
                 </button>
               </li>

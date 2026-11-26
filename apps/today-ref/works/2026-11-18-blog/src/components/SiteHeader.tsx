@@ -24,7 +24,7 @@ export function SiteHeader({ category, onSearch, onSubscribe }: { category: Cate
         <button type="button" onClick={onSubscribe} className="ml-auto h-11 shrink-0 px-2 text-[14px] font-semibold text-ink hover:underline sm:ml-2">
           구독하기
         </button>
-        <button type="button" onClick={onSearch} aria-label="글 검색" className="grid size-11 shrink-0 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink">
+        <button type="button" onClick={onSearch} aria-label="글 검색" className="icon-button size-11 shrink-0 text-muted hover:text-ink">
           <Icon name="search" />
         </button>
       </div>

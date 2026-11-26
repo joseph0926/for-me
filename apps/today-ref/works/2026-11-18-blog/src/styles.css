@@ -65,9 +65,32 @@ body {
 }
 
 .wrap { width: min(76rem, calc(100% - 4rem)); margin-inline: auto; }
-:where(a, button, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.drawer-mark { width: 15px; height: 16px; border-block: 2px solid currentColor; position: relative; }
-.drawer-mark::after { content: ""; position: absolute; inset: 5px 0 auto; border-top: 2px solid currentColor; }
+/* 키보드 초점은 1px 강조선과 바깥 3px 옅은 번짐이다. 마우스로 누를 때는 :focus-visible이 아니라 남지 않는다.
+   유틸리티(outline-none 등)가 이길 수 있게 base 층에 둔다. 층 밖에 두면 검색 입력란에도 잘린 테두리가 그려졌다. */
+@layer base {
+  :where(a, button):focus-visible { outline: 1px solid var(--accent); outline-offset: 0; box-shadow: 0 0 0 4px var(--accent-soft); }
+  /* 입력란은 번짐 없이 선만 둔다. 검색 창처럼 틀이 이미 입력란을 감싼 곳은 outline-none으로 끈다. */
+  :where(input):focus-visible { outline: 1px solid var(--accent); outline-offset: 0; }
+}
+/* 서랍 앞면(테두리 상자와 가운데 칸막이, 손잡이 둘). 가로줄 세 개는 메뉴 버튼처럼 읽혀 바꿨다. */
+.drawer-mark { width: 16px; height: 15px; border: 2px solid currentColor; border-radius: 2px; position: relative; }
+.drawer-mark::before { content: ""; position: absolute; inset: 4.5px 0 auto; border-top: 2px solid currentColor; }
+.drawer-mark::after { content: ""; position: absolute; left: 50%; top: 1px; width: 4px; height: 1.5px; margin-left: -2px; background: currentColor; box-shadow: 0 6.5px 0 currentColor; }
+
+/* 버튼은 한 벌이다. 주 버튼은 본문색 면, 보조 버튼은 1px 테두리, 아이콘 버튼은 바탕 없이 가리킬 때만 옅은 면.
+   모두 모서리 6px, 높이 44px, 가리키면 120ms에 밝기만 낮추고 누르면 0.95배로 준다.
+   components 층에 두어 자리마다 붙인 유틸리티(여백, 정렬)가 이긴다. */
+@layer components {
+.btn-primary, .btn-secondary { display: inline-flex; height: 44px; align-items: center; justify-content: center; padding-inline: 18px; border-radius: 6px; font-size: 14px; font-weight: 600; transition: filter 120ms ease-out, transform 120ms ease-out; }
+.btn-primary { background: var(--ink); color: var(--surface); }
+.btn-secondary { border: 1px solid var(--line); color: var(--ink); }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; transition: background-color 120ms ease-out, transform 120ms ease-out; }
+@media (hover: hover) {
+  .btn-primary:hover, .btn-secondary:hover { filter: brightness(.88); }
+  .btn-secondary:hover { background: var(--sunken); filter: none; }
+  .icon-button:hover { background: var(--sunken); }
+}
+}
 
 .edition-page { min-height: calc(100svh - 57px); display: grid; grid-template-rows: auto 1fr auto; padding-block: clamp(1.4rem, 3.5vh, 3.25rem) 1.5rem; }
 /* r5, r4: 큰 소개 문장에서 이름만 진하게 두고 나머지는 회색으로 낮춘다. */
@@ -75,18 +98,17 @@ body {
 .masthead img { width: 52px; height: 52px; margin-top: .4rem; border-radius: 50%; object-fit: cover; filter: grayscale(1); }
 .intro { max-width: 24em; font-size: clamp(1.45rem, 2.6vw, 2.3rem); line-height: 1.4; letter-spacing: -.03em; font-weight: 500; color: var(--quiet); text-wrap: pretty; }
 .intro strong { font-weight: 650; color: var(--ink); }
-/* r5: 부가 정보는 가는 선 사이의 세 칸 표로, 값은 고정폭 글꼴로 둔다. */
-.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 11rem)); gap: 1.5rem; margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--hairline); }
-.facts dt { font-size: .72rem; font-weight: 600; letter-spacing: .14em; color: var(--muted); }
+/* r5: 글 화면의 글쓴이, 날짜, 분량은 가는 선 사이의 세 칸 표로 둔다. 한글 이름표에 넓은 자간은 쓰지 않는다. */
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+.facts dt { font-size: .75rem; font-weight: 600; color: var(--muted); }
 .facts dd { margin-top: .35rem; font-size: .875rem; line-height: 1.5; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .lead-story { display: grid; grid-template-columns: auto 1.45fr 1fr; align-items: center; gap: clamp(2rem, 5vw, 5rem); padding-block: clamp(1.5rem, 4vh, 3.5rem); }
 /* r6: 구역 제목을 세로로 눕혀 사진 옆에 붙인다. */
-.side-label { align-self: start; margin-right: calc(clamp(2rem, 5vw, 5rem) * -.6); writing-mode: vertical-rl; text-orientation: sideways; font-size: .9rem; font-weight: 650; letter-spacing: .06em; }
+.side-label { align-self: start; margin-right: calc(clamp(2rem, 5vw, 5rem) * -.6); writing-mode: vertical-rl; text-orientation: sideways; font-size: .9rem; font-weight: 650; }
 .lead-photo { display: block; height: clamp(18rem, 48vh, 32rem); }
 .lead-copy { max-width: 26rem; }
-.story-kicker { display: flex; align-items: center; gap: .65rem; color: var(--accent); font-size: .83rem; font-weight: 650; }
-.story-kicker span { color: var(--muted); }
+/* 분류와 연재 회차는 목록의 분류 표시(PostMeta)와 같은 보조색 13px로 쓴다. */
+.story-kicker { color: var(--muted); font-size: 13px; font-weight: 500; }
 .lead-title { display: block; margin-block: 1rem; font-size: clamp(1.6rem, 2.6vw, 2.2rem); line-height: 1.3; letter-spacing: -.035em; font-weight: 650; text-wrap: balance; }
 /* r4: 새 글 표시는 단어 뒤 위첨자로 붙인다. */
 .new-mark { margin-left: .2em; font-size: .42em; font-weight: 500; letter-spacing: 0; vertical-align: super; color: var(--body); }
@@ -95,15 +117,15 @@ body {
 .other-stories { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); border-block: 1px solid var(--hairline); }
 .other-stories a { display: flex; min-height: 4.4rem; align-items: center; gap: 1rem; }
 .other-stories a + a { border-left: 1px solid var(--hairline); padding-left: 2rem; }
-.other-stories span { font-size: .76rem; font-weight: 600; color: var(--accent); }
+.other-stories span { font-size: 13px; font-weight: 500; color: var(--muted); }
 .other-stories strong { font-size: 1.05rem; }
 .other-stories i { margin-left: auto; padding-right: 1.25rem; font-style: normal; }
 .archive { padding: clamp(3rem, 7vw, 6rem) 0; }
 .archive-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(15rem, .36fr); gap: clamp(2.5rem, 6vw, 6rem); }
 /* r4: 구역 제목은 큰 단어 하나와 위첨자 개수다. */
 .section-title { font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.1; font-weight: 500; letter-spacing: -.045em; }
-.section-title sup { margin-left: .3em; font: 500 .9rem var(--font-mono); letter-spacing: 0; vertical-align: top; color: var(--muted); }
-.post-row + .post-row { border-top: 1px solid var(--hairline); }
+.section-title sup { margin-left: .3em; font-size: .9rem; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0; vertical-align: top; color: var(--muted); }
+/* 글 목록의 줄 사이는 선 없이 여백만 둔다. */
 /* r4: 목록 사진은 흑백으로 가라앉혔다가 가리키면 색이 돌아온다. */
 .post-thumb img { filter: grayscale(1); transition: filter 220ms ease-out; }
 .group:is(:hover, :focus-visible) .post-thumb img { filter: none; }
@@ -111,7 +133,7 @@ body {
 .reader { max-width: 52rem; margin-inline: auto; padding-top: clamp(2rem, 6vw, 5rem); }
 .reader-head, .reader-body { width: min(100%, max(85%, 36rem)); margin-inline: auto; }
 .reader-head h1 { font-size: clamp(1.75rem, 3.4vw, 2.5rem); line-height: 1.3; font-weight: 650; letter-spacing: -.04em; margin: .8rem 0 1.5rem; text-wrap: balance; }
-.reader-head .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 0; padding-bottom: 1rem; border-bottom: 1px solid var(--hairline); }
+.reader-head .facts { padding-block: 1rem; border-block: 1px solid var(--hairline); }
 .reader-cover { margin: 2rem 0 2.6rem; aspect-ratio: 2 / 1; }
 .reader-body { font-size: 17px; line-height: 1.75; color: var(--body); }
 .reader-body > * + * { margin-top: 1.5rem; }
@@ -119,17 +141,18 @@ body {
   .lead-title:hover, .other-stories a:hover strong { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .17em; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .edition[data-enter] .masthead { animation: edition-enter 320ms ease-out; }
+  .edition[data-enter] .masthead { animation: edition-enter 220ms cubic-bezier(.215, .61, .355, 1); }
   @keyframes edition-enter { from { opacity: .6; translate: 0 3px; } to { opacity: 1; translate: 0; } }
+  /* 글 안으로 가는 링크라 화살표는 바깥 링크처럼 대각선으로 튀지 않고 앞으로만 2px 간다. */
   .read-link span, .other-stories i { transition: transform 160ms ease-out; }
-  .read-link:hover span, .other-stories a:hover i { transform: translate(2px, -2px); }
-  button:active { transform: translateY(1px); }
+  .read-link:hover span, .other-stories a:hover i { transform: translateX(2px); }
+  button:active, .btn-primary:active, .btn-secondary:active { transform: scale(.95); transition: transform 120ms ease-out; }
 }
 @media (max-width: 760px) {
   .wrap { width: calc(100% - 2.5rem); }
   .masthead { grid-template-columns: minmax(0, 1fr); }
   .masthead img { width: 40px; height: 40px; margin: 0 0 .9rem; }
-  .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .facts { gap: 1rem; }
   .side-label { margin: 0; writing-mode: horizontal-tb; }
   .edition-page { padding-block: 1.2rem; }
   .lead-story { grid-template-columns: 1fr; gap: 1rem; padding-block: 1.25rem; }

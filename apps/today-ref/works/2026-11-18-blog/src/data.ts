@@ -209,7 +209,8 @@ export function readingMinutes(post: Post): number {
   return Math.max(1, Math.round(characters / 500));
 }
 
+// 날짜는 홈, 검색, 글 화면 어디서나 이 한 형식(2026.11.16)으로 쓴다.
+// 화면마다 "2026년 11월 16일"과 고정폭 "2026.11.16"이 섞여 같은 값이 다른 것처럼 보였다.
 export function formatDate(date: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  return `${year}년 ${month}월 ${day}일`;
+  return date.replaceAll("-", ".");
 }

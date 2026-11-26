@@ -104,7 +104,7 @@ export function App() {
             <main id="main-content" tabIndex={-1} className="mx-auto max-w-xl px-5 py-24 text-center">
               <h1 className="text-2xl font-extrabold">글을 찾지 못했습니다</h1>
               <p className="mt-2 text-muted">주소가 바뀌었거나 지워진 글입니다.</p>
-              <a href="#/" className="mt-6 inline-block rounded-xl bg-ink px-5 py-3 font-semibold text-surface">
+              <a href="#/" className="btn-primary mt-6">
                 처음으로
               </a>
             </main>
@@ -118,13 +118,15 @@ export function App() {
 
       <AnimatePresence>
         {toast ? (
+          // 알림은 흐림이 걷히며 나타나고 같은 길(0.97배, 4px 흐림)로 220ms에 사라진다. 모서리는 6px, 알약 모양은 태그에만 쓴다.
           <motion.div
             key={toast.id}
             role="status"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            className="fixed inset-x-0 bottom-6 z-50 mx-auto w-fit max-w-[calc(100%-2rem)] rounded-full bg-ink px-5 py-3 text-center text-[14px] font-medium text-surface shadow-lg"
+            initial={{ opacity: 0, scale: 0.97, filter: "blur(4px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 0.97, filter: "blur(4px)" }}
+            transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
+            className="fixed inset-x-0 bottom-6 z-50 mx-auto w-fit max-w-[calc(100%-2rem)] rounded-md bg-ink px-5 py-3 text-center text-[14px] font-medium text-surface"
           >
             {toast.text}
           </motion.div>
