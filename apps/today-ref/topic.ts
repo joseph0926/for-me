@@ -48,6 +48,25 @@ export interface Selection {
   decidedOn: string;
 }
 
+// 주제마다 고르는 시각 정체성. 3단계에서 레퍼런스와 함께 정하고 4단계가 이 값으로 완성작 토큰을 쓴다.
+// 레퍼런스의 브랜드 색과 서체는 가져오지 않으므로 이 칸이 없으면 템플릿과 tastepin 출발값이 빈자리를 채워
+// 완성작이 모두 같은 모습으로 수렴한다(2026-11-26 완성작 11개 중 10개가 Pretendard, 10개가 모서리 6px).
+// 이 칸이 생기기 전에 만든 주제에는 없으므로 선택 항목이다.
+export interface Identity {
+  // 본문과 제목 서체. 같은 서체를 쓰면 같은 이름을 두 번 적는다.
+  fonts: { body: string; title: string };
+  // 밝은 화면의 바탕색과 강조색(#rrggbb). 어두운 화면 값은 완성작 토큰에서 정한다.
+  colors: { ground: string; accent: string };
+  // 이 완성작의 기준 모서리 하나(예: "4px"). tastepin 규칙 범위 안에서 고르고 완성작 안에서는 이 값을 쓴다.
+  radius: string;
+  // 모션 성격. 곡선, 길이, 흐림을 쓸지 같은 움직임의 인상을 한두 문장으로 적는다.
+  motion: string;
+  // 제목 표현. 크기, 굵기, 자간, 대소문자나 숫자 쓰임처럼 제목이 어떻게 보이는지.
+  title: string;
+  // 이 값들을 고른 근거. 주제의 소재와 쓰는 상황, 직전 완성작과 무엇이 다른지.
+  basis: string;
+}
+
 export interface Topic {
   id: string;
   date: string;
@@ -58,12 +77,15 @@ export interface Topic {
   // 사용자가 확정한 선택. selecting 상태에서는 null이고 그 뒤로는 반드시 있다.
   selection: Selection | null;
   status: Status;
+  identity?: Identity;
 }
 
 export type TopicResult = { ok: true; topic: Topic } | { ok: false; errors: string[] };
 
 const topicIdPattern = /^(\d{4}-\d{2}-\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const referenceIdPattern = /^r[1-9]\d*$/;
+const hexColorPattern = /^#[0-9a-f]{6}$/i;
+const lengthPattern = /^(?:0|\d+(?:\.\d+)?px)$/;
 const captureNamePattern = /^[a-z0-9][a-z0-9-]*\.(?:png|jpe?g|webp|gif|avif)$/;
 
 export function isTopicId(value: string): boolean {
@@ -145,7 +167,34 @@ export function validateTopic(input: unknown, expectedId?: string): TopicResult 
     validateSelection(input.selection, referenceIds, fail);
   }
 
+  if (input.identity !== undefined) validateIdentity(input.identity, fail);
+
   return errors.length === 0 ? { ok: true, topic: input as unknown as Topic } : { ok: false, errors };
+}
+
+function validateIdentity(input: unknown, fail: (message: string) => void) {
+  if (!isRecord(input)) {
+    fail("identity는 객체여야 합니다");
+    return;
+  }
+  if (!isRecord(input.fonts)) fail("identity.fonts는 객체여야 합니다");
+  else {
+    text(input.fonts.body, "identity.fonts.body", limits.shortText, fail);
+    text(input.fonts.title, "identity.fonts.title", limits.shortText, fail);
+  }
+  if (!isRecord(input.colors)) fail("identity.colors는 객체여야 합니다");
+  else {
+    for (const key of ["ground", "accent"] as const) {
+      const color = text(input.colors[key], `identity.colors.${key}`, 7, fail);
+      if (color !== null && !hexColorPattern.test(color)) fail(`identity.colors.${key}는 #rrggbb 형식이어야 합니다`);
+    }
+  }
+  // 범위가 아니라 한 값을 받는다. 완성작 안의 일관성은 이 값 하나로 지키고, 다양성은 주제마다 다른 값에서 나온다.
+  const radius = text(input.radius, "identity.radius", 8, fail);
+  if (radius !== null && !lengthPattern.test(radius)) fail("identity.radius는 0이나 4px처럼 px 값 하나여야 합니다");
+  text(input.motion, "identity.motion", limits.longText, fail);
+  text(input.title, "identity.title", limits.longText, fail);
+  text(input.basis, "identity.basis", limits.longText, fail);
 }
 
 function validateReference(input: unknown, at: string, fail: (message: string) => void): string | null {

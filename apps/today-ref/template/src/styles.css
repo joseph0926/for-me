@@ -1,29 +1,35 @@
 @import "tailwindcss";
-@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
-/* 완성작마다 레퍼런스에 맞춰 바꾸는 기본값이다. */
+/*
+ * 이 완성작의 시각 정체성. 4단계에서 topic.json의 identity 값으로 채운다(docs/agent.md 3, 4단계).
+ *
+ * 여기 있는 값은 고른 값이 아니라 빈자리 표시다. 브라우저 기본 색(Canvas, CanvasText)과 시스템 서체라서, 채우지 않으면
+ * 꾸미지 않은 화면으로 바로 보인다. 예전에는 Pretendard와 회색을 기본값으로 두었는데, 완성작이 그 값을 그대로 쓰면서
+ * 11개 중 10개가 같은 서체와 비슷한 회색으로 모였다(2026-11-26). 그래서 무난해 보이는 기본값을 두지 않는다.
+ *
+ * 서체를 고르면 그 서체를 완성작 package.json에 더하고 여기서 import한다(예: Pretendard는 이미 의존성에 있다).
+ * 다크 화면 값은 @media (prefers-color-scheme: dark) 안에 같은 이름으로 정한다.
+ */
 :root {
-  --surface: #ffffff;
-  --ink: #16181d;
-  --muted: #6b7080;
-  --line: #e4e6eb;
-  --backdrop: #e9ebef;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #0f1013;
-    --ink: #eceef2;
-    --muted: #9298a6;
-    --line: #23262d;
-    --backdrop: #050506;
-    color-scheme: dark;
-  }
+  /* identity.colors.ground */
+  --surface: Canvas;
+  /* identity.colors.accent */
+  --accent: LinkText;
+  --ink: CanvasText;
+  --muted: GrayText;
+  --line: color-mix(in srgb, CanvasText 14%, Canvas);
+  --backdrop: color-mix(in srgb, CanvasText 8%, Canvas);
+  /* identity.radius: 완성작 안의 기준 모서리 하나. rounded-work로 쓴다 */
+  --radius: 0px;
+  color-scheme: light dark;
 }
 
 @theme inline {
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* identity.fonts.body, identity.fonts.title */
+  --font-sans: system-ui, sans-serif;
+  --font-title: var(--font-sans);
+  --color-accent: var(--accent);
+  --radius-work: var(--radius);
 }
 
 html,
