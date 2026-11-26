@@ -5,6 +5,7 @@ import { DIMENSION_GROUPS, DIMENSIONS, type DimensionId, type Filter, type Lists
 import { formatNumber } from "../format";
 import { Icon } from "../icons";
 import { PeriodSelect } from "./PeriodSelect";
+import { BLUR_IN } from "../motion";
 import { useDismiss } from "./useDismiss";
 
 interface FilterBarProps {
@@ -26,11 +27,9 @@ export function FilterBar({ filters, lists, period, onAdd, onRemove, onClear, on
         {filters.map((filter) => (
           <motion.span
             key={filter.dimension}
+            // 칩은 흐림이 걷히며 들어오고 같은 길로 나간다(tastepin 등장 방식과 퇴장 값)
             layout="position"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.14 }}
+            {...BLUR_IN}
             className="flex h-7 max-w-[320px] items-center rounded-md border border-line bg-panel pl-2.5 text-[13px]"
           >
             <span className="shrink-0 text-muted">{DIMENSIONS[filter.dimension].label}</span>
@@ -48,7 +47,7 @@ export function FilterBar({ filters, lists, period, onAdd, onRemove, onClear, on
       </AnimatePresence>
 
       {filters.length > 1 && (
-        <button type="button" onClick={onClear} className="h-7 px-1.5 text-[13px] text-muted hover:text-ink">
+        <button type="button" onClick={onClear} className="press h-7 px-1.5 text-[13px] text-muted hover:text-ink">
           모두 지우기
         </button>
       )}
@@ -83,7 +82,7 @@ function FilterMenu({ lists, onAdd }: { lists: Lists; onAdd: (filter: Filter) =>
         type="button"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
-        className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-ink-2 hover:bg-raised hover:text-ink"
+        className="press flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] text-ink-2 hover:bg-raised hover:text-ink"
       >
         <Icon name="filter" className="size-[14px] text-muted" />
         필터
@@ -91,12 +90,11 @@ function FilterMenu({ lists, onAdd }: { lists: Lists; onAdd: (filter: Filter) =>
 
       <AnimatePresence>
         {open && (
+          // 메뉴는 버튼 쪽 모서리에서 흐림이 걷히며 열리고 같은 길로 닫힌다(tastepin 등장 방식, 220ms)
           <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.12 }}
-            className="absolute left-0 top-[calc(100%+4px)] z-30 w-[260px] overflow-hidden rounded-lg border border-line bg-raised shadow-[0_12px_32px_-8px_rgb(0_0_0/0.6)]"
+            {...BLUR_IN}
+            style={{ transformOrigin: "top left" }}
+            className="absolute left-0 top-[calc(100%+4px)] z-30 w-[260px] overflow-hidden rounded-md border border-line bg-raised shadow-[0_12px_32px_-8px_rgb(0_0_0/0.6)]"
           >
             {dimension === null ? (
               <div className="max-h-[360px] overflow-y-auto p-1">

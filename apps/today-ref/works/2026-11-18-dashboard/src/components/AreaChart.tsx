@@ -4,6 +4,7 @@ import { useId, useLayoutEffect, useRef, useState, type PointerEvent, type RefOb
 import { pointUnit, type PeriodId } from "../data";
 import { formatDay, formatDayWithWeekday, formatHour, formatHourRange } from "../format";
 import type { MetricDef } from "../metrics";
+import { EASE_OUT_CUBIC } from "../motion";
 
 export interface ChartPoint {
   at: number;
@@ -21,7 +22,8 @@ interface AreaChartProps {
 const HEIGHT = 272;
 const PAD = { top: 16, right: 20, bottom: 30, left: 60 };
 const MIN_LABEL_GAP = 84;
-const TOOLTIP_WIDTH = 188;
+// 7일의 "11월 18일 (수) 12:00–15:00"과 "집계 중"이 한 줄에 들어가는 폭
+const TOOLTIP_WIDTH = 236;
 const TOOLTIP_OFFSET = 12;
 
 export function AreaChart({ points, period, metric }: AreaChartProps) {
@@ -138,13 +140,13 @@ export function AreaChart({ points, period, metric }: AreaChartProps) {
             <motion.path
               initial={{ opacity: 0, d: areaPath }}
               animate={{ d: areaPath, opacity: 1 }}
-              transition={{ duration: 0.35, ease: [0.2, 0.7, 0.2, 1] }}
+              transition={{ duration: 0.32, ease: EASE_OUT_CUBIC }}
               fill={`url(#${gradientId})`}
             />
             <motion.path
               initial={{ opacity: 0, d: linePath }}
               animate={{ d: linePath, opacity: 1 }}
-              transition={{ duration: 0.35, ease: [0.2, 0.7, 0.2, 1] }}
+              transition={{ duration: 0.32, ease: EASE_OUT_CUBIC }}
               fill="none"
               stroke="var(--color-accent)"
               strokeWidth={1.75}
@@ -155,7 +157,7 @@ export function AreaChart({ points, period, metric }: AreaChartProps) {
               <motion.path
                 initial={{ opacity: 0, d: tailPath }}
                 animate={{ d: tailPath, opacity: 1 }}
-                transition={{ duration: 0.35, ease: [0.2, 0.7, 0.2, 1] }}
+                transition={{ duration: 0.32, ease: EASE_OUT_CUBIC }}
                 fill="none"
                 stroke="var(--color-accent)"
                 strokeWidth={1.75}
@@ -191,16 +193,16 @@ export function AreaChart({ points, period, metric }: AreaChartProps) {
       {hovered && hoverIndex !== null && (
         <div
           role="status"
-          className="pointer-events-none absolute z-10 rounded-lg border border-line bg-raised px-3 py-2.5 shadow-[0_8px_24px_-6px_rgb(0_0_0/0.6)]"
+          className="pointer-events-none absolute z-10 rounded-md border border-line bg-raised px-3 py-2.5 shadow-[0_8px_24px_-6px_rgb(0_0_0/0.6)]"
           style={{ left: tooltipLeft, top: PAD.top, width: TOOLTIP_WIDTH }}
         >
           <div className="flex items-center justify-between gap-3 text-[12px] text-muted">
-            <span>
+            <span className="whitespace-nowrap">
               {formatDayWithWeekday(hovered.at)}
               {unit === "hour" && ` ${formatHour(hovered.at)}`}
               {unit === "3h" && ` ${formatHourRange(hovered.at, 3)}`}
             </span>
-            {hovered.partial && <span className="text-faint">집계 중</span>}
+            {hovered.partial && <span className="shrink-0 whitespace-nowrap text-faint">집계 중</span>}
           </div>
           <div className="mt-1.5 flex items-center justify-between gap-4 text-[13px]">
             <span className="flex items-center gap-1.5 text-ink-2">

@@ -53,6 +53,8 @@ export const METRICS: MetricDef[] = [
 
 export interface Delta {
   text: string;
+  // 화면 읽기용 문장. 화살표 글자 대신 증가와 감소, 좋아짐과 나빠짐을 말로 읽힌다.
+  label: string;
   tone: "good" | "bad" | "flat";
 }
 
@@ -61,11 +63,14 @@ export function computeDelta(metric: MetricDef, current: number, previous: numbe
     metric.change === "points" ? current - previous : previous === 0 ? 0 : ((current - previous) / previous) * 100;
   const rounded = Math.round(diff * 10) / 10;
   const unit = metric.change === "points" ? "%p" : "%";
-  if (rounded === 0) return { text: `0${unit}`, tone: "flat" };
+  if (rounded === 0) return { text: `0${unit}`, label: "앞 기간과 같음", tone: "flat" };
   const up = rounded > 0;
   const digits = Math.abs(rounded) >= 10 ? 0 : 1;
+  const magnitude = `${Math.abs(rounded).toFixed(digits)}${unit}`;
+  const better = up === metric.higherIsBetter;
   return {
-    text: `${up ? "+" : "−"}${Math.abs(rounded).toFixed(digits)}${unit}`,
-    tone: up === metric.higherIsBetter ? "good" : "bad",
+    text: `${up ? "▲" : "▼"} ${magnitude}`,
+    label: `앞 기간보다 ${magnitude} ${up ? "증가" : "감소"}, ${better ? "좋아짐" : "나빠짐"}`,
+    tone: better ? "good" : "bad",
   };
 }

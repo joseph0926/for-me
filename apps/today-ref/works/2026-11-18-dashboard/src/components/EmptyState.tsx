@@ -1,15 +1,10 @@
-import { Icon, type IconName } from "../icons";
-
-export function EmptyState({ icon, title, body }: { icon: IconName; title: string; body: string }) {
+// 빈 상태는 점선 상자와 아이콘 틀 없이 제목 아래에 굵은 한 줄과 설명만 둔다
+// (tastepin 규칙: 그룹은 여백과 글자 굵기로 나눈다). 아이콘은 사이드바와 이동 경로가 이미 보여 준다.
+export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mt-6 grid min-h-[360px] place-items-center rounded-xl border border-dashed border-line">
-      <div className="flex max-w-[340px] flex-col items-center px-6 text-center">
-        <span className="grid size-9 place-items-center rounded-lg border border-line text-muted">
-          <Icon name={icon} className="size-4" />
-        </span>
-        <p className="mt-4 text-[14px] font-medium text-ink">{title}</p>
-        <p className="mt-1.5 text-[13px] leading-5 text-muted">{body}</p>
-      </div>
+    <div className="mt-7 max-w-[440px]">
+      <p className="text-[15px] font-semibold leading-6 text-ink">{title}</p>
+      <p className="mt-0.5 text-[15px] leading-[1.55] text-muted">{body}</p>
     </div>
   );
 }

@@ -58,9 +58,9 @@ const CURRENT_HOUR_START = Date.UTC(2026, 10, 18, 14);
 const MINUTES_INTO_HOUR = 37;
 
 export const PERIODS: { id: PeriodId; label: string }[] = [
-  { id: "24h", label: "최근 24시간" },
-  { id: "7d", label: "최근 7일" },
-  { id: "30d", label: "최근 30일" },
+  { id: "24h", label: "24시간" },
+  { id: "7d", label: "7일" },
+  { id: "30d", label: "30일" },
 ];
 
 export const DIMENSIONS: Record<DimensionId, { label: string; tabLabel: string }> = {

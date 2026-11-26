@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 
 import { Icon } from "../icons";
+import { CURVE } from "../motion";
 import { NAV, type PageId } from "../pages";
 
 interface SidebarProps {
@@ -21,19 +22,22 @@ export function Sidebar({ activeId, onNavigate, drawerOpen, onCloseDrawer }: Sid
       <AnimatePresence>
         {drawerOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
+            {/* 메뉴 패널은 스프링 없이 곡선으로 220ms에 들어오고 같은 길로 나간다(tastepin 드로어 예외와 메뉴 여는 방식 값).
+                넓은 화면의 사이드바 자리를 이어 받으므로 오른쪽이 아니라 왼쪽에서 연다. */}
             <motion.div
               className="absolute inset-0 bg-black/60"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={CURVE}
               onClick={onCloseDrawer}
             />
             <motion.aside
-              className="absolute inset-y-0 left-0 w-[248px] border-r border-line bg-sidebar"
-              initial={{ x: -248 }}
+              className="absolute inset-y-0 left-0 w-[76%] max-w-[300px] border-r border-line bg-sidebar"
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: -248 }}
-              transition={{ type: "spring", stiffness: 420, damping: 40 }}
+              exit={{ x: "-100%" }}
+              transition={CURVE}
             >
               <SidebarContent activeId={activeId} onNavigate={onNavigate} />
             </motion.aside>
@@ -68,8 +72,8 @@ function SidebarContent({ activeId, onNavigate }: Pick<SidebarProps, "activeId" 
                       onClick={() => onNavigate(page.id)}
                       aria-current={active ? "page" : undefined}
                       className={`
-                        flex h-[30px] w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[13px]
-                        ${active ? "bg-raised text-ink" : "text-ink-2 hover:bg-raised/60 hover:text-ink"}
+                        flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-[14px]
+                        ${active ? "bg-raised text-ink" : "text-ink-2 hover:text-ink"}
                       `}
                     >
                       <Icon name={page.icon} className={`size-[15px] shrink-0 ${active ? "text-ink" : "text-muted"}`} />

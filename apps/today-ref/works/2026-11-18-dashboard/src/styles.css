@@ -37,8 +37,10 @@ body {
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: -0.003em;
+  /* 한글이 "전환율/을"처럼 낱말 가운데서 줄을 바꾸지 않게 한다 */
+  word-break: keep-all;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -46,7 +48,23 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
-  outline-offset: 1px;
+/* 키보드 초점. base 층에 두어야 검색 입력처럼 outline-none을 단 요소가 이 규칙에 덮이지 않는다. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+/* 누름 반응(tastepin 모션 기본값): 누르는 동안 0.95배, 120ms ease-out. 작은 버튼에만 쓴다. */
+.press {
+  transition: scale 120ms ease-out, color 120ms ease-out, background-color 120ms ease-out;
+}
+.press:active {
+  scale: 0.95;
+}
+@media (prefers-reduced-motion: reduce) {
+  .press:active {
+    scale: 1;
+  }
 }

@@ -43,7 +43,7 @@ export function App() {
       />
       <div className="min-w-0 flex-1">
         <TopBar trail={trail} onOpenMenu={() => setDrawerOpen(true)} />
-        <main className="mx-auto max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-[1280px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
           {page.kind === "site" ? (
             // 필터 값은 사이트마다 달라서 사이트가 바뀌면 비운다. 기간과 지표는 이어 간다.
             <SiteDashboard
@@ -57,7 +57,7 @@ export function App() {
           ) : (
             <>
               <PageTitle title={page.label} />
-              <EmptyState icon={page.icon} title={page.emptyTitle} body={page.emptyBody} />
+              <EmptyState title={page.emptyTitle} body={page.emptyBody} />
             </>
           )}
         </main>
@@ -108,7 +108,8 @@ function SiteDashboard({ site, period, onPeriodChange, metricId, onMetricChange 
         <MetricPanel dashboard={dashboard} period={period} metricId={metricId} onMetricChange={onMetricChange} />
       </div>
 
-      <div className="mt-4 grid items-start gap-4 md:grid-cols-2">
+      {/* 지표 묶음과 목록 묶음 사이는 28px, 목록 카드 사이는 20px(tastepin 묶음 나누기와 밀도 값) */}
+      <div className="mt-7 grid items-start gap-5 md:grid-cols-2">
         {DIMENSION_GROUPS.map((group) => (
           <ListCard key={group.label} dimensions={group.dimensions} lists={dashboard.lists} onSelect={handleAdd} />
         ))}
