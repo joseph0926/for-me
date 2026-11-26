@@ -95,7 +95,6 @@ export function App() {
     setDialog({ step: "reveal", title: freePack.name, cards });
   };
 
-  const toggleFavorite = (packId: string) => dispatch({ type: "toggleFavorite", packId });
   const closeDialog = () => setDialog(null);
 
   return (
@@ -135,16 +134,15 @@ export function App() {
             <Featured
               state={state}
               onBuy={openPack}
-              onToggleFavorite={toggleFavorite}
               onClaimFree={claimFree}
               onOpenPass={() => goTo("pass")}
             />
           ) : sectionId === "packs" ? (
-            <Packs state={state} onBuy={openPack} onToggleFavorite={toggleFavorite} />
+            <Packs state={state} onBuy={openPack} />
           ) : sectionId === "topup" ? (
             <TopUp onBuy={openBundle} />
           ) : sectionId === "pass" ? (
-            <Pass current={state.passTier} onBuy={openPass} />
+            <Pass current={state.passTier} wallet={state.wallet} onBuy={openPass} />
           ) : (
             <History entries={state.history} />
           )}
@@ -179,10 +177,8 @@ export function App() {
               <CardReveal title={dialog.title} cards={dialog.cards} onDone={closeDialog} />
             ) : (
               <div className="p-6 text-center">
-                <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent text-surface">
-                  <Icon name="check" className="size-7" />
-                </span>
-                <h2 className="mt-4 text-xl font-extrabold">{dialog.title}</h2>
+                <Icon name="check" className="mx-auto size-8 text-accent" />
+                <h2 className="mt-3 text-xl font-bold">{dialog.title}</h2>
                 <p className="mt-1 text-sm text-muted">{dialog.message}</p>
                 {dialog.resume ? (
                   <div className="mt-6 grid gap-2">
@@ -190,11 +186,11 @@ export function App() {
                       type="button"
                       autoFocus
                       onClick={() => dialog.resume && setDialog({ step: "confirm", item: dialog.resume })}
-                      className="h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110"
+                      className="btn btn-primary w-full"
                     >
                       {itemName(dialog.resume)} 구매 계속
                     </button>
-                    <button type="button" onClick={closeDialog} className="h-11 w-full rounded-2xl text-sm font-semibold text-muted hover:text-ink">
+                    <button type="button" onClick={closeDialog} className="btn btn-secondary w-full">
                       닫기
                     </button>
                   </div>
@@ -203,7 +199,7 @@ export function App() {
                     type="button"
                     autoFocus
                     onClick={closeDialog}
-                    className="mt-6 h-12 w-full rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110"
+                    className="btn btn-primary mt-6 min-w-32"
                   >
                     확인
                   </button>

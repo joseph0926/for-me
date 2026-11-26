@@ -41,7 +41,7 @@ export function PurchaseConfirm({
     const total = item.bundle.points + item.bundle.bonus;
     return (
       <Frame title="포인트 충전">
-        <div className="flex items-center gap-3 rounded-2xl bg-panel-raised p-4">
+        <div className="flex items-center gap-3 rounded-md bg-panel-raised p-4">
           <CurrencyIcon currency="point" className="size-10" />
           <div>
             <p className="text-lg font-extrabold tabular">포인트 {formatNumber(total)}</p>
@@ -73,12 +73,12 @@ export function PurchaseConfirm({
       )}
 
       {shortfall > 0 ? (
-        <div className="rounded-2xl border border-danger/40 bg-danger/10 p-4 text-[13px]">
+        <div className="rounded-md bg-danger/10 p-4 text-[13px]">
           <p className="font-semibold text-danger tabular">
             {currencyWith[cost.currency].subject} {formatNumber(shortfall)} 부족합니다.
           </p>
           {cost.currency === "point" ? (
-            <button type="button" onClick={onGoTopUp} className="mt-3 h-9 rounded-xl bg-point px-4 text-[13px] font-bold text-surface">
+            <button type="button" onClick={onGoTopUp} className="btn btn-primary mt-3">
               포인트 충전하러 가기
             </button>
           ) : (
@@ -126,9 +126,10 @@ function PackSummary({
   return (
     <>
       <div className="flex gap-3">
-        <PackArt pack={pack} className="aspect-[4/3] w-28 shrink-0 rounded-xl" />
+        <PackArt pack={pack} className="aspect-[4/3] w-28 shrink-0 rounded-md" />
         <div className="min-w-0">
           <p className="font-bold">{pack.name}</p>
+          <p className="mt-1 text-[13px] text-muted">{pack.description}</p>
           <p className="mt-1 text-[13px] text-muted">{packContents(pack)}</p>
           <p className="mt-2 text-[12px] text-muted tabular">
             장당 확률: 영웅 {pack.odds.hero}%, 희귀 {pack.odds.rare}%, 일반 {commonOdds}%
@@ -147,8 +148,8 @@ function PackSummary({
                 role="radio"
                 aria-checked={selected}
                 onClick={() => onChangeCurrency(id)}
-                className={`flex h-12 flex-col items-center justify-center rounded-xl border text-sm font-bold transition ${
-                  selected ? "border-accent bg-accent/15" : "border-line hover:border-muted"
+                className={`flex h-12 flex-col items-center justify-center rounded-md text-sm font-bold transition-colors ${
+                  selected ? "bg-panel-raised shadow-[inset_0_0_0_1px_var(--ink)]" : "shadow-[inset_0_0_0_1px_var(--line)] hover:bg-panel-raised"
                 }`}
               >
                 <CurrencyAmount currency={id} amount={amount} />
@@ -168,7 +169,7 @@ function PassSummary({ tier, current }: { tier: Exclude<PassTier, "free">; curre
   const name = passTiers.find((entry) => entry.id === tier)?.name;
   const currentName = passTiers.find((entry) => entry.id === current)?.name;
   return (
-    <div className="rounded-2xl bg-panel-raised p-4">
+    <div className="rounded-md bg-panel-raised p-4">
       <p className="font-bold">{name}</p>
       {current !== "free" ? <p className="mt-1 text-[13px] text-muted">{currentName}에서 올리므로 차액만 냅니다.</p> : null}
       <p className="mt-1 text-[13px] text-muted">구매하면 바로 {passRewardLabel(tier)}를 엽니다.</p>
@@ -178,7 +179,7 @@ function PassSummary({ tier, current }: { tier: Exclude<PassTier, "free">; curre
 
 function BalanceLine({ currency, before, after }: { currency: CurrencyId; before: number; after: number }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-line px-4 py-3 text-[13px]">
+    <div className="flex items-center justify-between px-1 text-[13px]">
       <span className="text-muted">보유 {currencyLabel[currency]}</span>
       <span className="flex items-center gap-2 font-semibold">
         <CurrencyAmount currency={currency} amount={before} className="text-muted" />
@@ -204,7 +205,7 @@ function Actions({
 }) {
   return (
     <div className="grid grid-cols-[1fr_1.6fr] gap-2 pt-1">
-      <button type="button" onClick={onCancel} className="h-12 rounded-2xl border border-line text-[15px] font-semibold hover:bg-panel-raised">
+      <button type="button" onClick={onCancel} className="btn btn-secondary">
         취소
       </button>
       <button
@@ -212,10 +213,10 @@ function Actions({
         autoFocus={!disabled}
         disabled={disabled}
         onClick={onConfirm}
-        className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-accent text-[15px] font-bold text-surface transition hover:brightness-110 disabled:bg-panel-raised disabled:text-muted"
+        className="btn btn-primary"
       >
         {confirmLabel}
-        {confirmContent ? <span className="rounded-lg bg-black/20 px-2 py-0.5 text-[13px]">{confirmContent}</span> : null}
+        {confirmContent ? <span className="text-[13px]">{confirmContent}</span> : null}
       </button>
     </div>
   );

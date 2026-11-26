@@ -19,7 +19,6 @@ export type Rarity = "common" | "rare" | "hero";
 export const rarityLabel: Record<Rarity, string> = { common: "일반", rare: "희귀", hero: "영웅" };
 
 export interface Player {
-  portrait: string;
   name: string;
   position: string;
   rating: number;
@@ -27,31 +26,31 @@ export interface Player {
 }
 
 export const playerPool: Player[] = [
-  { portrait: "han-doyun", name: "한도윤", position: "ST", rating: 89, rarity: "hero" },
-  { portrait: "okafor", name: "R. 오카포", position: "CB", rating: 88, rarity: "hero" },
-  { portrait: "pereira", name: "L. 페레이라", position: "CAM", rating: 90, rarity: "hero" },
-  { portrait: "kurz", name: "M. 쿠르츠", position: "GK", rating: 87, rarity: "hero" },
-  { portrait: "nakamura", name: "S. 나카무라", position: "RW", rating: 83, rarity: "rare" },
-  { portrait: "baldwin", name: "J. 볼드윈", position: "CM", rating: 81, rarity: "rare" },
-  { portrait: "esposito", name: "T. 에스포지토", position: "LB", rating: 80, rarity: "rare" },
-  { portrait: "silva", name: "A. 실바", position: "ST", rating: 82, rarity: "rare" },
-  { portrait: "verheij", name: "K. 베르헤이", position: "CDM", rating: 79, rarity: "rare" },
-  { portrait: "lee-seojun", name: "이서준", position: "LW", rating: 78, rarity: "rare" },
-  { portrait: "nowak", name: "P. 노바크", position: "CB", rating: 77, rarity: "rare" },
-  { portrait: "marcel", name: "D. 마르셀", position: "RB", rating: 74, rarity: "common" },
-  { portrait: "park-jihoon", name: "박지훈", position: "CM", rating: 72, rarity: "common" },
-  { portrait: "ortega", name: "F. 오르테가", position: "ST", rating: 73, rarity: "common" },
-  { portrait: "hartmann", name: "G. 하르트만", position: "GK", rating: 71, rarity: "common" },
-  { portrait: "adeyemi", name: "N. 아데예미", position: "LM", rating: 70, rarity: "common" },
-  { portrait: "rossi", name: "C. 로시", position: "CB", rating: 72, rarity: "common" },
-  { portrait: "choi-minjae", name: "최민재", position: "RW", rating: 69, rarity: "common" },
-  { portrait: "cooper", name: "B. 쿠퍼", position: "CAM", rating: 71, rarity: "common" },
-  { portrait: "ivanov", name: "V. 이바노프", position: "LB", rating: 68, rarity: "common" },
-  { portrait: "jung-woosung", name: "정우성", position: "CDM", rating: 70, rarity: "common" },
-  { portrait: "martinez", name: "E. 마르티네스", position: "RM", rating: 69, rarity: "common" },
-  { portrait: "johansson", name: "H. 요한손", position: "CB", rating: 71, rarity: "common" },
-  { portrait: "diallo", name: "O. 디알로", position: "ST", rating: 72, rarity: "common" },
-  { portrait: "fischer", name: "W. 피셔", position: "CM", rating: 68, rarity: "common" },
+  { name: "한도윤", position: "ST", rating: 89, rarity: "hero" },
+  { name: "R. 오카포", position: "CB", rating: 88, rarity: "hero" },
+  { name: "L. 페레이라", position: "CAM", rating: 90, rarity: "hero" },
+  { name: "M. 쿠르츠", position: "GK", rating: 87, rarity: "hero" },
+  { name: "S. 나카무라", position: "RW", rating: 83, rarity: "rare" },
+  { name: "J. 볼드윈", position: "CM", rating: 81, rarity: "rare" },
+  { name: "T. 에스포지토", position: "LB", rating: 80, rarity: "rare" },
+  { name: "A. 실바", position: "ST", rating: 82, rarity: "rare" },
+  { name: "K. 베르헤이", position: "CDM", rating: 79, rarity: "rare" },
+  { name: "이서준", position: "LW", rating: 78, rarity: "rare" },
+  { name: "P. 노바크", position: "CB", rating: 77, rarity: "rare" },
+  { name: "D. 마르셀", position: "RB", rating: 74, rarity: "common" },
+  { name: "박지훈", position: "CM", rating: 72, rarity: "common" },
+  { name: "F. 오르테가", position: "ST", rating: 73, rarity: "common" },
+  { name: "G. 하르트만", position: "GK", rating: 71, rarity: "common" },
+  { name: "N. 아데예미", position: "LM", rating: 70, rarity: "common" },
+  { name: "C. 로시", position: "CB", rating: 72, rarity: "common" },
+  { name: "최민재", position: "RW", rating: 69, rarity: "common" },
+  { name: "B. 쿠퍼", position: "CAM", rating: 71, rarity: "common" },
+  { name: "V. 이바노프", position: "LB", rating: 68, rarity: "common" },
+  { name: "정우성", position: "CDM", rating: 70, rarity: "common" },
+  { name: "E. 마르티네스", position: "RM", rating: 69, rarity: "common" },
+  { name: "H. 요한손", position: "CB", rating: 71, rarity: "common" },
+  { name: "O. 디알로", position: "ST", rating: 72, rarity: "common" },
+  { name: "W. 피셔", position: "CM", rating: 68, rarity: "common" },
 ];
 
 export interface Pack {
@@ -85,7 +84,8 @@ export const packs: Pack[] = [
   },
   {
     id: "gold",
-    name: "골드 선수 팩",
+    // 포장 그림은 흑백으로 쓴다(금색과 누런색은 사용자 결정으로 뺐다). 이름도 그림에 맞춰 실버로 부른다.
+    name: "실버 선수 팩",
     description: "선수 12명 중 희귀 이상 1명을 보장합니다.",
     size: 12,
     odds: { rare: 12, hero: 1.5 },
@@ -116,7 +116,7 @@ export const packs: Pack[] = [
   {
     id: "season-start",
     name: "시즌 시작 묶음",
-    description: "희귀 선수 5명과 일반 선수 10명. 새 시즌에 한 번만 살 수 있습니다.",
+    description: "새 시즌에 한 번만 살 수 있는 선수 15명 묶음입니다.",
     size: 15,
     odds: { rare: 20, hero: 2 },
     guaranteed: "rare",
@@ -141,7 +141,7 @@ export const packs: Pack[] = [
 // 무료 보상 칸에서 여는 팩. 상점 목록에는 나오지 않는다.
 export const freePack: Pack = {
   id: "free",
-  name: "무료 보상 팩",
+  name: "무료 선수 팩",
   description: "시간마다 쌓이는 무료 보상입니다.",
   size: 3,
   odds: { rare: 5, hero: 0 },
@@ -154,16 +154,15 @@ export interface PointBundle {
   points: number;
   bonus: number;
   priceWon: number;
-  badge?: string;
 }
 
 export const pointBundles: PointBundle[] = [
   { id: "p100", points: 100, bonus: 0, priceWon: 1_200 },
   { id: "p500", points: 500, bonus: 0, priceWon: 5_900 },
   { id: "p1000", points: 1_000, bonus: 50, priceWon: 11_000 },
-  { id: "p2000", points: 2_000, bonus: 200, priceWon: 22_000, badge: "인기" },
-  { id: "p5000", points: 5_000, bonus: 900, priceWon: 55_000, badge: "보너스 18%" },
-  { id: "p10000", points: 10_000, bonus: 2_000, priceWon: 110_000, badge: "최고 효율" },
+  { id: "p2000", points: 2_000, bonus: 200, priceWon: 22_000 },
+  { id: "p5000", points: 5_000, bonus: 900, priceWon: 55_000 },
+  { id: "p10000", points: 10_000, bonus: 2_000, priceWon: 110_000 },
 ];
 
 export type PassTier = "free" | "pass" | "plus";
@@ -197,6 +196,21 @@ export const passBenefits: { label: string; values: Record<PassTier, boolean | s
 ];
 
 export const season = { name: "시즌 3", endsLabel: "23일 남음", level: 7, maxLevel: 40 };
+
+// 시즌 패스의 본체인 단계별 보상 줄. 무료 줄은 모두 받고, 패스 줄은 시즌 패스 이상에서 받는다.
+// 단계 10의 무료 보상은 무료 보상의 잠긴 칸을 연다(freeSlotSeeds의 unlockLevel과 같은 값).
+export interface PassStep {
+  level: number;
+  free: string;
+  pass: string;
+}
+
+export const passTrack: PassStep[] = Array.from({ length: season.maxLevel }, (_, index) => {
+  const level = index + 1;
+  const free = level === 10 ? "무료 보상 칸 하나 더" : level % 5 === 0 ? "기본 선수 팩" : "코인 500";
+  const pass = level === season.maxLevel ? "영웅 선택 팩" : level % 5 === 0 ? "실버 선수 팩" : "포인트 20";
+  return { level, free, pass };
+});
 
 // 무료 보상 칸의 처음 상태. 열릴 때까지 남은 초, 또는 잠김.
 export type FreeSlotSeed = { kind: "timer"; seconds: number } | { kind: "locked"; unlockLevel: number };

@@ -1,6 +1,7 @@
 // 지갑, 구매 한도, 시즌 패스, 무료 보상 칸을 한곳에서 바꾼다.
 // 무작위 카드 뽑기는 이벤트 핸들러에서 하고, 리듀서는 결과만 받아 순수하게 유지한다.
 import {
+  freePack,
   freeSlotRefillSeconds,
   freeSlotSeeds,
   initialWallet,
@@ -15,7 +16,8 @@ import {
   type Wallet,
 } from "./data";
 
-export type FreeSlot = { kind: "timer"; readyAt: number } | { kind: "locked"; unlockLevel: number };
+// since는 그 칸이 기다리기 시작한 시각. 원형 타이머가 실제 대기 시간 중 지난 만큼을 채운다.
+export type FreeSlot = { kind: "timer"; since: number; readyAt: number } | { kind: "locked"; unlockLevel: number };
 
 export type HistoryCost = { kind: "currency"; currency: CurrencyId; amount: number } | { kind: "won"; amount: number } | { kind: "free" };
 
@@ -31,7 +33,6 @@ export interface ShopState {
   wallet: Wallet;
   bought: Record<string, number>;
   passTier: PassTier;
-  favorites: string[];
   freeSlots: FreeSlot[];
   history: HistoryEntry[];
 }
@@ -40,17 +41,15 @@ export type ShopAction =
   | { type: "buyPack"; pack: Pack; currency: CurrencyId; cards: Player[]; at: number }
   | { type: "claimFree"; slot: number; cards: Player[]; at: number }
   | { type: "buyPoints"; bundle: PointBundle; at: number }
-  | { type: "buyPass"; tier: PassTier; at: number }
-  | { type: "toggleFavorite"; packId: string };
+  | { type: "buyPass"; tier: PassTier; at: number };
 
 export function createInitialState(now: number): ShopState {
   return {
     wallet: { ...initialWallet },
     bought: {},
     passTier: "free",
-    favorites: ["gold"],
     freeSlots: freeSlotSeeds.map((seed) =>
-      seed.kind === "timer" ? { kind: "timer", readyAt: now + seed.seconds * 1000 } : seed,
+      seed.kind === "timer" ? { kind: "timer", since: now, readyAt: now + seed.seconds * 1000 } : seed,
     ),
     history: [],
   };
@@ -58,15 +57,24 @@ export function createInitialState(now: number): ShopState {
 
 const rarityRank: Record<Rarity, number> = { common: 0, rare: 1, hero: 2 };
 
+// "영웅 1명, 일반 2명"처럼 받은 카드의 등급별 인원. 팩 개봉 창의 제목에 쓴다.
 export function summarizeCards(cards: Player[]): string {
   const counts = { hero: 0, rare: 0, common: 0 };
   for (const card of cards) counts[card.rarity] += 1;
   const parts = [
-    counts.hero > 0 ? `영웅 ${counts.hero}` : null,
-    counts.rare > 0 ? `희귀 ${counts.rare}` : null,
-    counts.common > 0 ? `일반 ${counts.common}` : null,
+    counts.hero > 0 ? `영웅 ${counts.hero}명` : null,
+    counts.rare > 0 ? `희귀 ${counts.rare}명` : null,
+    counts.common > 0 ? `일반 ${counts.common}명` : null,
   ];
   return parts.filter(Boolean).join(", ");
+}
+
+// 구매 내역에 남기는 받은 선수. 높은 등급부터 이름을 적는다.
+export function listPlayers(cards: Player[]): string {
+  return [...cards]
+    .sort((a, b) => rarityRank[b.rarity] - rarityRank[a.rarity] || b.rating - a.rating)
+    .map((card) => card.name)
+    .join(", ");
 }
 
 export function remainingPurchases(pack: Pack, bought: Record<string, number>): number | null {
@@ -92,7 +100,7 @@ export function shopReducer(state: ShopState, action: ShopAction): ShopState {
         wallet: { ...state.wallet, [action.currency]: state.wallet[action.currency] - price },
         bought: { ...state.bought, [action.pack.id]: (state.bought[action.pack.id] ?? 0) + 1 },
         history: [
-          entry(state, action.at, action.pack.name, { kind: "currency", currency: action.currency, amount: price }, summarizeCards(action.cards)),
+          entry(state, action.at, action.pack.name, { kind: "currency", currency: action.currency, amount: price }, listPlayers(action.cards)),
           ...state.history,
         ],
       };
@@ -101,12 +109,12 @@ export function shopReducer(state: ShopState, action: ShopAction): ShopState {
       const slot = state.freeSlots[action.slot];
       if (slot === undefined || slot.kind !== "timer" || slot.readyAt > action.at) return state;
       const freeSlots = state.freeSlots.map((current, index): FreeSlot =>
-        index === action.slot ? { kind: "timer", readyAt: action.at + freeSlotRefillSeconds * 1000 } : current,
+        index === action.slot ? { kind: "timer", since: action.at, readyAt: action.at + freeSlotRefillSeconds * 1000 } : current,
       );
       return {
         ...state,
         freeSlots,
-        history: [entry(state, action.at, "무료 보상 팩", { kind: "free" }, summarizeCards(action.cards)), ...state.history],
+        history: [entry(state, action.at, freePack.name, { kind: "free" }, listPlayers(action.cards)), ...state.history],
       };
     }
     case "buyPoints": {
@@ -133,12 +141,6 @@ export function shopReducer(state: ShopState, action: ShopAction): ShopState {
           ...state.history,
         ],
       };
-    }
-    case "toggleFavorite": {
-      const favorites = state.favorites.includes(action.packId)
-        ? state.favorites.filter((id) => id !== action.packId)
-        : [...state.favorites, action.packId];
-      return { ...state, favorites };
     }
   }
 }

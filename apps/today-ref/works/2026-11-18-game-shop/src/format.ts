@@ -14,6 +14,9 @@ export function formatCountdown(ms: number): string {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-export function formatTime(at: number): string {
-  return new Date(at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+// 구매 내역의 시각. 날짜와 분까지 적는다(예: 11월 26일 12:40).
+export function formatDateTime(at: number): string {
+  const date = new Date(at);
+  const time = date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 ${time}`;
 }

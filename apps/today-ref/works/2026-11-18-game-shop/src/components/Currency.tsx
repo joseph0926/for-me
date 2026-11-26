@@ -12,10 +12,11 @@ export function CurrencyIcon({ currency, className = "size-4" }: { currency: Cur
       </svg>
     );
   }
+  // 보석은 윗면과 아래 꼭짓점으로 그린다. 면 가운데를 가로지르는 선을 두면 밝은 바탕에서 십자가처럼 읽힌다.
   return (
     <svg viewBox="0 0 16 16" className={className} aria-hidden="true">
-      <path d="M8 1l6 4.5L8 15 2 5.5z" fill="var(--point)" />
-      <path d="M2 5.5h12M8 1v14" stroke="#285263" strokeWidth="1" fill="none" />
+      <path d="M4.6 2h6.8l3.1 4L8 14.5 1.5 6z" fill="var(--point)" stroke="#1f4650" strokeWidth="0.9" strokeLinejoin="round" />
+      <path d="M1.5 6h13M5.9 6 8 14.5 10.1 6" stroke="#1f4650" strokeWidth="0.7" fill="none" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -58,7 +59,7 @@ export function WalletChip({ currency, amount, onAdd }: { currency: CurrencyId; 
         <button
           type="button"
           onClick={onAdd}
-          className="grid size-11 place-items-center rounded-sm bg-point/15 text-point transition hover:bg-point/25"
+          className="grid size-11 place-items-center rounded-md bg-point/15 text-point transition hover:bg-point/25"
           aria-label={`${currencyLabel[currency]} 충전`}
         >
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round">

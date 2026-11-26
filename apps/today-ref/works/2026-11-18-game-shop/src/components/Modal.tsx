@@ -11,11 +11,14 @@ export function Modal({ label, onClose, children, wide = false }: { label: strin
   }, [onClose]);
 
   return (
+    // tastepin 게임 상점 모달 값: 뒤 화면을 8px 흐리게 하고 검정 40%로 덮는다. 창은 0.96배에서 200ms에 커지며
+    // 나타나고 닫을 때 같은 길로 줄며 사라진다.
     <motion.div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-[8px]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -24,11 +27,11 @@ export function Modal({ label, onClose, children, wide = false }: { label: strin
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className={`w-full rounded-3xl border border-line bg-panel shadow-2xl ${wide ? "max-w-3xl" : "max-w-md"}`}
-        initial={{ y: 24, scale: 0.97, opacity: 0 }}
-        animate={{ y: 0, scale: 1, opacity: 1 }}
-        exit={{ y: 12, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+        className={`w-full rounded-md bg-panel shadow-2xl ${wide ? "max-w-3xl" : "max-w-md"}`}
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }}
       >
         {children}
       </motion.div>
