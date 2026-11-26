@@ -98,13 +98,15 @@ export function App() {
 
         <AnimatePresence>
           {detailVideo && (
+            // 상세는 tastepin 화면 전환 값대로 오른쪽 24px에서 2px 흐림이 걷히며 들어오고, 같은 길로 나간다.
+            // 화면 끝에서 큰 면을 스프링으로 밀어 넣지 않는다(드로어 예외 규칙).
             <motion.div
               key={detailVideo.id}
               className="absolute inset-0 z-20"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 40 }}
+              initial={{ x: 24, opacity: 0, filter: "blur(2px)" }}
+              animate={{ x: 0, opacity: 1, filter: "blur(0px)" }}
+              exit={{ x: 24, opacity: 0, filter: "blur(2px)" }}
+              transition={{ duration: 0.24, ease: [0.215, 0.61, 0.355, 1] }}
             >
               <DetailScreen
                 video={detailVideo}

@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 
 import { Icon } from "../components/Icon";
+import { NewMark } from "../components/NewMark";
 import { SceneCanvas } from "../components/SceneCanvas";
 import {
   ROOT_FOLDER_ID,
@@ -42,7 +43,7 @@ export function HomeScreen({
 
       <Section title="이어보기">
         {continueWatching.length === 0 ? (
-          <p className="px-5 text-sm text-muted">보던 영상이 없습니다. 보관함에서 영상을 열어 보세요.</p>
+          <p className="px-5 text-sm text-muted">보던 영상이 없습니다.</p>
         ) : (
           <Row>
             {continueWatching.map((video) => (
@@ -67,7 +68,7 @@ export function HomeScreen({
                 key={folder.id}
                 type="button"
                 onClick={() => onOpenFolder(folder.id)}
-                className="relative w-[136px] shrink-0 snap-start overflow-hidden rounded-xl bg-raised text-left"
+                className="relative w-[136px] shrink-0 snap-start overflow-hidden rounded-md bg-raised text-left transition-[scale] duration-[120ms] ease-out active:scale-95"
               >
                 {cover && <SceneCanvas video={cover} time={cover.durationSec * 0.3} width={272} className="h-[76px] w-full opacity-45" />}
                 <span className="absolute top-2.5 left-3 text-ink/90">
@@ -90,22 +91,16 @@ export function HomeScreen({
               key={video.id}
               type="button"
               onClick={() => onOpenDetail(video.id)}
-              className="w-[160px] shrink-0 snap-start text-left"
+              className="w-[160px] shrink-0 snap-start self-start text-left"
             >
-              <span className="relative block overflow-hidden rounded-lg">
+              <span className="relative block overflow-hidden rounded-md">
                 <SceneCanvas video={video} time={video.durationSec * 0.45} width={320} className="aspect-video w-full" />
                 <span className="tabular absolute right-1.5 bottom-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-medium">
                   {formatLength(video.durationSec)}
                 </span>
               </span>
-              <span className="mt-1.5 flex items-center gap-1.5">
-                {watchStatus(video, watch) === "new" && (
-                  <span className="shrink-0 rounded-sm border border-accent/70 px-1 text-[10px] leading-[15px] font-semibold text-accent">
-                    새 영상
-                  </span>
-                )}
-                <span className="truncate text-[13px] font-medium">{video.title}</span>
-              </span>
+              <span className="mt-1.5 block truncate text-[13px] font-medium">{video.title}</span>
+              {watchStatus(video, watch) === "new" && <NewMark className="mt-0.5" />}
             </button>
           ))}
         </Row>
@@ -129,8 +124,8 @@ function ContinueCard({
   const ratio = position / video.durationSec;
   return (
     <div className="w-[78%] max-w-[300px] shrink-0 snap-start">
-      <div className="relative overflow-hidden rounded-xl">
-        <button type="button" onClick={onOpen} className="block w-full" aria-label={`${video.title} 정보`}>
+      <div className="relative overflow-hidden rounded-md">
+        <button type="button" onClick={onOpen} className="focus-inset block w-full" aria-label={`${video.title} 정보`}>
           <SceneCanvas video={video} time={position} width={600} className="aspect-video w-full" />
         </button>
         <button
@@ -169,8 +164,13 @@ function Section({
     <section className="mb-7">
       <div className="mb-2.5 flex items-baseline justify-between px-5">
         <h2 className="text-[17px] font-bold">{title}</h2>
+        {/* 덜 중요한 이동(tastepin 버튼 값): 바탕 없이 보조색 글자와 1px 밑줄, 마우스를 올리면 본문색 */}
         {action && (
-          <button type="button" onClick={action.onClick} className="text-[13px] font-medium text-accent">
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="text-[13px] font-medium text-muted underline decoration-1 underline-offset-4 transition-colors hover:text-ink"
+          >
             {action.label}
           </button>
         )}
@@ -181,7 +181,8 @@ function Section({
 }
 
 function Row({ children }: { children: ReactNode }) {
-  return <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5">{children}</div>;
+  // 가로 스크롤이 위아래를 잘라 키보드 초점 번짐이 가려지지 않도록 위아래 4px 여유를 둔다.
+  return <div className="no-scrollbar -my-1 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 py-1">{children}</div>;
 }
 
 function firstVideoUnder(folderId: string): Video | undefined {

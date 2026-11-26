@@ -1,5 +1,6 @@
 // 보관함: 상위 폴더, 하위 폴더, 영상 순서로 한 폴더의 내용을 보여 준다.
 import { Icon } from "../components/Icon";
+import { NewMark } from "../components/NewMark";
 import { SceneCanvas } from "../components/SceneCanvas";
 import {
   ROOT_FOLDER_ID,
@@ -38,7 +39,7 @@ export function LibraryScreen({
             type="button"
             onClick={() => onOpenFolder(parent.id)}
             aria-label="상위 폴더로"
-            className="grid size-10 shrink-0 place-items-center"
+            className="icon-btn size-10 shrink-0"
           >
             <Icon name="back" size={22} />
           </button>
@@ -76,7 +77,7 @@ function FolderRow({ name, caption, onClick }: { name: string; caption: string; 
   return (
     <li>
       <button type="button" onClick={onClick} className="flex w-full items-center gap-3.5 px-4 py-3 text-left active:bg-raised">
-        <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-raised text-muted">
+        <span className="grid size-12 shrink-0 place-items-center rounded-md bg-raised text-muted">
           <Icon name="folder" size={24} />
         </span>
         <span className="min-w-0 flex-1">
@@ -118,14 +119,10 @@ function VideoRow({ video, watch, onClick }: { video: Video; watch: WatchMap; on
   );
 }
 
-// 보던 영상은 본 만큼 채운 원, 다 본 영상은 체크, 안 본 영상은 "새 영상" 상자
+// 보던 영상은 본 만큼 채운 원, 다 본 영상은 체크, 안 본 영상은 점과 "새 영상"
 function WatchMark({ status, ratio }: { status: ReturnType<typeof watchStatus>; ratio: number }) {
   if (status === "new") {
-    return (
-      <span className="shrink-0 rounded-sm border border-accent/70 px-1 text-[10px] leading-[15px] font-semibold text-accent">
-        새 영상
-      </span>
-    );
+    return <NewMark />;
   }
   if (status === "finished") {
     return (

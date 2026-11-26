@@ -63,7 +63,8 @@ export function Scrubber({
         onScrubEnd(time);
       }}
     >
-      <div ref={trackRef} className={`relative rounded-full bg-white/25 transition-[height] ${scrubbing ? "h-1.5" : "h-1"}`}>
+      {/* tastepin 재생 조작 값: 평소 진행 막대는 3px, 끄는 동안만 굵힌다. */}
+      <div ref={trackRef} className={`relative rounded-full bg-white/25 transition-[height] ${scrubbing ? "h-1.5" : "h-[3px]"}`}>
         <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${ratio * 100}%` }} />
         <div
           className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow transition-[width,height] ${scrubbing ? "size-4" : "size-3"}`}

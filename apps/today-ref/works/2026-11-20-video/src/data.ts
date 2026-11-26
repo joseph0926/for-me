@@ -240,13 +240,20 @@ export const initialWatch: WatchMap = {
   "docs-3": { positionSec: 421, order: 1 },
 };
 
+// 외부 SRT의 대사. 자막 줄에 "불러와 표시하고 있습니다" 같은 처리 안내를 넣지 않고, 장면에 맞는 대사를 둔다.
+const externalLines: Record<SceneKind, string[]> = {
+  sea: ["물때 맞춰 나가야 해.", "저기 불 켜진 데가 우리 집이야.", "오늘은 파도가 낮네.", "배 들어오는 소리 들려?"],
+  city: ["이 시간에도 불이 다 켜져 있네.", "막차 놓치면 걸어가야 해.", "저 창문은 매일 이 시간에 꺼져.", "조금만 더 걷자."],
+  hills: ["바람이 시원하다.", "저 언덕까지만 가 보자.", "여기서 보면 마을이 다 보여.", "해 지기 전에 내려가자."],
+};
+
 // 사용자가 "외부 SRT 열기"로 고를 수 있는 파일. 실제 파일 선택기 대신 이 목록에서 고른다.
 export function externalSubtitleFor(video: Video): SubtitleTrack {
   return {
     id: "external",
     label: `${video.fileName.replace(/\.[^.]+$/, "")}.ko.srt`,
     source: "external",
-    lines: ["(외부 자막) " + video.title, "자막 파일을 불러와 표시하고 있습니다.", "싱크는 영상 시작에 맞춰져 있습니다."],
+    lines: externalLines[video.scene],
   };
 }
 

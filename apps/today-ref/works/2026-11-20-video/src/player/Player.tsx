@@ -13,7 +13,12 @@ import { SubtitleSheet } from "./SubtitleSheet";
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 const SEEK_STEP_SEC = 10;
 const DOUBLE_TAP_MS = 260;
-const CONTROLS_HIDE_MS = 3000;
+// tastepin 재생 조작 값: 마지막으로 만진 뒤 2초가 지나면 200ms로 흐려지며 숨는다.
+const CONTROLS_HIDE_MS = 2000;
+// tastepin 이어보기 시작 값: 저장한 위치에서 바로 재생하고 알림과 처음부터 버튼을 4초 띄운다.
+const RESUME_NOTICE_MS = 4000;
+const EASE_OUT_CUBIC = [0.215, 0.61, 0.355, 1] as const;
+const FADE = { duration: 0.2, ease: EASE_OUT_CUBIC };
 
 type Side = "left" | "center" | "right";
 
@@ -58,6 +63,7 @@ export function Player({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [seekFlash, setSeekFlash] = useState<{ side: "left" | "right"; total: number; key: number } | null>(null);
   const [toast, setToast] = useState<{ text: string; key: number } | null>(null);
+  const [resumeNotice, setResumeNotice] = useState(startAt > 0);
   const pendingTap = useRef<{ side: Side; timer: number } | null>(null);
 
   const ended = time >= duration;
@@ -101,6 +107,12 @@ export function Player({
     const timer = window.setTimeout(() => setLockHint(0), 2500);
     return () => window.clearTimeout(timer);
   }, [lockHint]);
+
+  useEffect(() => {
+    if (!resumeNotice) return;
+    const timer = window.setTimeout(() => setResumeNotice(false), RESUME_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [resumeNotice]);
 
   useEffect(() => {
     if (!toast) return;
@@ -250,10 +262,10 @@ export function Player({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
+              transition={FADE}
             >
               <div
-                className={`absolute inset-0 transition-colors ${scrubbing ? "bg-black/20" : "bg-black/50"}`}
+                className={`absolute inset-0 transition-colors ${scrubbing ? "bg-black/20" : "bg-black/40"}`}
                 aria-hidden="true"
               />
 
@@ -299,9 +311,9 @@ export function Player({
                   type="button"
                   onClick={togglePlay}
                   aria-label={running ? "일시정지" : "재생"}
-                  className="pointer-events-auto grid size-16 place-items-center rounded-full bg-white/18 backdrop-blur-sm transition active:scale-95"
+                  className="pointer-events-auto grid size-14 place-items-center rounded-full bg-white/18 backdrop-blur-sm transition-[scale] duration-[120ms] ease-out active:scale-95"
                 >
-                  <Icon name={running ? "pause" : "play"} size={30} className={running ? "" : "translate-x-0.5"} />
+                  <Icon name={running ? "pause" : "play"} size={26} className={running ? "" : "translate-x-0.5"} />
                 </button>
                 <CenterButton icon="next" label="다음 영상" disabled={!next} onClick={() => next && onSwitch(next.id, time)} />
               </div>
@@ -319,7 +331,7 @@ export function Player({
                     touch();
                   }}
                   aria-label={`재생 속도 ${formatSpeed(speed)}배, 누르면 1.0배`}
-                  className={`tabular pointer-events-auto rounded-full px-1.5 py-1 text-[12px] font-semibold ${speed !== 1 ? "bg-accent text-accent-ink" : "bg-black/40"}`}
+                  className={`tabular pointer-events-auto rounded-md px-1.5 py-1 text-[12px] font-semibold ${speed !== 1 ? "bg-accent text-accent-ink" : "bg-black/40"}`}
                 >
                   {formatSpeed(speed)}x
                 </button>
@@ -361,18 +373,45 @@ export function Player({
           )}
         </AnimatePresence>
 
-        {/* 자막은 조작을 띄울 때 어둡게 덮는 층보다 위에 그려 계속 읽히게 한다. */}
-        {cue && (
-          <VideoArea landscape={landscape}>
+        {/* 자막과 이어보기 알림은 조작을 띄울 때 어둡게 덮는 층보다 위에 그려 계속 읽히게 한다.
+            알림이 영상 아래쪽을 차지하는 동안 자막은 그 위로 올린다. */}
+        <VideoArea landscape={landscape}>
+          {cue && (
             <p
               className={`absolute inset-x-6 text-center text-[15px] leading-snug font-semibold [text-shadow:0_1px_3px_rgb(0_0_0/90%),0_0_1px_rgb(0_0_0)] ${
-                landscape && showControls ? "bottom-[26%]" : "bottom-[7%]"
+                (landscape && showControls) || (resumeNotice && !ended) ? "bottom-[26%]" : "bottom-[7%]"
               }`}
             >
               {cue}
             </p>
-          </VideoArea>
-        )}
+          )}
+          <AnimatePresence>
+            {resumeNotice && !ended && !locked && (
+              <motion.div
+                className="absolute bottom-3 left-3 flex max-w-[calc(100%-24px)] items-center gap-3 rounded-md bg-black/70 py-1 pr-1 pl-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={FADE}
+              >
+                <p className="tabular min-w-0 truncate text-[13px] font-medium">{formatTime(startAt)}부터 이어서 재생해요</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTime(0);
+                    setPlaying(true);
+                    setResumeNotice(false);
+                    touch();
+                  }}
+                  className="btn btn-on-video pointer-events-auto shrink-0"
+                  style={{ minHeight: 36, paddingInline: 12 }}
+                >
+                  처음부터
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </VideoArea>
 
         <AnimatePresence>
           {locked && lockHint > 0 && (
@@ -380,7 +419,8 @@ export function Player({
               className="absolute inset-x-0 bottom-10 flex justify-center"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={FADE}
             >
               <button
                 type="button"
@@ -390,7 +430,7 @@ export function Player({
                   setControlsVisible(true);
                   touch();
                 }}
-                className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2.5 text-[14px] font-semibold backdrop-blur-sm"
+                className="btn btn-on-video bg-black/70"
               >
                 <Icon name="unlock" size={18} />
                 잠금 해제
@@ -401,27 +441,23 @@ export function Player({
 
         {ended && !locked && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-black/65">
-            <button type="button" onClick={() => onClose(time)} aria-label="닫기" className="absolute top-2 left-2 grid size-10 place-items-center">
+            <button type="button" onClick={() => onClose(time)} aria-label="닫기" className="icon-btn absolute top-2 left-2 size-10">
               <Icon name="back" size={22} />
             </button>
             <button
               type="button"
               onClick={togglePlay}
               aria-label="처음부터 다시 보기"
-              className="grid size-16 place-items-center rounded-full bg-white/18 backdrop-blur-sm"
+              className="grid size-14 place-items-center rounded-full bg-white/18 backdrop-blur-sm transition-[scale] duration-[120ms] ease-out active:scale-95"
             >
-              <Icon name="replay" size={28} />
+              <Icon name="replay" size={26} />
             </button>
             {next ? (
-              <button
-                type="button"
-                onClick={() => onSwitch(next.id, time)}
-                className="max-w-[80%] truncate rounded-xl bg-accent px-5 py-3 text-[14px] font-bold text-accent-ink"
-              >
-                다음 영상: {next.title}
+              <button type="button" onClick={() => onSwitch(next.id, time)} className="btn btn-accent max-w-[80%]">
+                <span className="min-w-0 truncate">다음 영상: {next.title}</span>
               </button>
             ) : (
-              <button type="button" onClick={() => onClose(time)} className="rounded-xl bg-white/15 px-5 py-3 text-[14px] font-semibold">
+              <button type="button" onClick={() => onClose(time)} className="btn btn-on-video">
                 목록으로
               </button>
             )}
@@ -435,9 +471,10 @@ export function Player({
               className="absolute inset-x-0 top-14 flex justify-center px-6"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={FADE}
             >
-              <p className="max-w-full truncate rounded-full bg-raised px-4 py-2 text-[13px] font-medium shadow-lg">{toast.text}</p>
+              <p className="max-w-full truncate rounded-md bg-raised px-4 py-2 text-[13px] font-medium shadow-lg">{toast.text}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -496,7 +533,7 @@ function RoundButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full ${active ? "text-accent" : "text-white"}`}
+      className={`icon-btn pointer-events-auto size-10 shrink-0 ${active ? "text-accent" : "text-white"}`}
     >
       <Icon name={icon} size={22} />
     </button>
@@ -520,7 +557,7 @@ function CenterButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="pointer-events-auto grid size-11 place-items-center rounded-full bg-white/12 backdrop-blur-sm transition active:scale-95 disabled:opacity-30"
+      className="pointer-events-auto grid size-10 place-items-center rounded-full bg-white/12 backdrop-blur-sm transition-[scale] duration-[120ms] ease-out active:scale-95 disabled:opacity-40"
     >
       <Icon name={icon} size={20} />
     </button>
@@ -544,7 +581,7 @@ function SmallButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="pointer-events-auto grid size-9 place-items-center rounded-full bg-black/40 disabled:opacity-35"
+      className="icon-btn pointer-events-auto size-9"
     >
       <Icon name={icon} size={18} />
     </button>
