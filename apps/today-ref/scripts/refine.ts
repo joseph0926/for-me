@@ -68,7 +68,8 @@ export function tasteArgs(tastePy: string, url: string, states: string, out: str
 }
 
 // 상태 파일의 모양만 본다. 단계가 실제 화면에서 도는지는 taste.py refine이 state-failed로 알린다.
-const stepKinds = ["click", "hover", "fill", "press", "wait", "scroll"] as const;
+// 형식의 정본은 tastepin tastelib/refine.py의 validate_states다. 고객 제품용 expect(기능 계약)와 guard(지킬 상태)도 같다.
+const stepKinds = ["click", "hover", "fill", "press", "wait", "scroll", "expect"] as const;
 
 export function validateStates(input: unknown): string[] {
   const errors: string[] = [];
@@ -101,6 +102,7 @@ export function validateStates(input: unknown): string[] {
     else seen.add(state.id);
     if (typeof state.label !== "string" || state.label === "") errors.push(`${at}: label이 필요합니다`);
     if (typeof state.path !== "string" || !state.path.startsWith("/")) errors.push(`${at}: path는 /로 시작합니다`);
+    if (state.guard !== undefined && typeof state.guard !== "boolean") errors.push(`${at}: guard는 true나 false입니다`);
     if (state.steps === undefined) return;
     if (!Array.isArray(state.steps)) {
       errors.push(`${at}: steps는 배열입니다`);
@@ -123,6 +125,10 @@ export function validateStates(input: unknown): string[] {
         const targetError = checkTarget(value);
         if (targetError) errors.push(`${where}: ${targetError}`);
         if (kind === "fill" && typeof step.value !== "string") errors.push(`${where}: fill에는 value 문자열이 필요합니다`);
+      }
+      if ("absent" in step) {
+        if (kind !== "expect") errors.push(`${where}: absent는 expect에만 씁니다`);
+        else if (typeof step.absent !== "boolean") errors.push(`${where}: absent는 true나 false입니다`);
       }
     });
   });
