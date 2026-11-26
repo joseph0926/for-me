@@ -4,7 +4,8 @@ import { motion } from "motion/react";
 import { CategoryDot } from "../components/CategoryDot";
 import { type Entry, TODAY, findCategory } from "../data";
 import { daysInMonth, parseDateKey, shiftMonth } from "../dates";
-import { cumulativeExpense, expenseByCategory, inMonth, plain, won } from "../ledger";
+import { cumulativeExpense, expenseByCategory, inMonth, won } from "../ledger";
+import { easeOut } from "../motion";
 
 export function AnalysisScreen({ entries }: { entries: Entry[] }) {
   const { year, month, day } = parseDateKey(TODAY);
@@ -31,22 +32,20 @@ export function AnalysisScreen({ entries }: { entries: Entry[] }) {
       <section className="px-5 pt-4">
         <p className="text-[15px] text-[var(--muted)]">지난달 같은 기간보다</p>
         <p className="text-[24px] font-bold leading-snug">
-          <span style={{ color: difference > 0 ? "var(--expense)" : "var(--accent)" }}>{won(Math.abs(difference))}</span>{" "}
+          {/* 덜 쓴 금액은 본문색으로 둔다. 강조색은 누를 수 있는 단추(추가, 저장)의 색이라 글자에 쓰면 눌러지는 것처럼 보인다. */}
+          <span style={{ color: difference > 0 ? "var(--expense)" : undefined }}>{won(Math.abs(difference))}</span>{" "}
           {difference > 0 ? "더 썼어요" : "덜 썼어요"}
         </p>
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
-          <div className="rounded-xl bg-[var(--panel)] px-3 py-2.5">
-            <dt className="text-[var(--muted)]">
-              {month}월 1일~{day}일
-            </dt>
-            <dd className="mt-0.5 text-[16px] font-semibold">{won(thisTotal)}</dd>
-          </div>
-          <div className="rounded-xl bg-[var(--panel)] px-3 py-2.5">
-            <dt className="text-[var(--muted)]">
-              {previous.month}월 1일~{Math.min(day, previousLastDay)}일
-            </dt>
-            <dd className="mt-0.5 text-[16px] font-semibold">{won(lastSamePeriod)}</dd>
-          </div>
+        {/* 비교한 두 금액은 상자 없이 두 줄로 둔다(tastepin 그룹 규칙: 묶음은 여백과 글자 굵기로 나눈다). */}
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[14px]">
+          <dt className="text-[var(--muted)]">
+            {month}월 1일~{day}일
+          </dt>
+          <dd className="text-right font-semibold">{won(thisTotal)}</dd>
+          <dt className="text-[var(--muted)]">
+            {previous.month}월 1일~{Math.min(day, previousLastDay)}일
+          </dt>
+          <dd className="text-right font-semibold">{won(lastSamePeriod)}</dd>
         </dl>
       </section>
 
@@ -57,22 +56,22 @@ export function AnalysisScreen({ entries }: { entries: Entry[] }) {
         previousLabel={`${previous.month}월`}
       />
 
-      <section className="mt-2 border-t-8 border-[var(--panel)] pt-4">
-        <h2 className="px-5 text-[15px] font-semibold">어디에 썼나요</h2>
+      <section className="mt-7">
+        <h2 className="px-5 text-[17px] font-bold">어디에 썼나요</h2>
         <ul className="mt-2">
           {shares.map((share) => {
             const ratio = thisTotal > 0 ? share.amount / thisTotal : 0;
             const category = findCategory(share.categoryId);
             return (
-              <li key={share.categoryId} className="flex items-center gap-3 px-5 py-2.5">
-                <CategoryDot categoryId={share.categoryId} size={32} />
-                <div className="min-w-0 flex-1">
+              <li key={share.categoryId} className="px-5 py-[11px]">
+                <div>
                   <div className="flex items-baseline justify-between text-[14px]">
-                    <span className="font-medium">
+                    <span className="flex items-center gap-2.5 font-medium">
+                      <CategoryDot categoryId={share.categoryId} />
                       {category.name}
-                      <span className="ml-1.5 text-[12px] text-[var(--muted)]">{Math.round(ratio * 100)}%</span>
+                      <span className="text-[12px] text-[var(--muted)]">{Math.round(ratio * 100)}%</span>
                     </span>
-                    <span className="font-semibold">{plain(share.amount)}</span>
+                    <span className="font-semibold">{won(share.amount)}</span>
                   </div>
                   <div className="mt-1.5 h-1.5 rounded-full bg-[var(--panel)]">
                     <motion.div
@@ -80,7 +79,7 @@ export function AnalysisScreen({ entries }: { entries: Entry[] }) {
                       style={{ background: category.color }}
                       initial={{ width: 0 }}
                       animate={{ width: `${ratio * 100}%` }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      transition={{ duration: 0.6, ease: easeOut }}
                     />
                   </div>
                 </div>
@@ -164,7 +163,7 @@ function CumulativeChart({
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.8, ease: easeOut }}
         />
         {lastIndex >= 0 && (
           <circle cx={x(lastIndex)} cy={y(current[lastIndex])} r="4.5" fill="var(--surface)" stroke="var(--accent)" strokeWidth="2.5" />

@@ -5,7 +5,11 @@ import { useState } from "react";
 import { type Entry, type EntryKind, categories } from "../data";
 import { type DateKey, parseDateKey, weekdayName } from "../dates";
 import { plain } from "../ledger";
+import { easeOut, smallSpring } from "../motion";
 import { CategoryDot } from "./CategoryDot";
+
+// 바텀 시트(tastepin 드로어 예외): 스프링 없이 300ms 곡선으로 올라오고 같은 길을 같은 길이로 내려간다.
+const sheetTransition = { duration: 0.3, ease: easeOut };
 
 // 10자리(99억 원대)까지만 받는다.
 const maxDigits = 10;
@@ -57,46 +61,55 @@ export function AddSheet({ date, onClose, onSave }: Props) {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col justify-end">
-      <motion.button
-        type="button"
-        aria-label="닫기"
+      {/* 뒤 화면을 누르면 닫는다. 닫기 단추는 시트 안의 X 하나로 두고, 덮개는 화면 읽기 프로그램에 드러내지 않는다. */}
+      <motion.div
+        aria-hidden
         className="absolute inset-0 bg-black/40"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={sheetTransition}
         onClick={onClose}
       />
       <motion.section
         role="dialog"
         aria-label="내역 추가"
-        className="relative flex max-h-full flex-col rounded-t-[24px] bg-[var(--surface)]"
+        className="relative flex max-h-full flex-col rounded-t-[6px] bg-[var(--surface)]"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 32, stiffness: 340 }}
+        transition={sheetTransition}
       >
         <div className="flex items-center justify-between px-5 pt-4">
           <span className="text-[14px] text-[var(--muted)]">
             {month}월 {day}일 {weekdayName(date)}요일
           </span>
-          <button type="button" onClick={onClose} aria-label="닫기" className="grid size-8 place-items-center rounded-full text-[var(--muted)]">
+          <button type="button" onClick={onClose} aria-label="닫기" className="grid size-8 place-items-center rounded-[6px] text-[var(--muted)]">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
         </div>
 
-        <div className="mx-5 mt-2 grid grid-cols-2 rounded-xl bg-[var(--panel)] p-1 text-[14px] font-semibold">
+        {/* 고른 쪽 면이 같은 노드로 옆 칸까지 미끄러진다(tastepin 규칙: 바뀌었다는 표시는 누른 컨트롤 쪽에 둔다). */}
+        <div className="mx-5 mt-2 grid grid-cols-2 rounded-[6px] bg-[var(--panel)] p-1 text-[14px] font-semibold">
           {(["expense", "income"] as const).map((option) => (
             <button
               key={option}
               type="button"
               onClick={() => changeKind(option)}
               aria-pressed={kind === option}
-              className={`rounded-lg py-2 ${kind === option ? "bg-[var(--surface)] shadow-sm" : "text-[var(--muted)]"}`}
+              className={`relative rounded-[4px] py-2 ${kind === option ? "" : "text-[var(--muted)]"}`}
               style={kind === option ? { color: option === "expense" ? "var(--expense)" : "var(--income)" } : undefined}
             >
-              {option === "expense" ? "지출" : "수입"}
+              {kind === option && (
+                <motion.span
+                  layoutId="kind-indicator"
+                  className="absolute inset-0 rounded-[4px] bg-[var(--surface)] shadow-sm"
+                  transition={smallSpring}
+                />
+              )}
+              <span className="relative">{option === "expense" ? "지출" : "수입"}</span>
             </button>
           ))}
         </div>
@@ -109,18 +122,19 @@ export function AddSheet({ date, onClose, onSave }: Props) {
           {plain(amount)}원
         </p>
 
-        <div className="flex gap-2 overflow-x-auto px-5 pt-4 [scrollbar-width:none]">
+        {/* 분류는 줄을 넘겨 모두 보이게 둔다. 가로 스크롤 한 줄이면 생활, 문화, 주거 통신이 화면 밖에 숨는다. */}
+        <div role="group" aria-label="분류" className="flex flex-wrap gap-2 px-5 pt-4">
           {kindCategories.map((category) => (
             <button
               key={category.id}
               type="button"
               onClick={() => setCategoryId(category.id)}
               aria-pressed={category.id === categoryId}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 text-[13px] ${
+              className={`flex h-9 items-center gap-2 rounded-[6px] border px-3 text-[14px] ${
                 category.id === categoryId ? "border-[var(--ink)] font-semibold" : "border-[var(--line)] text-[var(--muted)]"
               }`}
             >
-              <CategoryDot categoryId={category.id} size={22} />
+              <CategoryDot categoryId={category.id} size={8} />
               {category.name}
             </button>
           ))}
@@ -132,7 +146,6 @@ export function AddSheet({ date, onClose, onSave }: Props) {
             value={memo}
             onChange={(event) => setMemo(event.target.value)}
             maxLength={30}
-            placeholder="사용처"
             className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--faint)]"
           />
         </label>
@@ -144,7 +157,7 @@ export function AddSheet({ date, onClose, onSave }: Props) {
               type="button"
               onClick={() => press(key)}
               aria-label={key === "back" ? "지우기" : key}
-              className="grid h-[52px] place-items-center rounded-xl text-[22px] font-medium active:bg-[var(--panel)]"
+              className="grid h-[52px] place-items-center rounded-[6px] text-[22px] font-medium active:bg-[var(--panel)]"
             >
               {key === "back" ? (
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
@@ -163,7 +176,7 @@ export function AddSheet({ date, onClose, onSave }: Props) {
             type="button"
             onClick={save}
             disabled={amount <= 0}
-            className="h-12 w-full rounded-xl bg-[var(--accent)] text-[16px] font-semibold text-white disabled:bg-[var(--panel)] disabled:text-[var(--faint)]"
+            className="h-12 w-full rounded-[6px] bg-[var(--accent)] text-[16px] font-semibold text-white disabled:bg-[var(--panel)] disabled:text-[var(--faint)]"
           >
             저장
           </button>

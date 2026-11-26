@@ -59,3 +59,36 @@ button {
 button:disabled {
   cursor: default;
 }
+
+/* 키보드 초점(tastepin): 테두리에 붙은 1px 강조선과 3px 옅은 번짐. 마우스로 누를 때는 보이지 않는다. */
+:where(button, a, [tabindex]):focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+/* 누름 반응(tastepin 모션 기본값): 누르는 동안 0.95배, 120ms ease-out. 버튼마다 따로 달지 않고 한 번에 건다. */
+:where(button) {
+  transition: scale 120ms ease-out;
+}
+:where(button):not(:disabled):active {
+  scale: 0.95;
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(button):not(:disabled):active {
+    scale: 1;
+  }
+}
+
+/* 방금 저장한 내역을 1.6초 동안 칠했다가 걷는다. motion은 CSS 변수 색을 보간하지 못해 회색으로 지나가므로 CSS로 한다. */
+@keyframes just-added {
+  from {
+    background-color: var(--accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.just-added {
+  animation: just-added 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}

@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 
 export type Tab = "ledger" | "budget" | "analysis";
 
+// 화면 전환 방향을 정할 때 쓰는 탭 순서.
+export const tabOrder: Tab[] = ["ledger", "budget", "analysis"];
+
 const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
   {
     id: "ledger",

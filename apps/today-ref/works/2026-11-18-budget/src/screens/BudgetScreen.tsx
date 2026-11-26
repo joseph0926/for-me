@@ -5,6 +5,7 @@ import { CategoryDot } from "../components/CategoryDot";
 import { type Entry, TODAY, findCategory, monthlyBudgets } from "../data";
 import { parseDateKey } from "../dates";
 import { expenseByCategory, inMonth, monthElapsedRatio, won } from "../ledger";
+import { easeOut } from "../motion";
 
 type Pace = "steady" | "fast" | "over";
 
@@ -39,7 +40,7 @@ export function BudgetScreen({ entries }: { entries: Entry[] }) {
         <h1 className="text-[22px] font-bold">{month}월 예산</h1>
       </header>
 
-      <section className="mx-4 mt-3 rounded-2xl bg-[var(--band)] px-5 py-4 text-[var(--band-ink)]">
+      <section className="mx-4 mt-3 rounded-[6px] bg-[var(--band)] px-5 py-4 text-[var(--band-ink)]">
         <div className="flex items-baseline justify-between">
           <span className="text-[13px] opacity-75">{left >= 0 ? "남은 예산" : "넘은 예산"}</span>
           <span className="text-[24px] font-bold">{won(Math.abs(left))}</span>
@@ -53,14 +54,14 @@ export function BudgetScreen({ entries }: { entries: Entry[] }) {
         </div>
       </section>
 
-      <ul className="mt-4">
+      <ul className="mt-5">
         {rows.map((row) => {
           const pace = paceOf(row.spent, row.limit, elapsed, row.fixed ?? false);
           const remaining = row.limit - row.spent;
           return (
-            <li key={row.categoryId} className="px-5 py-3">
-              <div className="flex items-center gap-3">
-                <CategoryDot categoryId={row.categoryId} size={32} />
+            <li key={row.categoryId} className="px-5 py-[11px]">
+              <div className="flex items-center gap-2.5">
+                <CategoryDot categoryId={row.categoryId} />
                 <span className="flex-1 text-[15px] font-medium">
                   {findCategory(row.categoryId).name}
                   {row.fixed && <span className="ml-1.5 text-[12px] font-normal text-[var(--muted)]">고정비</span>}
@@ -105,7 +106,7 @@ function ProgressBar({
         style={{ background: color }}
         initial={{ width: 0 }}
         animate={{ width: `${Math.min(ratio, 1) * 100}%` }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: easeOut }}
       />
       <span
         aria-hidden
