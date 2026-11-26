@@ -1,0 +1,21 @@
+{
+  "states": [
+    {"id": "home", "label": "추천 화면 첫 화면", "path": "/"},
+    {"id": "free-reveal", "label": "무료 팩 받기 뒤 카드 공개", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "무료 선수 팩 받기"}},
+      {"wait": 2600}
+    ]},
+    {"id": "buy-confirm", "label": "기본 선수 팩 구매 확인 창", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "기본 선수 팩 구매"}},
+      {"wait": 500}
+    ]},
+    {"id": "topup", "label": "포인트 충전 화면", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "포인트 충전", "exact": true}},
+      {"wait": 500}
+    ]},
+    {"id": "pass", "label": "시즌 패스 화면", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "시즌 패스", "exact": true}},
+      {"wait": 600}
+    ]}
+  ]
+}

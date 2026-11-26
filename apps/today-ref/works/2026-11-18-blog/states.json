@@ -1,0 +1,93 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "홈 첫 화면",
+      "path": "/"
+    },
+    {
+      "id": "category",
+      "label": "디자인 분류로 거른 홈",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "link",
+            "name": "디자인",
+            "exact": true
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "post-scrolled",
+      "label": "글을 내려 읽은 정도 막대가 보이는 위 줄",
+      "path": "/#/post/small-app-3",
+      "steps": [
+        {
+          "wait": 500
+        },
+        {
+          "scroll": 900
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "subscribe-error",
+      "label": "구독 입력 오류",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "구독하기"
+          }
+        },
+        {
+          "fill": {
+            "selector": "form input"
+          },
+          "value": "abc"
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "구독",
+            "exact": true
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "label": "글 검색 결과",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "글 검색"
+          }
+        },
+        {
+          "fill": {
+            "selector": "dialog input"
+          },
+          "value": "앱"
+        },
+        {
+          "wait": 500
+        }
+      ]
+    }
+  ]
+}

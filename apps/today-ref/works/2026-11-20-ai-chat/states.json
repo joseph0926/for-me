@@ -1,0 +1,29 @@
+{
+  "states": [
+    {"id": "home", "label": "빈 대화와 추천 질문", "path": "/"},
+    {"id": "history", "label": "지난 대화 서랍", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "지난 대화", "exact": true}},
+      {"wait": 500}
+    ]},
+    {"id": "streaming", "label": "한 글자씩 쓰이는 답", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "전세와 월세"}},
+      {"wait": 1500}
+    ]},
+    {"id": "answered", "label": "끝난 답과 이어서 물어보기", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "전세와 월세"}},
+      {"wait": 6000}
+    ]},
+    {"id": "model-sheet", "label": "모델 시트", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "모델 바꾸기"}},
+      {"wait": 500}
+    ]},
+    {"id": "sources", "label": "웹 검색 답의 출처 시트", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "도구", "exact": true}},
+      {"click": {"role": "menuitemradio", "name": "웹 검색"}},
+      {"click": {"role": "button", "name": "전세와 월세"}},
+      {"wait": 9000},
+      {"click": {"role": "button", "name": "출처 1 보기"}},
+      {"wait": 500}
+    ]}
+  ]
+}

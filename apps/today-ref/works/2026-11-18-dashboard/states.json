@@ -1,0 +1,77 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "대시보드 첫 화면",
+      "path": "/"
+    },
+    {
+      "id": "pageviews-30d",
+      "label": "페이지뷰 지표와 30일 기간",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "tab",
+            "name": "페이지뷰"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "30일",
+            "exact": true
+          }
+        },
+        {
+          "wait": 800
+        }
+      ]
+    },
+    {
+      "id": "row-filter",
+      "label": "첫 목록의 첫 행을 눌러 생긴 필터 칩",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "자연 검색"
+          }
+        },
+        {
+          "wait": 800
+        }
+      ]
+    },
+    {
+      "id": "filter-menu",
+      "label": "필터 메뉴에서 출처 검색",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "필터",
+            "exact": true
+          }
+        },
+        {
+          "click": {
+            "text": "출처"
+          }
+        },
+        {
+          "fill": {
+            "role": "textbox",
+            "name": "출처 검색"
+          },
+          "value": "naver"
+        },
+        {
+          "wait": 400
+        }
+      ]
+    }
+  ]
+}

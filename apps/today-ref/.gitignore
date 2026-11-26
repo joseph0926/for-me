@@ -2,3 +2,5 @@
 captures/
 node_modules/
 dist/
+# pnpm refine의 스크린숏과 검사 보고. 바퀴마다 다시 만들 수 있고 판단 근거는 취향 원장과 README에 남는다.
+.refine/

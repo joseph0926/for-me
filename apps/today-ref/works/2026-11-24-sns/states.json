@@ -1,0 +1,20 @@
+{
+  "states": [
+    {"id": "home", "label": "홈 추천 피드", "path": "/"},
+    {"id": "following", "label": "팔로잉 피드의 재게시 맥락 줄", "path": "/#/following"},
+    {"id": "liked", "label": "첫 글 좋아요", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "좋아요"}},
+      {"wait": 600}
+    ]},
+    {"id": "compose", "label": "글쓰기 창", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "글쓰기"}},
+      {"wait": 500}
+    ]},
+    {"id": "thread", "label": "답글 줄기", "path": "/#/post/p-fjord", "steps": [
+      {"wait": 400},
+      {"scroll": 700},
+      {"wait": 400}
+    ]},
+    {"id": "notifications", "label": "알림 묶음", "path": "/#/notifications"}
+  ]
+}

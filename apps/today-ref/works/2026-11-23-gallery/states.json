@@ -1,0 +1,77 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "사진 격자와 정보 패널",
+      "path": "/"
+    },
+    {
+      "id": "info",
+      "label": "둘째 사진의 정보 패널",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "야자수 해변.jpg 선택"
+          }
+        },
+        {
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "id": "viewer",
+      "label": "크게 보기",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "야자수 해변.jpg 선택"
+          }
+        },
+        {
+          "press": "Enter"
+        },
+        {
+          "wait": 700
+        }
+      ]
+    },
+    {
+      "id": "color-filter",
+      "label": "색으로 거르기 메뉴",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "색으로 거르기"
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "id": "tag-filter",
+      "label": "태그 거르기 메뉴",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "태그",
+            "exact": true
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    }
+  ]
+}

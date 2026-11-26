@@ -1,0 +1,85 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "달력과 오늘 내역",
+      "path": "/"
+    },
+    {
+      "id": "pick-day",
+      "label": "11월 10일을 고른 달력",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "11월 10일"
+          }
+        },
+        {
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "id": "add-sheet",
+      "label": "수입으로 바꾼 금액 입력 시트",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "18일에 추가"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "수입",
+            "exact": true
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    },
+    {
+      "id": "budget",
+      "label": "예산 탭",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "예산",
+            "exact": true
+          }
+        },
+        {
+          "wait": 900
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "label": "분석 탭 그래프",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "분석",
+            "exact": true
+          }
+        },
+        {
+          "wait": 1100
+        }
+      ]
+    }
+  ]
+}

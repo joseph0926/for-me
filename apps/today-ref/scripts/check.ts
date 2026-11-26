@@ -70,6 +70,13 @@ export function refinedWorks(path: string): Set<string> | null {
   return works;
 }
 
+// 원장이 없어 다듬기 전달 기록 검사를 건너뛰면 그 사실을 출력에 보인다. 조용히 건너뛰면 경로가 틀린 사본에서도
+// 6단계를 마친 것처럼 읽힌다(2026-11-26 클라우드 사본에서 원장이 다른 경로에 있어 검사가 돌지 않았다).
+export function deliveriesNotice(path: string, refined: Set<string> | null): string | null {
+  if (refined !== null) return null;
+  return `건너뜀: 취향 원장 ${path}를 읽지 못해 tastepin 다듬기 전달 기록 검사를 하지 않았습니다. 다른 경로면 TODAY_REF_TASTE_DELIVERIES로 줍니다`;
+}
+
 function readTopicFile(folder: string, path: string): TopicFile {
   let raw: string;
   try {
@@ -120,12 +127,14 @@ function imageType(head: Buffer): string | null {
 if (import.meta.main) {
   const root = resolve(process.argv[2] ?? join(import.meta.dirname, ".."));
   const reports = checkWorkspace(root);
+  const notice = deliveriesNotice(defaultDeliveries, refinedWorks(defaultDeliveries));
   for (const { folder, errors, warnings } of reports) {
     console.log(`${errors.length === 0 ? "통과" : "실패"} ${folder}`);
     for (const message of errors) console.log(`  오류: ${message}`);
     for (const message of warnings) console.log(`  경고: ${message}`);
   }
   const failed = reports.filter((report) => report.errors.length > 0).length;
+  if (notice) console.log(notice);
   console.log(`주제 ${reports.length}개, 실패 ${failed}개`);
   process.exitCode = failed > 0 ? 1 : 0;
 }

@@ -1,0 +1,94 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "홈과 이어보기",
+      "path": "/"
+    },
+    {
+      "id": "detail",
+      "label": "영상 상세의 이어보기 버튼",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "2화 등대지기의 편지 작은 섬의 여름"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "season",
+      "label": "보관함 시즌 목록의 부분 채움 원과 새 영상",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "보관함",
+            "exact": true
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "드라마"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "작은 섬의 여름 시즌 1"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "player-resume",
+      "label": "재생 화면의 이어서 재생 안내",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "2화 등대지기의 편지 이어서 재생"
+          }
+        },
+        {
+          "wait": 1000
+        }
+      ]
+    },
+    {
+      "id": "player-controls",
+      "label": "재생 화면 조작 겹침",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "2화 등대지기의 편지 이어서 재생"
+          }
+        },
+        {
+          "wait": 4500
+        },
+        {
+          "click": {
+            "selector": "body"
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    }
+  ]
+}

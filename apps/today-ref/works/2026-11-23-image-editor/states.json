@@ -1,0 +1,31 @@
+{
+  "viewports": [{"name": "desktop", "width": 1024, "height": 768}, {"name": "wide", "width": 1440, "height": 900}, {"name": "phone", "width": 375, "height": 812}],
+  "states": [
+    {"id": "empty", "label": "빈 작업 공간", "path": "/"},
+    {"id": "crop", "label": "1:1 자르기 틀과 다이얼", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "견본 바위 해안.jpg 열기"}},
+      {"wait": 600},
+      {"press": "c"},
+      {"click": {"role": "radio", "name": "1:1", "exact": true}},
+      {"wait": 500}
+    ]},
+    {"id": "adjust", "label": "조정 패널", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "견본 바위 해안.jpg 열기"}},
+      {"wait": 600},
+      {"press": "a"},
+      {"wait": 500}
+    ]},
+    {"id": "filters", "label": "필터 줄", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "견본 바위 해안.jpg 열기"}},
+      {"wait": 600},
+      {"press": "f"},
+      {"wait": 500}
+    ]},
+    {"id": "tool-tooltip", "label": "도구 이름 말풍선", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "견본 바위 해안.jpg 열기"}},
+      {"wait": 600},
+      {"hover": {"role": "button", "name": "자르기"}},
+      {"wait": 900}
+    ]}
+  ]
+}

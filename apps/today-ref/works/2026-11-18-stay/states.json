@@ -1,0 +1,85 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "검색 결과와 지도",
+      "path": "/"
+    },
+    {
+      "id": "next-photo",
+      "label": "결과 카드의 다음 사진",
+      "path": "/",
+      "steps": [
+        {
+          "hover": {
+            "role": "button",
+            "name": "성수 웨어하우스 스테이"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "다음 사진"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "detail",
+      "label": "숙소 상세와 예약 상자",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "성수 웨어하우스 스테이"
+          }
+        },
+        {
+          "wait": 800
+        },
+        {
+          "scroll": 700
+        },
+        {
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "label": "체크인 두 달 달력",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "체크인"
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    },
+    {
+      "id": "sort-menu",
+      "label": "정렬 메뉴",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "정렬 기준"
+          }
+        },
+        {
+          "wait": 400
+        }
+      ]
+    }
+  ]
+}

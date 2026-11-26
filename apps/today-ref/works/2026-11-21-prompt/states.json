@@ -1,0 +1,28 @@
+{
+  "states": [
+    {"id": "home", "label": "첫 화면과 예시 칩", "path": "/"},
+    {"id": "example", "label": "예시 칩으로 채운 입력칸", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "회의록 요약 지시문"}},
+      {"wait": 400}
+    ]},
+    {"id": "purpose-menu", "label": "용도 메뉴", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "용도 고르기"}},
+      {"wait": 400}
+    ]},
+    {"id": "writing", "label": "결과를 쓰는 중", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "회의록 요약 지시문"}},
+      {"click": {"role": "button", "name": "프롬프트 만들기"}},
+      {"wait": 1800}
+    ]},
+    {"id": "result", "label": "끝난 결과와 복사, 다듬기 제안", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "회의록 요약 지시문"}},
+      {"click": {"role": "button", "name": "프롬프트 만들기"}},
+      {"wait": 5000}
+    ]},
+    {"id": "image-analysis", "label": "첨부 사진의 분석 카드", "path": "/", "steps": [
+      {"click": {"role": "button", "name": "이 사진 분위기로 그리기"}},
+      {"click": {"role": "button", "name": "프롬프트 만들기"}},
+      {"wait": 5000}
+    ]}
+  ]
+}

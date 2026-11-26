@@ -9,6 +9,7 @@
   "scripts": {
     "gallery": "pnpm --filter today-ref-gallery dev",
     "check": "node scripts/check.ts",
+    "refine": "node scripts/refine.ts",
     "new-work": "node scripts/new-work.ts",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
