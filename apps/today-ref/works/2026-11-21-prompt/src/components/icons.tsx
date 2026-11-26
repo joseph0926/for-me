@@ -58,13 +58,6 @@ export const DownloadIcon = (props: IconProps) => (
   </Icon>
 );
 
-export const SparkIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <path d="M12 3.5l1.7 5.1 5.3 1.7-5.3 1.7L12 17.1l-1.7-5.1L5 10.3l5.3-1.7z" />
-    <path d="M18.5 15.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />
-  </Icon>
-);
-
 export const ImageIcon = (props: IconProps) => (
   <Icon {...props}>
     <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />

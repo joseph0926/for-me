@@ -54,7 +54,7 @@ export function App() {
               기록 <span className="tab-count">{state.sessions.length}</span>
             </button>
           </nav>
-          <button type="button" className="new-button" onClick={() => dispatch({ type: "newSession" })} disabled={busy} aria-label="새 프롬프트">
+          <button type="button" className="btn btn-secondary new-button" onClick={() => dispatch({ type: "newSession" })} disabled={busy} aria-label="새 프롬프트">
             <PlusIcon size={16} strokeWidth={2.2} />
             <span className="hidden sm:inline">새 프롬프트</span>
           </button>
@@ -70,7 +70,14 @@ export function App() {
       <div className="pointer-events-none fixed inset-x-0 top-16 z-30 flex justify-center px-4" aria-live="polite">
         <AnimatePresence>
           {toast && (
-            <motion.p key={toast.id} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="toast">
+            <motion.p
+              key={toast.id}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
+              className="toast"
+            >
               {toast.message}
             </motion.p>
           )}
@@ -131,7 +138,7 @@ function MakeView({ session, busy, dispatch, onToast }: MakeViewProps) {
         <ul className="mx-auto mb-5 mt-6 flex max-w-[620px] flex-wrap justify-center gap-2" aria-label="예시">
           {examples.map((example) => (
             <li key={example.id}>
-              <button type="button" className="example" onClick={() => applyExample(example)}>
+              <button type="button" className="btn btn-secondary example" onClick={() => applyExample(example)}>
                 <ExampleIcon icon={example.icon} />
                 {example.label}
               </button>
@@ -164,7 +171,7 @@ function MakeView({ session, busy, dispatch, onToast }: MakeViewProps) {
 }
 
 function ExampleIcon({ icon }: { icon: Example["icon"] }) {
-  const props = { size: 16, className: "text-[var(--accent)]" };
+  const props = { size: 16 };
   if (icon === "notes") return <NotesIcon {...props} />;
   if (icon === "megaphone") return <MegaphoneIcon {...props} />;
   if (icon === "image") return <ImageIcon {...props} />;

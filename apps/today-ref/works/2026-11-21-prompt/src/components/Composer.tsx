@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 
 import { purposeLabel, purposes, targetLabel, targets } from "../generate";
 import { MAX_IMAGES, type Draft } from "../useDraft";
-import { ArrowUpIcon, ChevronDownIcon, CloseIcon, ImageIcon, PlusIcon, StopIcon, TagIcon } from "./icons";
+import { ArrowUpIcon, CheckIcon, ChevronDownIcon, CloseIcon, ImageIcon, PlusIcon, StopIcon, TagIcon } from "./icons";
 
 interface ComposerProps {
   draft: Draft;
@@ -179,7 +179,7 @@ function PurposePicker({ draft }: { draft: Draft }) {
       <span className="chip chip-selected">
         <TagIcon size={14} />
         {purposeLabel(draft.purpose)}
-        <button type="button" onClick={() => draft.setPurpose(null)} aria-label={`용도 ${purposeLabel(draft.purpose)} 빼기`} className="-mr-1 rounded-full p-0.5 hover:bg-black/5">
+        <button type="button" onClick={() => draft.setPurpose(null)} aria-label={`용도 ${purposeLabel(draft.purpose)} 빼기`} className="-mr-1 rounded-[4px] p-0.5 hover:bg-black/5">
           <CloseIcon size={12} strokeWidth={2.4} />
         </button>
       </span>
@@ -255,10 +255,11 @@ function Menu({ label, ariaLabel, buttonClass, items, onSelect }: MenuProps) {
         {open && (
           <motion.ul
             role="menu"
+            // tastepin 메뉴 패널 값: 스프링 없이 220ms 곡선으로 열고 같은 길로 닫는다.
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.14 }}
+            transition={{ duration: 0.22, ease: [0.215, 0.61, 0.355, 1] }}
             className="menu"
           >
             {items.map((item) => (
@@ -274,7 +275,7 @@ function Menu({ label, ariaLabel, buttonClass, items, onSelect }: MenuProps) {
                   }}
                 >
                   {item.label}
-                  {item.selected && <span className="ml-auto text-[var(--accent)]">✓</span>}
+                  {item.selected && <CheckIcon size={16} className="ml-auto text-[var(--accent)]" />}
                 </button>
               </li>
             ))}
