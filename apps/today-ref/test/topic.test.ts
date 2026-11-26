@@ -189,3 +189,41 @@ describe("검사 명령", () => {
     assert.match(captureReport?.warnings.join() ?? "", /r1-2\.png/);
   });
 });
+
+describe("tastepin 다듬기 전달 기록", () => {
+  const root = mkdtempSync(join(tmpdir(), "today-ref-taste-"));
+  after(() => rmSync(root, { recursive: true, force: true }));
+  const selection = { mode: "single", items: [{ ref: "r1", part: "" }], decidedOn: "2026-11-18" };
+  for (const id of ["2026-11-18-shop", "2026-11-19-blog", "2026-11-20-map", "2026-11-21-feed"]) {
+    const status = id === "2026-11-21-feed" ? "building" : "done";
+    mkdirSync(join(root, "topics", id), { recursive: true });
+    writeFileSync(join(root, "topics", id, "topic.json"), JSON.stringify(topic({ id, date: id.slice(0, 10), status, selection })));
+    mkdirSync(join(root, "works", id), { recursive: true });
+    writeFileSync(join(root, "works", id, "package.json"), "{}");
+  }
+  const deliveries = join(root, "deliveries.jsonl");
+  writeFileSync(deliveries, [
+    JSON.stringify({ project: "~/dev/p/for-me/apps/today-ref/works/2026-11-18-shop" }),
+    JSON.stringify({ project: "C:\\Users\\me\\dev\\p\\for-me\\apps\\today-ref\\works\\2026-11-19-blog" }),
+    JSON.stringify({ project: "~/dev/p/for-me/apps/today-ref" }),
+    "{ broken",
+    "",
+  ].join("\n"));
+  const warningsOf = (reports: ReturnType<typeof checkWorkspace>, folder: string) =>
+    reports.find((report) => report.folder === folder)?.warnings ?? [];
+
+  test("완성작 폴더에서 실행한 기록이 없는 완성작만 경고한다", () => {
+    const reports = checkWorkspace(root, deliveries);
+    assert.deepEqual(warningsOf(reports, "2026-11-18-shop"), []);
+    assert.deepEqual(warningsOf(reports, "2026-11-19-blog"), [], "Windows 경로의 기록도 센다");
+    assert.match(warningsOf(reports, "2026-11-20-map").join(), /tastepin 다듬기 전달 기록이 없습니다/,
+      "today-ref 폴더에서 실행한 기록은 어느 완성작인지 몰라 세지 않는다");
+    assert.deepEqual(warningsOf(reports, "2026-11-21-feed"), [], "아직 만드는 중인 완성작은 경고하지 않는다");
+    assert.ok(reports.every((report) => report.errors.length === 0), "전달 기록이 없어도 실패가 아니라 경고다");
+  });
+
+  test("원장이 없는 사본에서는 검사를 건너뛴다", () => {
+    const reports = checkWorkspace(root, join(root, "missing.jsonl"));
+    assert.ok(reports.every((report) => report.warnings.length === 0));
+  });
+});
