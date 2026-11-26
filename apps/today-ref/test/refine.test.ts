@@ -80,6 +80,33 @@ describe("상태 파일 형식", () => {
     assert.equal(errors.length, 6, errors.join("\n"));
   });
 
+  test("기능 계약 단계 expect와 지킬 상태 guard를 tastepin과 같은 형식으로 받는다", () => {
+    const contract = {
+      states: [
+        {
+          id: "list",
+          label: "보관함 목록",
+          path: "/",
+          guard: true,
+          steps: [{ expect: { role: "button", name: "옮기기" } }, { expect: { text: "불러오는 중" }, absent: true }],
+        },
+      ],
+    };
+    assert.deepEqual(validateStates(contract), []);
+    const errors = validateStates({
+      states: [
+        {
+          id: "a",
+          label: "a",
+          path: "/",
+          guard: "예",
+          steps: [{ expect: "옮기기" }, { click: { text: "x" }, absent: true }, { expect: { text: "y" }, absent: "예" }],
+        },
+      ],
+    });
+    assert.equal(errors.length, 4, errors.join("\n"));
+  });
+
   test("완성작마다 2~6개 상태의 상태 파일이 있다", () => {
     const works = readdirSync(join(root, "works"), { withFileTypes: true }).filter((entry) => entry.isDirectory());
     assert.ok(works.length > 0);
