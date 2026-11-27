@@ -77,7 +77,7 @@ python3 -B ~/dev/p/tools/taste/taste.py refine <개발 서버 주소> --states <
 ## 먼저 읽을 것
 - 검사 보고: <보고 폴더>/report.md, report.json, 스크린숏
 - 대상의 범위와 결정: <완성작이면 README.md와 topics/<주제 id>/topic.json의 selection.items[].part | 고객 저장소면 그 저장소의 AGENTS.md, 범위 문서, 디자인 토큰>
-- 실제 제품 근거: <topics/<주제 id>/topic.json의 references(points, evidence)와 captures/<주제 id>/의 캡처 | 동작 수집 주제의 같은 것 | 없음>
+- 실제 제품 근거: <topics/<주제 id>/topic.json의 references(points, evidence)와 캡처 폴더(README의 캡처 저장소)의 <주제 id>/ 캡처 | 동작 수집 주제의 같은 것 | 없음>
 - 취향 출력: <완성작 폴더에서 받아 둔 apply-context 출력 파일>. 다시 실행하지 않는다
 - 이전 바퀴의 지적: <이전 findings.json 경로 | 없음>
 

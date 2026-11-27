@@ -48,13 +48,30 @@ pnpm --filter work-<주제 id> dev
 | 경로 | 내용 | Git |
 |---|---|---|
 | `topics/<주제 id>/topic.json` | 주제, 레퍼런스 링크와 볼 점, 확정한 선택, 상태 | 포함 |
-| `captures/<주제 id>/` | 레퍼런스 화면 캡처 | 제외. 남의 화면이라 공개 저장소에 넣지 않고 이 컴퓨터에만 둡니다 |
+| `~/dev/p/today-ref-captures/<주제 id>/` | 레퍼런스 화면 캡처 | for-me 밖의 비공개 저장소. 아래 "캡처 저장소" |
 | `works/<주제 id>/` | 완성작 프로젝트 | 포함 |
 | `gallery/` | 레퍼런스를 보고 고르는 로컬 웹 | 포함 |
 | `template/` | 완성작의 시작 프로젝트(React 19, Vite, TypeScript, motion, Tailwind) | 포함 |
 | `topic.ts` | 주제 파일 형식과 검사. 갤러리와 검사 명령이 함께 씁니다 | 포함 |
 
-다른 컴퓨터의 사본에는 캡처가 없습니다. 갤러리는 캡처 대신 원본 링크를 보여 줍니다.
+## 캡처 저장소
+
+캡처는 남의 제품 화면이라 공개 저장소인 for-me에 넣지 않습니다. 대신 비공개 저장소 `today-ref-captures`를 for-me와 같은 폴더(`~/dev/p`)에 받아 컴퓨터끼리 나눕니다(2026-11-27). 검사와 갤러리가 읽는 위치는 [scripts/captures.ts](scripts/captures.ts) 한 곳에서 정합니다.
+
+1. 환경 변수 `TODAY_REF_CAPTURES`가 있으면 그 경로
+2. 없으면 `~/dev/p/today-ref-captures`
+3. 그 저장소도 없으면 예전처럼 `apps/today-ref/captures/`(Git 제외)
+
+`pnpm check`의 마지막 줄에 어느 캡처 폴더를 읽었는지 나옵니다. 캡처가 없는 레퍼런스는 경고로 나오고, 갤러리는 캡처 대신 원본 링크를 보여 줍니다.
+
+처음 쓰는 컴퓨터에서는 저장소를 받습니다. 그 컴퓨터의 `apps/today-ref/captures/`에 예전 캡처가 남아 있으면 같은 이름의 주제 폴더가 저장소에 없는지 확인하고 옮긴 뒤, 비어 있는 `captures/`를 지웁니다.
+
+```sh
+cd ~/dev/p
+git clone https://github.com/joseph0926/today-ref-captures.git
+```
+
+수집하는 컴퓨터에서는 시작 전에 받고(`git -C ~/dev/p/today-ref-captures pull`), 수집을 마치면 그 주제 폴더를 커밋해 올립니다. 캡처는 한 번 저장하면 고치지 않으므로, 컴퓨터마다 다른 주제를 모으면 충돌이 나지 않습니다.
 
 ## 검사
 
