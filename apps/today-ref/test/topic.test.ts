@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { after, describe, test } from "node:test";
 
-import { checkWorkspace } from "../scripts/check.ts";
+import { capturesDir } from "../scripts/captures.ts";
+import { checkWorkspace, defaultDeliveries } from "../scripts/check.ts";
 import { collectTopics, limits, validateTopic } from "../topic.ts";
 
 function reference(id: string, captures: string[] = []) {
@@ -197,7 +198,7 @@ describe("검사 명령", () => {
     ),
   );
 
-  const reports = checkWorkspace(root);
+  const reports = checkWorkspace(root, defaultDeliveries, join(root, "captures"));
   const byFolder = (folder: string) => reports.find((report) => report.folder === folder);
 
   test("읽지 못한 주제는 그 주제만 실패한다", () => {
@@ -250,7 +251,7 @@ describe("검사 명령", () => {
     mkdirSync(join(fixture, "topics", badTopic, "topic.json"), { recursive: true });
     mkdirSync(join(fixture, "captures", badCapture, "r1-1.png"), { recursive: true });
 
-    const result = checkWorkspace(fixture);
+    const result = checkWorkspace(fixture, defaultDeliveries, join(fixture, "captures"));
     assert.deepEqual(result.find((item) => item.folder === valid), { folder: valid, errors: [], warnings: [] });
     assert.match(result.find((item) => item.folder === badTopic)?.errors.join() ?? "", /topic\.json/);
     const captureReport = result.find((item) => item.folder === badCapture);
@@ -294,5 +295,44 @@ describe("tastepin 다듬기 전달 기록", () => {
   test("원장이 없는 사본에서는 검사를 건너뛴다", () => {
     const reports = checkWorkspace(root, join(root, "missing.jsonl"));
     assert.ok(reports.every((report) => report.warnings.length === 0));
+  });
+});
+
+describe("캡처 폴더 위치", () => {
+  const root = resolve("/home/me/dev/p/for-me/apps/today-ref");
+  const shared = resolve("/home/me/dev/p/today-ref-captures");
+
+  test("for-me 옆에 비공개 캡처 저장소가 있으면 그 폴더를 쓴다", () => {
+    assert.equal(capturesDir(root, {}, (path) => path === shared), shared);
+  });
+
+  test("캡처 저장소가 없는 사본은 today-ref 안의 captures/를 쓴다", () => {
+    assert.equal(capturesDir(root, {}, () => false), join(root, "captures"));
+  });
+
+  test("TODAY_REF_CAPTURES가 있으면 저장소 유무와 관계없이 그 경로를 쓴다", () => {
+    const configured = resolve("/data/captures");
+    assert.equal(capturesDir(root, { TODAY_REF_CAPTURES: configured }, () => true), configured);
+  });
+
+  test("검사는 받은 캡처 폴더에서 파일을 찾는다", () => {
+    const fixture = mkdtempSync(join(tmpdir(), "today-ref-captures-"));
+    after(() => rmSync(fixture, { recursive: true, force: true }));
+    const folder = "2026-11-27-shop";
+    mkdirSync(join(fixture, "topics", folder), { recursive: true });
+    writeFileSync(join(fixture, "topics", folder, "topic.json"), JSON.stringify(
+      topic({
+        id: folder,
+        date: "2026-11-27",
+        status: "collected",
+        references: [{ ...reference("r1", ["r1-1.png"]), behavior: ["shop.layout"], evidence: "still" }],
+      }),
+    ));
+    const elsewhere = join(fixture, "shared-captures");
+    mkdirSync(join(elsewhere, folder), { recursive: true });
+    writeFileSync(join(elsewhere, folder, "r1-1.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+
+    assert.deepEqual(checkWorkspace(fixture, null, elsewhere), [{ folder, errors: [], warnings: [] }]);
+    assert.match(checkWorkspace(fixture, null, join(fixture, "captures"))[0].warnings.join(), /r1-1\.png/);
   });
 });
