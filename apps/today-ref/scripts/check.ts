@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { extname, join, resolve } from "node:path";
 
 import { collectTopics, limits, parseTopicFile, workFolder, type TopicFile } from "../topic.ts";
+import { capturesDir, capturesRepo } from "./captures.ts";
 
 export interface TopicReport {
   folder: string;
@@ -17,7 +18,11 @@ export interface TopicReport {
 export const defaultDeliveries =
   process.env.TODAY_REF_TASTE_DELIVERIES ?? join(homedir(), "dev", "p", "tools", "taste", "state", "deliveries.jsonl");
 
-export function checkWorkspace(root: string, deliveries: string | null = defaultDeliveries): TopicReport[] {
+export function checkWorkspace(
+  root: string,
+  deliveries: string | null = defaultDeliveries,
+  captures: string = capturesDir(root),
+): TopicReport[] {
   const topicsDir = join(root, "topics");
   if (!existsSync(topicsDir)) return [];
   const refined = deliveries === null ? null : refinedWorks(deliveries);
@@ -32,7 +37,7 @@ export function checkWorkspace(root: string, deliveries: string | null = default
     const report: TopicReport = { folder, errors: [], warnings: [] };
     for (const reference of result.topic.references) {
       for (const name of reference.captures) {
-        checkCapture(join(root, "captures", folder, name), `${reference.id} ${name}`, report);
+        checkCapture(join(captures, folder, name), `${reference.id} ${name}`, report);
       }
     }
     const needsWork = result.topic.status === "building" || result.topic.status === "done";
@@ -75,6 +80,14 @@ export function refinedWorks(path: string): Set<string> | null {
 export function deliveriesNotice(path: string, refined: Set<string> | null): string | null {
   if (refined !== null) return null;
   return `건너뜀: 취향 원장 ${path}를 읽지 못해 tastepin 다듬기 전달 기록 검사를 하지 않았습니다. 다른 경로면 TODAY_REF_TASTE_DELIVERIES로 줍니다`;
+}
+
+// 어느 캡처 폴더를 검사했는지 보인다. 빠진 캡처 경고가 비공개 저장소를 받지 않아서인지 구분하게 한다.
+export function capturesNotice(root: string, captures: string): string {
+  if (captures === join(root, "captures")) {
+    return `캡처 폴더: ${captures} (${capturesRepo} 저장소가 없어 이 사본 안의 폴더를 씁니다. 다른 컴퓨터의 캡처는 README의 캡처 저장소 절을 따릅니다)`;
+  }
+  return `캡처 폴더: ${captures}`;
 }
 
 function readTopicFile(folder: string, path: string): TopicFile {
@@ -126,7 +139,8 @@ function imageType(head: Buffer): string | null {
 
 if (import.meta.main) {
   const root = resolve(process.argv[2] ?? join(import.meta.dirname, ".."));
-  const reports = checkWorkspace(root);
+  const captures = capturesDir(root);
+  const reports = checkWorkspace(root, defaultDeliveries, captures);
   const notice = deliveriesNotice(defaultDeliveries, refinedWorks(defaultDeliveries));
   for (const { folder, errors, warnings } of reports) {
     console.log(`${errors.length === 0 ? "통과" : "실패"} ${folder}`);
@@ -135,6 +149,7 @@ if (import.meta.main) {
   }
   const failed = reports.filter((report) => report.errors.length > 0).length;
   if (notice) console.log(notice);
+  console.log(capturesNotice(root, captures));
   console.log(`주제 ${reports.length}개, 실패 ${failed}개`);
   process.exitCode = failed > 0 ? 1 : 0;
 }

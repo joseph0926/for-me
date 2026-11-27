@@ -1,0 +1,80 @@
+{
+  "id": "2026-11-27-fc-shop-2",
+  "date": "2026-11-27",
+  "title": "FC/FIFA 상점 추가 수집: 재화 줄, SBC 목록, FUT 메인",
+  "platform": "web",
+  "brief": "2026-11-27-fc-shop이 레퍼런스 24개로 차서 같은 날 Claude in Chrome으로 다시 찾은 FC 화면 중 남은 것을 따로 모은 수집입니다. EA 도움말(help.ea.com)은 이전 수집에서 응답이 없었지만 사용자 Chrome에서는 열렸고, 글에 실린 FC 27과 FC 모바일 화면을 썼습니다. 동작 id는 fc-shop과 같습니다(shop.layout, shop.item-price, shop.currency, shop.timer). 화면의 초록, 빨간 상자와 화살표는 도움말이 그린 강조입니다. 로그인과 게임 조작 없이 모았습니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "EA SPORTS FC Mobile",
+      "source": "EA 도움말",
+      "title": "FC 모바일 상단 재화 줄: 재화마다 더하기 버튼과 남은 시간이 붙은 모드 카드",
+      "url": "https://help.ea.com/en/articles/ea-sports-fc/fc-mobile/fc-mobile-points-and-silver/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.currency",
+        "shop.timer"
+      ],
+      "captures": [
+        "r1-1.jpg"
+      ],
+      "points": [
+        "화면 맨 위 한 줄에 코인(1,520,000), 보석(1,300), FC 포인트(0), U 재화(0)를 아이콘과 숫자로 나란히 두고, 재화마다 오른쪽에 동그란 + 버튼을 붙입니다.",
+        "재화 줄 오른쪽 끝에 친구, 우편(빨간 점), 설정 아이콘이 이어집니다.",
+        "아래 'CHALLENGE MODE' 카드에는 트로피 그림과 'Opens in: 14h59m' 남은 시간 띠, 넘김 점이 있습니다.",
+        "FC 포인트 칸의 빨간 점선 상자와 화살표는 도움말이 그린 강조입니다. EA 도움말 'How to buy FC Points and Silver in EA SPORTS FC Mobile'의 화면이며 현재 앱은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "EA SPORTS FC 27",
+      "source": "EA 도움말",
+      "title": "FC 27 SBC 목록: 2열 과제 카드와 아이템 점수 요구치",
+      "url": "https://help.ea.com/en/articles/ea-sports-fc/sbcs/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.item-price"
+      ],
+      "captures": [
+        "r2-1.jpg"
+      ],
+      "points": [
+        "SBC를 2열 카드로 늘어놓고, 카드마다 제목, 두 줄 설명, 화살표 아이콘과 필요한 아이템 점수(250, 500, 1,000, 1,500)를 왼쪽 아래에 둡니다.",
+        "카드 오른쪽에는 선수 실루엣이 든 방패 모양 아이콘이 있고, 고른 카드('A New Signing')는 밝은 테두리와 빛으로 구분합니다.",
+        "250 주변의 초록 상자와 화살표는 도움말이 그린 강조입니다.",
+        "EA 도움말 SBC 글에 'Streamlined SBC'로 실린 FC 27 화면이며 현재 게임 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "EA SPORTS FC 27",
+      "source": "EA 도움말",
+      "title": "FC 27 FUT 메인: 상단 Store 탭과 재화, 목표, SBC, 갤러리 카드",
+      "url": "https://help.ea.com/en/articles/ea-sports-fc/ultimate-team-objectives/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.currency"
+      ],
+      "captures": [
+        "r3-1.png"
+      ],
+      "points": [
+        "얼티밋 팀 메인 위쪽 탭 줄에 Featured, Play, Objectives, Club, SBC, Transfers, Store, Settings가 같은 크기 글자로 이어지고, 오른쪽 위에 코인(1K), 포인트(0)와 진행 수(200/1K)를 작게 둡니다.",
+        "본문은 'WELCOME TO FUT' 제목과 왼쪽 안내 목록, 오른쪽의 Foundation Objectives, Foundation SBCs, Gallery 세 카드입니다. 카드마다 그림과 짧은 설명, SBC 수나 점수 같은 숫자가 붙습니다.",
+        "상점은 여러 탭 중 하나로만 보이고 이 화면에서 상품은 보이지 않습니다.",
+        "EA 도움말 'Ultimate Team Objectives'에 실린 FC 27 화면이며 현재 게임 화면은 확인하지 않았습니다."
+      ]
+    }
+  ],
+  "selection": null,
+  "status": "collected"
+}

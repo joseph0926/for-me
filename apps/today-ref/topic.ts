@@ -36,7 +36,7 @@ export interface Reference {
   title: string;
   url: string;
   checkedOn: string;
-  // captures/<주제 id>/ 아래 파일 이름. 캡처는 공개 저장소에 넣지 않으므로 다른 사본에는 없을 수 있다.
+  // 캡처 폴더(scripts/captures.ts)의 <주제 id>/ 아래 파일 이름. 캡처는 비공개 저장소에 따로 두므로 그 저장소를 받지 않은 사본에는 없을 수 있다.
   captures: string[];
   points: string[];
   // 이 화면이 보여 주는 동작. tastepin 시편이 있으면 "시편.차원" id(예: "qtyremove.zero")를 써서

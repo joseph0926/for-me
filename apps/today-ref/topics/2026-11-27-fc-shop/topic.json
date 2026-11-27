@@ -1,0 +1,568 @@
+{
+  "id": "2026-11-27-fc-shop",
+  "date": "2026-11-27",
+  "title": "FC/FIFA 시리즈 상점과 보상 화면",
+  "platform": "web",
+  "brief": "사용자가 FC/FIFA 시리즈를 집중해서 모아 달라고 해서 연 수집입니다. FIFA 18부터 FC 27까지 콘솔 얼티밋 팀의 스토어, 팩 진열과 확률, 보상 화면, FIFA 모바일과 EA SPORTS FC 모바일의 상점과 웹스토어, 넥슨 FC 온라인의 웹 상점을 모았습니다. 같은 동작 id(shop.layout, shop.item-price, shop.select, shop.currency, shop.timer, shop.purchase)와 팩 개봉(fc.pack-open)을 씁니다. FC 24~26은 EA 공식 기사에 스토어 화면이 없어 목표, 라이벌, 시즌, 대회 보상 화면으로 대신했고, 옛 FIFA 화면은 Wayback Machine에 보관된 EA 공식 페이지에서 가져왔습니다. 워크아웃 연출은 공식 이미지를 찾지 못했고, 구매 확인은 같은 날 Claude in Chrome으로 다시 찾아 EA 도움말의 FC 26 프리미엄 패스 구매 화면과 SBC 제출 확인 창(r23, r24)으로 채웠습니다. 더 찾은 화면은 2026-11-27-fc-shop-2에 있습니다. 로그인과 게임 조작 없이 모았습니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "FIFA 18",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 18 컴패니언 앱 스토어: 팩 탭과 코인/포인트 두 가격 버튼",
+      "url": "https://web.archive.org/web/20170921022237/https://www.easports.com/fifa/ultimate-team/fut-app",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.item-price",
+        "shop.currency"
+      ],
+      "captures": [
+        "r1-1.jpg"
+      ],
+      "points": [
+        "상단에 MY PACKS, PROMO, GOLD, SILVER 탭을 두고 팩을 세로 목록 카드로 쌓아 보여 주는 구조다.",
+        "카드마다 왼쪽에 팩 이미지, 오른쪽에 이름과 아이템 수, 등급, 레어 개수 배지, 설명이 있고 아래에 분홍색 코인 가격 버튼과 초록 포인트 가격 버튼이 나란히 붙는다.",
+        "헤더 오른쪽에 보유 코인과 FIFA 포인트가 표시되고 하단 탭바에서 STORE가 선택된 상태다.",
+        "2017년 EA 공식 FUT 앱 소개 페이지의 홍보용 휴대폰 합성 이미지이며 기울어진 기기 3대에 걸쳐 잘려 보인다. 현재 앱은 확인하지 않았다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "FIFA 18",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FUT 18 첫 진입: 국가별 스타터 팩 고르기 화면",
+      "url": "https://web.archive.org/web/20171128220356/https://www.easports.com/fifa/news/2017/getting-started-with-fut-18",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.select"
+      ],
+      "captures": [
+        "r2-1.png"
+      ],
+      "points": [
+        "왼쪽 3x3 국기 격자에서 국가를 고르면 오른쪽 패널에 선택한 국가 이름과 해당 국기가 들어간 팩 이미지가 크게 표시된다.",
+        "패널 하단에 선택한 국가 선수가 초기 스쿼드에 더 많이 들어간다는 설명 한 줄이 붙고, 선택된 칸은 진한 남색으로 반전된다.",
+        "좌상단에 LET'S GET STARTED 1~4 단계 표시가 있어 온보딩 흐름 안의 첫 단계임을 알 수 있다.",
+        "2017년 EA 공식 FUT 18 시작 가이드 이미지이며 가격 없는 무료 선택 화면이다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "FIFA 19",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 19 FUT 스토어 골드 팩 탭: 팩 열과 우측 설명 패널",
+      "url": "https://web.archive.org/web/20190728185134/https://www.ea.com/games/fifa/fifa-19/news/fifa-19-pack-probabilities",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.item-price",
+        "shop.currency"
+      ],
+      "captures": [
+        "r3-1.jpg"
+      ],
+      "points": [
+        "BRONZE, SILVER, GOLD PACKS, FIFA POINTS 탭 아래에 팩을 세로 기둥 카드로 가로 배열하고, 선택한 팩 설명을 오른쪽 패널에 따로 띄운다.",
+        "카드마다 팩 이미지 아래에 '5,000 코인 or 100 포인트'처럼 두 가격을 두 줄로 쓰고, 맨 아래에 아이템 수, 골드 수, 레어 수 배지 3개를 둔다.",
+        "선택된 프리미엄 골드 팩 카드는 파란 배경으로 강조되고 좌상단 클럽 정보 칸에 보유 코인과 FIFA 포인트, 전적이 함께 표시된다.",
+        "하단 조작 안내에 Show Pack Probabilities가 있다. 2018년 9월 EA 공식 기사에 실린 FIFA 19 화면이다."
+      ]
+    },
+    {
+      "id": "r4",
+      "kind": "product",
+      "product": "FIFA 19",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 19 팩 확률 보기 팝업: 등급별 최소 확률 표",
+      "url": "https://web.archive.org/web/20190728185134/https://www.ea.com/games/fifa/fifa-19/news/fifa-19-pack-probabilities",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.select"
+      ],
+      "captures": [
+        "r4-1.jpg"
+      ],
+      "points": [
+        "스토어 위에 어두운 막을 깔고 가운데 팝업으로 선택한 팩 이름과 등급별 최소 확률을 표로 보여 준다.",
+        "민트색 띠에 확률의 의미를 한 줄로 설명하고, 행마다 카드 아이콘, 'Gold 75+ Player' 같은 조건, 오른쪽 정렬된 퍼센트를 둔다.",
+        "팝업 하단 회색 띠에 확률 기준 시각과 산출 방식, 안내 링크가 작은 글씨로 들어가고 닫기는 하단 Back 조작으로 안내된다.",
+        "2018년 9월 EA 공식 기사 이미지이며 현재 스토어 확률 표시는 확인하지 않았다."
+      ]
+    },
+    {
+      "id": "r5",
+      "kind": "product",
+      "product": "FIFA 21",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 21 FUT 스토어: 프리뷰 팩과 일반 팩을 같은 가격으로 나란히 진열",
+      "url": "https://web.archive.org/web/20210715171750/https://www.ea.com/games/fifa/fifa-21/news/pitch-notes-fifa21-changes-to-the-fut-store",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.select",
+        "shop.item-price",
+        "shop.layout"
+      ],
+      "captures": [
+        "r5-1.png"
+      ],
+      "points": [
+        "같은 종류의 프리뷰 팩과 일반 팩을 이웃한 열에 두고, 프리뷰 팩에는 주황색 PREVIEW 눈 아이콘 리본을 붙여 미리 볼 수 있는 팩임을 구분한다.",
+        "각 열은 상단 팩 이름, 가운데 팩 이미지, '5,000 코인 or 100 포인트' 두 줄 가격, 하단 아이템 수, 골드 수, 레어 수 배지 순서다.",
+        "선택된 골드 프리뷰 팩 열은 보라색으로 채워지고 오른쪽 패널에 팩 이름과 구성 설명이 표시된다.",
+        "하단 조작 안내에 Preview Pack, Help, Show Pack Probabilities, Back이 있다. 2021년 7월 EA 공식 Pitch Notes 이미지다."
+      ]
+    },
+    {
+      "id": "r6",
+      "kind": "product",
+      "product": "FIFA 22",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FUT 22 홈: 하단 타일 줄 끝의 STORE 진입점과 상단 재화 표시",
+      "url": "https://web.archive.org/web/20210810151245/https://www.ea.com/games/fifa/fifa-22/news/pitch-notes-fifa-22-ultimate-team-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.currency"
+      ],
+      "captures": [
+        "r6-1.jpg"
+      ],
+      "points": [
+        "스토어를 별도 탭이 아니라 홈 하단 NEWS, OBJECTIVES, TRANSFERS, SBC 타일 줄의 마지막 STORE 타일로 두고 빨간 숫자 배지 4를 붙여 새 항목을 알린다.",
+        "좌상단 클럽 정보 줄에 클럽명, 창단 연도, 코인 60,641과 FIFA 포인트 0이 한 줄로 이어지고 우상단에 시즌 XP 진행 막대가 있다.",
+        "선택된 SBC 타일은 연두색으로 채워지고 위쪽 큰 패널이 그 항목의 설명과 팩, 코인 이미지를 보여 준다. 스토어 내부 화면은 이 이미지에 없다.",
+        "2021년 8월 EA 공식 FUT 22 딥다이브 이미지다."
+      ]
+    },
+    {
+      "id": "r7",
+      "kind": "product",
+      "product": "FIFA 22",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FUT 22 디비전 라이벌 주간 보상: 팩 이미지, 승리 조건, 남은 시간",
+      "url": "https://web.archive.org/web/20210810151245/https://www.ea.com/games/fifa/fifa-22/news/pitch-notes-fifa-22-ultimate-team-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.timer",
+        "shop.select"
+      ],
+      "captures": [
+        "r7-1.png"
+      ],
+      "points": [
+        "보상 팩 이미지를 왼쪽에 크게 두고 오른쪽에 등급, 보상 종류, 'Rewards in: 5 Days 10 Hours' 시계 아이콘 남은 시간을 적어 기간 한정 보상을 보여 준다.",
+        "가운데 원형 링 안에 'WINS 0/1'처럼 달성 조건 진척을 크게 쓰고, 옆에 몇 승이 필요한지 문장으로 설명한다.",
+        "보상 이름 옆 자물쇠 아이콘이 아직 받을 수 없는 상태를 나타내고, Preview Rewards 버튼과 R 스틱 페이지 점으로 주간 보상과 업그레이드 보상을 넘겨 본다.",
+        "기사 이미지에는 두 페이지 상태가 위아래로 이어 붙어 있다. 2021년 EA 공식 FUT 22 딥다이브 이미지다."
+      ]
+    },
+    {
+      "id": "r8",
+      "kind": "product",
+      "product": "FIFA Mobile",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 모바일 이적시장: 선수 격자 목록과 구매 확인 창",
+      "url": "https://web.archive.org/web/20220115184744/https://www.ea.com/games/fifa/fifa-mobile/news/core-content-market",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.purchase",
+        "shop.item-price",
+        "shop.currency"
+      ],
+      "captures": [
+        "r8-1.png",
+        "r8-2.png"
+      ],
+      "points": [
+        "목록에서 선수를 고르면 오른쪽 패널에 현재가, 최저가, 최고가와 PURCHASE 버튼이 나오고, 누르면 구매 확인 창이 화면을 덮는다.",
+        "목록은 5열 카드 격자이며 카드마다 아래에 코인 아이콘과 가격을 두고, 선택 카드는 초록 테두리로 표시된다. 상단에 RECOMMENDED, MY PLAYERS, MY WATCHLIST, MY ORDERS, SEARCH 탭이 있다.",
+        "구매 창은 왼쪽에 선수 카드와 가격 추이 꺾은선, 오른쪽에 판매 수량별 가격 표, 구매 제안가 입력, 남은 잔액(음수면 부족), 수량 +/- 조절, 노란 PURCHASE 버튼을 둔다.",
+        "상단 우측에 보유 코인과 쇼핑카트 아이콘이 있다. 2022년 1월 EA 공식 FIFA 모바일 시즌 기사 이미지이며 상점 진열 화면이 아닌 이적시장 구매 흐름이다."
+      ]
+    },
+    {
+      "id": "r9",
+      "kind": "product",
+      "product": "FIFA Mobile",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FIFA 모바일 스타 패스: 프리미엄 구매 버튼과 무료/프리미엄 보상 두 줄",
+      "url": "https://web.archive.org/web/20220115184744/https://www.ea.com/games/fifa/fifa-mobile/news/core-content-market",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.purchase",
+        "shop.timer"
+      ],
+      "captures": [
+        "r9-1.png"
+      ],
+      "points": [
+        "왼쪽 위 PREMIUM 칸에 노란 PURCHASE 버튼을 두고, 그 오른쪽에 프리미엄 보상 줄, 아래에 FREE 보상 줄을 레벨 번호 축으로 나란히 펼친다.",
+        "각 보상 칸은 아이템 이미지와 'x20', 'x20,000' 같은 수량만 크게 보여 주고, 레벨 축의 다음 칸에 레벨 구매 가격 200이 알약 모양으로 붙는다.",
+        "상단 띠에 현재 레벨과 진척 0/200, 'Season ends in: 6 DAYS' 남은 시간이 있고, 오른쪽 끝 11레벨 대표 보상이 파란 기둥으로 강조된다. 하단에 COLLECT ALL 버튼이 있다.",
+        "2022년 1월 EA 공식 FIFA 모바일 기사 이미지다."
+      ]
+    },
+    {
+      "id": "r10",
+      "kind": "product",
+      "product": "FIFA 23",
+      "source": "Wayback Machine의 EA 공식 페이지",
+      "title": "FUT 23 스타 갤러리: 별 재화로 보상과 임대 선수를 교환하는 상점",
+      "url": "https://web.archive.org/web/20220811211606/https://www.ea.com/games/fifa/fifa-23/news/pitch-notes-fifa-23-fut-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.currency"
+      ],
+      "captures": [
+        "r10-1.jpg"
+      ],
+      "points": [
+        "코인과 포인트 대신 FUT 모먼츠에서 모은 별로 교환하는 상점을 'Exchange Stars for rewards and loan players.' 한 줄 설명과 함께 가로 카테고리 타일로 보여 준다.",
+        "첫 타일은 팩 이미지가 들어간 좁은 세로 타일로 선택 상태(아래 주황 밑줄)이고, 나머지는 전술, 선수, 컨트롤러, 물음표 아이콘을 넣은 큰 정사각 타일이다.",
+        "상단 클럽 정보 줄에 코인, FIFA 포인트, 별 재화가 차례로 표시돼 세 번째 재화가 기존 재화 옆에 추가된 방식을 볼 수 있다.",
+        "2022년 8월 EA 공식 FIFA 23 FUT 딥다이브 이미지이며 타일 안의 개별 교환 목록은 이 이미지에 없다."
+      ]
+    },
+    {
+      "id": "r11",
+      "kind": "product",
+      "product": "EA SPORTS FC 24",
+      "source": "EA 공식 뉴스",
+      "title": "FC 24 목표 화면: 이벤트 탭, 목표 목록, 그룹 보상 카드",
+      "url": "https://www.ea.com/games/ea-sports-fc/pitch-notes/news/fc-24-ultimate-team-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.timer",
+        "shop.layout"
+      ],
+      "captures": [
+        "r11-1.jpg"
+      ],
+      "points": [
+        "상단 탭(Progress, Seasonal, European Nights 등) 아래 왼쪽에 같은 이벤트 그룹 타일을 세로로 쌓고, 가운데에 목표 목록, 오른쪽에 그룹 보상 선수 카드를 둔다.",
+        "이벤트 제목 아래에 완료 수 4/4와 시계 아이콘 '5 Days' 남은 기간이 붙고, 목표 행마다 2/2 진척과 초록 선물 아이콘이 있어 받을 보상이 있음을 표시한다.",
+        "보상 카드 아래에 교환 불가 표시와 XP, 팩 아이콘 추가 보상, View Rewards 조작이 있고 하단 바에 Claim All이 있다.",
+        "2023년 EA 공식 FC 24 Ultimate Team 딥다이브 이미지이며 스토어가 아닌 목표 보상 화면이다."
+      ]
+    },
+    {
+      "id": "r12",
+      "kind": "product",
+      "product": "EA SPORTS FC 25",
+      "source": "EA 공식 뉴스",
+      "title": "FC 25 라이벌 디비전 진행: 주간 보상 팩과 남은 시간 표시",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-football-ultimate-team-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.timer",
+        "shop.select"
+      ],
+      "captures": [
+        "r12-1.jpg"
+      ],
+      "points": [
+        "가운데에 잠금 아이콘이 붙은 UT 팩 이미지를 두고 오른쪽 어두운 카드에 보상 조건과 노란색 'Rewards in: 2 Days 12 Hours' 남은 시간을 강조한다.",
+        "FIFA 22의 승수 링이 'Points' 링으로 바뀌었고, 왼쪽 위에 승/무/패별 포인트와 랭크 증감 규칙을 작은 표로 적었다.",
+        "하단에 디비전 10, 랭크 II, I, 디비전 9 배지를 잇는 진행 축이 있고 현재 랭크 배지에 초록 깃발이 붙는다. Preview Rewards 버튼과 페이지 점으로 다른 보상을 넘겨 본다.",
+        "2024년 EA 공식 FC 25 딥다이브 이미지다."
+      ]
+    },
+    {
+      "id": "r13",
+      "kind": "product",
+      "product": "EA SPORTS FC 25",
+      "source": "EA 공식 뉴스",
+      "title": "FC 25 시즌 진행 보상: 레벨 축 위 팩 카드와 받기 버튼",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-football-ultimate-team-launch-update",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.select"
+      ],
+      "captures": [
+        "r13-1.jpg"
+      ],
+      "points": [
+        "보라색 레벨 축(21~25) 아래에 보상 카드를 하나씩 매달아 보여 주고, 선택한 카드 아래에 'Claim Reward' 흰 알약 버튼을 띄운다.",
+        "카드마다 상단에 'Ultimate Team' 모드 표기와 우상단 상태 아이콘(받을 수 있음 선물, 받음 체크), 가운데 팩이나 꾸미기 아이템 이미지, 아래 '82+ x3 Rare Gold Players Pack' 같은 구성 설명을 둔다.",
+        "선택된 22레벨 카드는 다른 카드보다 조금 위로 올라오고 테두리가 밝아진다.",
+        "2024년 EA 공식 FC 25 런치 업데이트 이미지이며 저해상도 원본이다. 스토어가 아닌 진행 보상 화면이다."
+      ]
+    },
+    {
+      "id": "r14",
+      "kind": "product",
+      "product": "EA SPORTS FC 26",
+      "source": "EA 공식 뉴스",
+      "title": "FC 26 토너먼트 화면: 이벤트 종료 시간과 보상 팩 패널",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-26/news/pitch-notes-fc26-launch-update",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.timer"
+      ],
+      "captures": [
+        "r14-1.jpg"
+      ],
+      "points": [
+        "왼쪽에 대회 제목과 설명, 'Event Ends In 1 Hour 58 Mins'와 참가 가능 횟수 5/5를 두고, 오른쪽 반투명 패널에 보상 팩 이미지를 따로 보여 준다.",
+        "보상 패널에는 팩 구성 설명이 한 줄로 말줄임 처리되고 그 아래 완료한 목표 수 0/10과 R 스틱 View 조작이 있다.",
+        "주 행동 버튼은 보라색 그라데이션 알약 'View Tournament' 하나이고 아래에 대회 선택 타일이 하나 놓인다.",
+        "2025년 EA 공식 FC 26 런치 업데이트 이미지이며 스토어가 아닌 기간 한정 대회 보상 화면이다."
+      ]
+    },
+    {
+      "id": "r15",
+      "kind": "product",
+      "product": "EA SPORTS FC 27",
+      "source": "EA 공식 뉴스",
+      "title": "FC 27 토큰 상점: 갤러리 토큰으로 선수 교환, 보유량과 상점 종료 시간",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-27/news/pitch-notes-fc27-launch-update",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.currency",
+        "shop.timer"
+      ],
+      "captures": [
+        "r15-1.jpg"
+      ],
+      "points": [
+        "왼쪽 세로 메뉴(Token Summary, Champions Token, Gallery Token)로 토큰 상점을 나누고 가운데 4열 선수 카드 격자, 오른쪽에 보유 토큰 패널을 두는 3단 구조다.",
+        "카드 아래마다 시계 아이콘과 토큰 아이콘 가격(400, 500)이 붙고, 선택한 카드는 네 모서리 괄호 표시로 강조되며 제목에 선수 이름과 교환 불가 표시가 뜬다.",
+        "오른쪽 패널에 Gallery Token 보유량 0과 'Store Expires in: 448 Days 15 Hours' 상점 종료 시간을 함께 적는다.",
+        "2026년 9월 EA 공식 FC 27 런치 업데이트 이미지다. 실제 게임에서 현재 상태는 확인하지 않았다."
+      ]
+    },
+    {
+      "id": "r16",
+      "kind": "product",
+      "product": "EA SPORTS FC 27",
+      "source": "EA 공식 뉴스",
+      "title": "FC 27 SBC 제출 화면: 선수 격자와 보상 팩, 만료까지 남은 시간",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-27/news/pitch-notes-fc27-fut-deep-dive",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.timer",
+        "shop.select"
+      ],
+      "captures": [
+        "r16-1.jpg"
+      ],
+      "points": [
+        "오른쪽에 보상 팩 이미지와 'Gold Players Pack (Untradeable)', 'Expires in: 129 Days 8 Hours' 만료 시간을 세로로 쌓아 SBC 보상을 보여 준다.",
+        "왼쪽은 8열 선수 카드 격자이고 카드마다 아래에 포인트 20이 붙으며, 선택한 줄은 초록 테두리 상자로 묶인다.",
+        "제목 오른쪽에 '16 Player(s) +320' 추가량과 320/500 진척을 쓰고 제목 아래 초록 진행 막대로 채운 정도를 보여 준다. 하단 오른쪽에 Review Selection 버튼이 있다.",
+        "2026년 EA 공식 FC 27 FUT 딥다이브 이미지다."
+      ]
+    },
+    {
+      "id": "r17",
+      "kind": "product",
+      "product": "EA SPORTS FC Mobile",
+      "source": "EA SPORTS FC Mobile 공식 웹스토어",
+      "title": "FC 모바일 웹스토어: 카테고리 버튼 격자와 기간 한정 팩 카드",
+      "url": "https://store.fcm.ea.com/en-us/easports-fcmobile",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.item-price",
+        "shop.timer"
+      ],
+      "captures": [
+        "r17-1.png"
+      ],
+      "points": [
+        "'1. SELECT YOUR ITEM' 단계 제목 아래에 BEST SELLER 팩 카드를 먼저 두고, 그 아래 Choose Category 4x2 버튼 격자로 상품 종류를 고르게 한다.",
+        "팩 카드는 이름, 구성, 구매 제한 'Limit: 1'을 위에 쓰고 금색 알약 안에 달러 가격, 아래에 'Expires: 19d 18h 26m' 남은 시간을 적으며 오른쪽에 팩 이미지를 둔다.",
+        "왼쪽 열에는 FC 포인트 보너스를 강조한 배너 슬라이드와 'BUY DAILY FP DEALS' 버튼이 있고, 오른쪽 위에 로그인 요구 영역이 있다.",
+        "2026-11-27 로그인 없이 캡처한 현재 웹스토어이며 하단 쿠키 배너는 잘라냈다. 게임 안 상점이 아닌 웹 결제 상점이다."
+      ]
+    },
+    {
+      "id": "r18",
+      "kind": "product",
+      "product": "EA SPORTS FC Mobile",
+      "source": "EA 공식 뉴스",
+      "title": "FC 모바일 웹스토어 로열티 숍: 포인트 잔액과 만료일 붙은 상품 카드",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-mobile/news/fc-mobile-webstore-launch",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.currency",
+        "shop.item-price",
+        "shop.timer"
+      ],
+      "captures": [
+        "r18-1.png"
+      ],
+      "points": [
+        "왼쪽 Choose Category 버튼 중 Loyalty Shop이 초록으로 선택되고, 그 아래 박스에 로열티 포인트 설명과 보유량 'Available: 1000000'을 표시한다.",
+        "오른쪽 Choose Item은 2열 세로 카드이며 카드마다 상품명, 빨간 WEBSTORE SPECIAL 띠, 일일/주간 구매 제한, 가운데 이미지, 아래 보라 띠의 포인트 가격을 둔다.",
+        "각 카드 맨 아래에 'Expires: 23 Jul 24, 12pm' 만료 시각이 작은 회색 글씨로 붙는다.",
+        "2024년 EA 공식 웹스토어 출시 기사 이미지이며 오른쪽 일부가 흰 여백으로 잘려 있다."
+      ]
+    },
+    {
+      "id": "r19",
+      "kind": "product",
+      "product": "EA SPORTS FC Mobile",
+      "source": "EA 공식 뉴스",
+      "title": "FC 모바일 아이템 팩 열기 대기 화면: 팩 한 개와 TAP TO OPEN",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-mobile/news/fc-mobile-webstore-launch",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "fc.pack-open"
+      ],
+      "captures": [
+        "r19-1.jpg"
+      ],
+      "points": [
+        "어두운 배경 한가운데에 'ITEM PACK' 제목과 팩 이미지 하나만 두고 아래 초록 알약 'TAP TO OPEN' 버튼으로 개봉을 유도한다.",
+        "가격, 재화, 다른 메뉴 없이 개봉 직전 상태만 보여 주며 상단 조명과 하단 잔디 빛으로 무대처럼 연출한다.",
+        "2024년 EA 공식 웹스토어 출시 기사에 실린 저해상도 이미지다. 개봉 이후 연출은 이 이미지에 없다."
+      ]
+    },
+    {
+      "id": "r20",
+      "kind": "product",
+      "product": "FC 온라인",
+      "source": "넥슨 FC 온라인 공식 웹 상점",
+      "title": "FC 온라인 웹 상점: 배너, 상품 탭, 4열 상품 카드와 FC 가격 띠",
+      "url": "https://shop.fconline.nexon.com/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.layout",
+        "shop.item-price",
+        "shop.timer"
+      ],
+      "captures": [
+        "r20-1.png"
+      ],
+      "points": [
+        "상단 메뉴(웹상점, 멤버십, 스페셜 상점, 특별 혜택) 아래에 큰 이벤트 배너와 오른쪽 맞춤 상품 카드를 두고, 일반 상품, FC 구매, 마일리지 상품 탭으로 진열을 나눈다.",
+        "상품은 4열 카드이며 카드마다 찜 하트 수, 상자 이미지, 구매 제한과 신규 배지, 상품명, 판매 기간을 쓰고 맨 아래 초록 띠에 FC 가격을 크게 둔다.",
+        "목록 위에 구매 가능 상품, 할인 상품 체크박스와 '인기 순(최근 1시간)' 정렬 드롭다운이 있고 오른쪽 위에 아이템 전체 확률 버튼이 있다.",
+        "2026-11-27 로그인 없이 캡처한 현재 웹 상점이다. 게임 클라이언트 안 상점은 확인하지 않았다."
+      ]
+    },
+    {
+      "id": "r21",
+      "kind": "product",
+      "product": "FC 온라인",
+      "source": "넥슨 FC 온라인 공식 웹 상점",
+      "title": "FC 온라인 도깨비 상점: FC 충전 묶음 5단계와 보너스 표기",
+      "url": "https://shop.fconline.nexon.com/Events/261029/DokkaebiShop",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.currency",
+        "shop.timer"
+      ],
+      "captures": [
+        "r21-1.png"
+      ],
+      "points": [
+        "FC 충전 상품을 25,000~300,000 CASH 5단계 카드로 가로 배열하고, 카드마다 '5,000 (+400) FC + 도깨비 1개'처럼 기본량과 보너스를 괄호로 함께 쓴다.",
+        "첫 카드에만 빨간 기간 띠와 '계정 당 1회' 제한 배지를 붙이고, 금액이 클수록 도깨비 배지 숫자(x1~x12)가 커진다.",
+        "상단에 참여 기간, 기간제 FC 사용 기간, 상품 교환 기간 세 날짜를 나란히 두고 'FC 충전 바로가기' 버튼으로 충전 화면을 연결한다. 하단에 멤버십 상품 중복 구매 제한 안내 박스가 있다.",
+        "2026-11-27 캡처한 현재 이벤트 페이지이며 이벤트 참여 기간은 이미 지난 상태다."
+      ]
+    },
+    {
+      "id": "r22",
+      "kind": "product",
+      "product": "FC 온라인",
+      "source": "넥슨 FC 온라인 공식 웹 상점",
+      "title": "FC 온라인 스페셜 상점 '붕어빵 속 SSS': 참여권 구매와 49칸 보상판",
+      "url": "https://shop.fconline.nexon.com/Events/261105/TheOnlySSS",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.purchase",
+        "shop.timer",
+        "shop.layout"
+      ],
+      "captures": [
+        "r22-1.png"
+      ],
+      "points": [
+        "스페셜 게임과 일반 게임 탭에 각각 보유 참여권 수를 붙이고, 왼쪽 노란 '스페셜 게임 참여권 구매하기' 버튼으로 구매를 유도한다.",
+        "오른쪽에 1~49 번호가 적힌 보상판 격자를 두고, 위에 7번 참여마다 S급 보상을 주는 7칸 진행 표시와 보상 수령 버튼, 보상 선택 방식 라디오 버튼을 둔다.",
+        "왼쪽 아래 잔여 아이템 표에 SSS 1개, SS 2개, S 6개 같은 등급별 남은 수량을 색 칩으로 보여 주고 게임판 리셋 버튼을 둔다.",
+        "상단에 참여권 판매 기간과 코인 교환 기한, 다른 이용자의 당첨 소식 띠가 있다. 2026-11-27 로그인 없이 캡처했다."
+      ]
+    },
+    {
+      "id": "r23",
+      "kind": "product",
+      "product": "EA SPORTS FC 26",
+      "source": "EA 도움말",
+      "title": "FC 26 프리미엄 패스 구매 화면: FC 포인트와 UT 코인 두 가격 버튼",
+      "url": "https://help.ea.com/en/articles/ea-sports-fc/premium-pass/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.purchase",
+        "shop.item-price"
+      ],
+      "captures": [
+        "r23-1.png"
+      ],
+      "points": [
+        "구매 화면은 가운데에 보상 묶음 그림(유니폼, 선수 카드, 코인, 할인 아이콘)을 크게 두고, 그 아래에 '1,000 (FC Points)'와 '500,000 (UT Coins)' 두 가격을 같은 모양의 알약 버튼으로 나란히 둡니다.",
+        "위쪽에 'UNLOCK MORE WITH PREMIUM PASS' 제목과 두 줄 설명이 있고, 바탕은 어두운 금빛 입자 그림입니다.",
+        "왼쪽 아래에 Back, 오른쪽 아래에 작은 재화와 보유 수 표시가 있습니다.",
+        "EA 도움말 'How to use Premium Pass in EA SPORTS FC'에 실린 FC 26 화면입니다. 버튼을 누른 뒤의 결제 확인 단계는 이미지에 없고, 현재 게임 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r24",
+      "kind": "product",
+      "product": "EA SPORTS FC 26",
+      "source": "EA 도움말",
+      "title": "FC 26 SBC 제출 확인 창: 보상 팩 그림과 취소, 제출 버튼",
+      "url": "https://help.ea.com/en/articles/ea-sports-fc/sbcs/",
+      "checkedOn": "2026-11-27",
+      "evidence": "still",
+      "behavior": [
+        "shop.purchase",
+        "shop.select"
+      ],
+      "captures": [
+        "r24-1.jpg"
+      ],
+      "points": [
+        "스쿼드를 보상과 바꾸기 전 확인 창입니다. 왼쪽에 과제 이름 'Break Away', 'Challenge Rewards' 표시와 제출한 아이템이 클럽에서 빠진다는 안내를 두고, 오른쪽에 받을 보상 'Silver Pack (Untradeable)' 팩 그림을 둡니다.",
+        "창 아래 가운데에 Cancel과 Submit Squad 두 버튼을 같은 크기로 두고, Submit Squad에 초록 테두리가 있습니다. 이 테두리는 도움말이 강조로 그린 것일 수 있습니다.",
+        "확인 창 뒤 화면은 어둡게 가려져 있습니다.",
+        "EA 도움말 'How Ultimate Team Squad Building Challenges work'에 실린 FC 26 화면이며 현재 게임 화면은 확인하지 않았습니다."
+      ]
+    }
+  ],
+  "selection": null,
+  "status": "collected"
+}
