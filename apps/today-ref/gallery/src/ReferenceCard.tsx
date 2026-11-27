@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import type { Reference, Topic } from "../../topic.ts";
-import { captureUrl, referenceNumber } from "./topics.ts";
+import { captureUrl, evidenceLabels, referenceNumber } from "./topics.ts";
 
 interface Props {
   topic: Topic;
@@ -17,6 +17,8 @@ interface Props {
 export function ReferenceCard({ topic, reference, picked, confirmedPart, dimmed, onToggle, onOpen }: Props) {
   const highlighted = picked || confirmedPart !== undefined;
   const number = referenceNumber(reference);
+  const behaviors = reference.behavior ?? [];
+  const sawScreen = reference.evidence === "state" || reference.evidence === "still";
 
   return (
     <article
@@ -54,6 +56,26 @@ export function ReferenceCard({ topic, reference, picked, confirmedPart, dimmed,
               </li>
             ))}
           </ul>
+        )}
+
+        {(reference.evidence !== undefined || behaviors.length > 0) && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--muted)]">
+            {reference.evidence !== undefined && (
+              <span
+                className={`
+                  rounded-md px-1.5 py-0.5 font-medium
+                  ${sawScreen ? "bg-[var(--ink)] text-[var(--bg)]" : "border border-[var(--line)]"}
+                `}
+              >
+                {evidenceLabels[reference.evidence]}
+              </span>
+            )}
+            {behaviors.map((behavior) => (
+              <code key={behavior} className="font-mono text-[11.5px]">
+                {behavior}
+              </code>
+            ))}
+          </div>
         )}
 
         {confirmedPart !== undefined && confirmedPart !== "" && (
