@@ -37,7 +37,7 @@ node apps/journal/src/server.mjs
 
 모든 앱에 공통인 절차와 규칙입니다. 앱별 개발 환경, 검사 명령과 기록은 각 앱의 README에 있습니다.
 
-- [개발 절차](docs/development.md): 저장소 구성, 앱 추가 방법, Windows와 macOS 공통 규칙, [빌드와 설치본 점검](docs/development.md#빌드와-설치본-점검)(`node scripts/build-status.mjs`)
+- [개발 절차](docs/development.md): 저장소 구성, 앱 추가 방법, Windows와 macOS 공통 규칙, [빌드와 설치본 점검](docs/development.md#빌드와-설치본-점검)(`node scripts/build-status.mjs`), [할 일](docs/development.md#할-일)(`node scripts/todos.mjs`)
 - [QA 절차](docs/qa.md)
 - [작업 규칙](AGENTS.md)
 - [Git 규칙](.docs/git-convention.md)
