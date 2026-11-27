@@ -136,6 +136,29 @@ describe("주제 형식", () => {
     assert.match(errorsOf(topic({ target: { ...target, screen: 3 } })).join(), /target\.screen/);
     assert.match(errorsOf(topic({ target: "screen-note" })).join(), /target은 객체/);
   });
+
+  test("수집으로 끝난 주제는 선택 없이 받고, 레퍼런스마다 동작과 근거가 있어야 한다", () => {
+    const seen = { ...reference("r1", ["r1-1.png"]), behavior: ["qtyremove.zero"], evidence: "still" };
+    const read = { ...reference("r2"), behavior: ["clearall.place"], evidence: "read" };
+    const collected = (references: unknown[]) => topic({ status: "collected", references });
+    assert.deepEqual(errorsOf(collected([seen, read])), []);
+
+    const single = { mode: "single", items: [{ ref: "r1", part: "" }], decidedOn: "2026-11-18" };
+    assert.match(errorsOf({ ...collected([seen, read]), selection: single }).join(), /collected 상태에서는 selection이 null/);
+    assert.match(errorsOf(collected([seen, reference("r2")])).join(), /references\[1\]\.evidence/);
+    assert.match(errorsOf(collected([seen, { ...read, behavior: [] }])).join(), /references\[1\]\.behavior/);
+  });
+
+  test("화면을 봤다는 근거는 캡처가 있어야 하고, 정해진 근거 값만 받는다", () => {
+    const withEvidence = (evidence: unknown, captures: string[] = []) => ({ ...reference("r1", captures), evidence });
+    assert.deepEqual(errorsOf(topic({ references: [withEvidence("secondhand")] })), []);
+    assert.deepEqual(errorsOf(topic({ references: [withEvidence("state", ["r1-1.png"])] })), []);
+    for (const evidence of ["state", "still"]) {
+      assert.match(errorsOf(topic({ references: [withEvidence(evidence)] })).join(), /캡처가 하나 이상/);
+    }
+    assert.match(errorsOf(topic({ references: [withEvidence("seen")] })).join(), /evidence는/);
+    assert.match(errorsOf(topic({ references: [{ ...reference("r1"), behavior: [" "] }] })).join(), /behavior\[0\]/);
+  });
 });
 
 describe("검사 명령", () => {
@@ -195,6 +218,21 @@ describe("검사 명령", () => {
 
   test("선택을 확정한 주제는 완성작 폴더가 있어야 한다", () => {
     assert.match(byFolder("2026-11-20-feed")?.errors.join() ?? "", /works\/2026-11-20-feed/);
+  });
+
+  test("수집으로 끝난 주제는 완성작 폴더가 없어도 통과한다", () => {
+    const fixture = mkdtempSync(join(root, "collected-"));
+    const folder = "2026-11-21-delete";
+    mkdirSync(join(fixture, "topics", folder), { recursive: true });
+    writeFileSync(join(fixture, "topics", folder, "topic.json"), JSON.stringify(
+      topic({
+        id: folder,
+        date: "2026-11-21",
+        status: "collected",
+        references: [{ ...reference("r1"), behavior: ["qtyremove.zero"], evidence: "read" }],
+      }),
+    ));
+    assert.deepEqual(checkWorkspace(fixture), [{ folder, errors: [], warnings: [] }]);
   });
 
   test("주제나 캡처 경로가 디렉터리여도 다른 주제의 검사 결과가 남는다", () => {
