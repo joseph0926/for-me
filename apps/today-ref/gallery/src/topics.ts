@@ -1,4 +1,12 @@
-import { collectTopics, parseTopicFile, workPackageName, type Reference, type Topic, type TopicEntry } from "../../topic.ts";
+import {
+  collectTopics,
+  parseTopicFile,
+  workPackageName,
+  type Evidence,
+  type Reference,
+  type Topic,
+  type TopicEntry,
+} from "../../topic.ts";
 
 // JSON으로 바로 불러오면 한 파일의 문법 오류가 갤러리 전체를 멈춘다. 글자로 읽어 주제마다 따로 판정한다.
 const files = import.meta.glob<string>("../../topics/*/topic.json", { query: "?raw", import: "default", eager: true });
@@ -24,6 +32,14 @@ export const statusLabels: Record<Topic["status"], string> = {
   selecting: "선택 대기",
   building: "제작 중",
   done: "완성",
+  collected: "수집 완료",
+};
+
+export const evidenceLabels: Record<Evidence, string> = {
+  state: "조작해 확인",
+  still: "정지 화면",
+  read: "본문만 읽음",
+  secondhand: "2차 자료",
 };
 
 export const platformLabels: Record<Topic["platform"], string> = {

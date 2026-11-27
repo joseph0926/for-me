@@ -14,12 +14,17 @@ export const platforms = ["web", "app"] as const;
 export const referenceKinds = ["product", "gallery"] as const;
 export const selectionModes = ["single", "combine"] as const;
 // selecting: 사용자의 선택을 기다림. building: 선택이 확정되어 완성작을 만드는 중. done: 완성.
-export const statuses = ["selecting", "building", "done"] as const;
+// collected: 한 동작의 근거만 모으고 끝난 주제. 선택과 완성작이 없다.
+export const statuses = ["selecting", "building", "done", "collected"] as const;
+// 레퍼런스를 어떻게 봤는지. state: 조작해 그 상태를 직접 봄. still: 실제 제품의 정지 화면을 캡처로 봄.
+// read: 공식 본문만 읽음. secondhand: 검색 요약이나 제3자 글.
+export const evidenceLevels = ["state", "still", "read", "secondhand"] as const;
 
 export type Platform = (typeof platforms)[number];
 export type ReferenceKind = (typeof referenceKinds)[number];
 export type SelectionMode = (typeof selectionModes)[number];
 export type Status = (typeof statuses)[number];
+export type Evidence = (typeof evidenceLevels)[number];
 
 export interface Reference {
   id: string;
@@ -34,6 +39,11 @@ export interface Reference {
   // captures/<주제 id>/ 아래 파일 이름. 캡처는 공개 저장소에 넣지 않으므로 다른 사본에는 없을 수 있다.
   captures: string[];
   points: string[];
+  // 이 화면이 보여 주는 동작. tastepin 시편이 있으면 "시편.차원" id(예: "qtyremove.zero")를 써서
+  // 시편 작업과 화면 작업이 같은 레퍼런스를 찾게 한다. collected 주제에서는 반드시 있다.
+  behavior?: string[];
+  // 문서만 읽은 값이 실제 화면을 본 값처럼 판정에 쓰이지 않게 본 방식을 남긴다. collected 주제에서는 반드시 있다.
+  evidence?: Evidence;
 }
 
 export interface SelectionItem {
@@ -83,7 +93,7 @@ export interface Topic {
   platform: Platform;
   brief: string;
   references: Reference[];
-  // 사용자가 확정한 선택. selecting 상태에서는 null이고 그 뒤로는 반드시 있다.
+  // 확정한 선택. selecting과 collected 상태에서는 null이고 building과 done에서는 반드시 있다.
   selection: Selection | null;
   status: Status;
   identity?: Identity;
@@ -163,17 +173,18 @@ export function validateTopic(input: unknown, expectedId?: string): TopicResult 
     if (input.references.length === 0) fail("references가 비어 있습니다");
     if (input.references.length > limits.references) fail(`references는 ${limits.references}개 이하여야 합니다`);
     input.references.slice(0, limits.references).forEach((reference, index) => {
-      const referenceId = validateReference(reference, `references[${index}]`, fail);
+      const referenceId = validateReference(reference, `references[${index}]`, status === "collected", fail);
       if (referenceId === null) return;
       if (referenceIds.has(referenceId)) fail(`레퍼런스 id ${referenceId}가 중복됩니다`);
       referenceIds.add(referenceId);
     });
   }
 
+  const withoutSelection = status === "selecting" || status === "collected";
   if (input.selection === null) {
-    if (status !== null && status !== "selecting") fail(`${status} 상태에는 확정한 selection이 있어야 합니다`);
+    if (status !== null && !withoutSelection) fail(`${status} 상태에는 확정한 selection이 있어야 합니다`);
   } else {
-    if (status === "selecting") fail("selecting 상태에서는 selection이 null이어야 합니다");
+    if (withoutSelection) fail(`${status} 상태에서는 selection이 null이어야 합니다`);
     validateSelection(input.selection, referenceIds, fail);
   }
 
@@ -217,7 +228,12 @@ function validateTarget(input: unknown, fail: (message: string) => void) {
   text(input.screen, "target.screen", limits.shortText, fail);
 }
 
-function validateReference(input: unknown, at: string, fail: (message: string) => void): string | null {
+function validateReference(
+  input: unknown,
+  at: string,
+  needsEvidence: boolean,
+  fail: (message: string) => void,
+): string | null {
   if (!isRecord(input)) {
     fail(`${at}가 객체가 아닙니다`);
     return null;
@@ -242,6 +258,24 @@ function validateReference(input: unknown, at: string, fail: (message: string) =
     if (point.trim() === "") fail(`${itemAt}가 비어 있습니다`);
     if (point.length > limits.longText) fail(`${itemAt}는 ${limits.longText}자 이하여야 합니다`);
   });
+
+  if (input.behavior !== undefined) {
+    list(input.behavior, `${at}.behavior`, limits.pointsPerReference, fail, (behavior, itemAt) => {
+      if (behavior.trim() === "") fail(`${itemAt}가 비어 있습니다`);
+      if (behavior.length > limits.shortText) fail(`${itemAt}는 ${limits.shortText}자 이하여야 합니다`);
+    });
+  }
+  const hasBehavior = Array.isArray(input.behavior) && input.behavior.length > 0;
+  if (needsEvidence && !hasBehavior) fail(`${at}.behavior: collected 주제의 레퍼런스는 어느 동작인지 적어야 합니다`);
+
+  if (input.evidence !== undefined) {
+    const evidence = oneOf(input.evidence, evidenceLevels, `${at}.evidence`, fail);
+    const sawScreen = evidence === "state" || evidence === "still";
+    const hasCapture = Array.isArray(input.captures) && input.captures.length > 0;
+    if (sawScreen && !hasCapture) fail(`${at}.evidence: ${evidence}는 캡처가 하나 이상 있어야 합니다`);
+  } else if (needsEvidence) {
+    fail(`${at}.evidence: collected 주제의 레퍼런스는 어떻게 봤는지 적어야 합니다`);
+  }
   return id;
 }
 

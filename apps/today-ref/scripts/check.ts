@@ -35,7 +35,7 @@ export function checkWorkspace(root: string, deliveries: string | null = default
         checkCapture(join(root, "captures", folder, name), `${reference.id} ${name}`, report);
       }
     }
-    const needsWork = result.topic.status !== "selecting";
+    const needsWork = result.topic.status === "building" || result.topic.status === "done";
     if (needsWork && !existsSync(join(root, workFolder(folder), "package.json"))) {
       report.errors.push(`${result.topic.status} 상태인데 ${workFolder(folder)}가 없습니다`);
     } else if (result.topic.status === "done" && refined !== null && !refined.has(folder)) {
