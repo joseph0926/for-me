@@ -11,6 +11,7 @@
     "check": "node scripts/check.ts",
     "refine": "node scripts/refine.ts",
     "new-work": "node scripts/new-work.ts",
+    "calls": "node scripts/calls.ts",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "build": "pnpm -r build"
