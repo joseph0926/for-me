@@ -14,6 +14,8 @@ for-me/
 │   │   ├── docs/           범위, 기술 조사, QA, 검증 기록, QA 이슈
 │   │   ├── android/        Android 모듈
 │   │   └── gradlew 등      이 앱의 Gradle 빌드
+│   ├── music/              음악 앱(착수 전, 문서만)
+│   ├── gallery/            갤러리 앱(착수 전, 문서만)
 │   ├── screen-gif/         화면 녹화 GIF 생성기(Tauri 2, Rust, React)
 │   ├── termkeys/           터미널 줄 이동 단축키 도구(Swift, macOS)
 │   ├── screen-note/        개인용 이미지 편집기(Tauri 2, Rust, React, Konva)

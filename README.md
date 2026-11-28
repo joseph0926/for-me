@@ -15,6 +15,8 @@
 | 앱 | 폴더 | 대상 | 상태 |
 |---|---|---|---|
 | [장면(동영상 앱)](apps/video/README.md) | `apps/video` | Android, 이후 Windows와 macOS | 개발 중. 홈과 보관함, 터치 재생과 화면 잠금 구현. 실제 기기 재생은 미검증 |
+| [음악 앱](apps/music/README.md) | `apps/music` | Android | 착수 전. 기술 조사를 마쳤고 재생 엔진은 미정 |
+| [갤러리 앱](apps/gallery/README.md) | `apps/gallery` | Android | 착수 전. 기술 조사를 마쳤고 사진 목록을 읽는 방식과 화면 기술은 미정 |
 | [screen-gif](apps/screen-gif/README.md) | `apps/screen-gif` | Windows, 이후 macOS | 화면의 일부를 녹화해 GIF로 저장. Windows 시제품에서 영역 녹화와 저장 확인 |
 | [TermKeys](apps/termkeys/README.md) | `apps/termkeys` | macOS | 개발 중. 0.2.1에서 보안 입력 중 줄 이동 확인. 메뉴 입력 제외와 실제 응답 지연 조건은 미검증 |
 | [Screen Note](apps/screen-note/README.md) | `apps/screen-note` | macOS, Windows | 이미지를 보기 모드로 열고 GIF를 재생. 정지 이미지에 메모하거나 자른 뒤 복사본 저장 |
