@@ -21,7 +21,6 @@
 [장면](../video/README.md#개발-환경)과 같습니다. JDK 17, Android SDK Platform 36, Build-Tools 36.0.0, 이 폴더의 `gradlew`(Gradle 8.14.3)를 씁니다. 이 폴더(`apps/gallery`)가 Gradle 빌드의 기준 폴더이고, SDK 위치는 `ANDROID_HOME` 또는 Git에서 제외한 `apps/gallery/local.properties`의 `sdk.dir`로 지정합니다.
 
 - `android/build.gradle.kts`에서 `buildToolsVersion`을 지우지 않습니다. 정하지 않으면 Android Gradle 플러그인이 SDK에 다른 Build-Tools를 자동으로 설치합니다.
-- Windows에서 `local.properties`를 직접 쓸 때는 `sdk.dir=C\:\\Users\\...`처럼 `:` 앞과 경로의 `\`를 이스케이프합니다. 그렇지 않으면 Android Lint가 `PropertyEscape` 오류를 냅니다. 고친 뒤에도 같은 오류가 남으면 lint가 이전 분석 결과를 다시 쓰는 것이므로 `android/build`를 지우고 다시 실행합니다.
 
 ## Android
 
