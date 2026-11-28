@@ -20,9 +20,13 @@ android {
         targetSdk = 36
         versionCode = semanticVersionCode(appVersion)
         versionName = appVersion
+        // 재설계한 화면(redesign 패키지)은 -Pmusic.redesign=true로 빌드할 때만 켠다. 옛 화면에서 바꿔 끼우는 결정은 사용자가 한다.
+        val redesign = providers.gradleProperty("music.redesign").orNull == "true"
+        buildConfigField("boolean", "REDESIGN", redesign.toString())
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
