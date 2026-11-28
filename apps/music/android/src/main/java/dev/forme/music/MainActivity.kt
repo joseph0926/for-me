@@ -15,6 +15,8 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import dev.forme.music.ui.AudioAccess
+import dev.forme.music.redesign.RedesignApp
+import dev.forme.music.redesign.SokjiTheme
 import dev.forme.music.ui.MusicApp
 import dev.forme.music.ui.MusicTheme
 import dev.forme.music.ui.MusicViewModel
@@ -41,13 +43,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MusicTheme {
-                MusicApp(
-                    viewModel = viewModel,
-                    audioAccess = audioAccess.value,
-                    onRequestAudio = ::requestAudioAccess,
-                    onPickFiles = { pickFiles.launch(arrayOf("audio/*")) },
-                )
+            if (BuildConfig.REDESIGN) {
+                SokjiTheme {
+                    RedesignApp(
+                        viewModel = viewModel,
+                        audioAccess = audioAccess.value,
+                        onRequestAudio = ::requestAudioAccess,
+                        onPickFiles = { pickFiles.launch(arrayOf("audio/*")) },
+                    )
+                }
+            } else {
+                MusicTheme {
+                    MusicApp(
+                        viewModel = viewModel,
+                        audioAccess = audioAccess.value,
+                        onRequestAudio = ::requestAudioAccess,
+                        onPickFiles = { pickFiles.launch(arrayOf("audio/*")) },
+                    )
+                }
             }
         }
         if (savedInstanceState == null && !hasAudioPermission()) requestAudio.launch(audioPermission)
