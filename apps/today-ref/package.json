@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "gallery": "pnpm --filter today-ref-gallery dev",
+    "gallery": "node scripts/gallery.ts",
     "check": "node scripts/check.ts",
     "refine": "node scripts/refine.ts",
     "new-work": "node scripts/new-work.ts",
