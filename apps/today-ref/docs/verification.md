@@ -337,3 +337,55 @@ refine.md의 지시서에 "지적의 종류"(fact, reference, taste)를 넣고, 
 | 갤러리 | 서버를 다시 켠 뒤 다섯 주제(게임 상점 공식, FC 두 주제, 갤러리 앱, 동영상 앱)의 캡처 66개가 모두 이미지로 응답 |
 
 - 캡처 저장소는 아직 커밋하지 않았고 원격에도 없습니다. 두 Mac에서 받고 옮기는 일과, 다른 컴퓨터에서 완료 기준을 확인하는 일은 남았습니다.
+
+## 2026-11-28 프런트엔드 앱 후보 아홉 주제 수집
+
+환경: Windows 11 머신. 사용자 요청은 "/today-ref-use 수집 for-me\apps\today-ref\docs\collection-candidates.md"이고, 후보 아홉 중 무엇을 모을지 묻자 "9개 모두 차례로"를 골랐습니다. 하위 에이전트 아홉이 주제 하나씩 맡아 공식 도움말, 문서, 변경 기록의 화면 이미지와 SaaSFrame, Nicelydone의 무료 공개 범위에서 모았습니다. 사용자 Chrome은 쓰지 않았고 로그인과 조작도 하지 않아 모두 `still`입니다. `behavior`는 tastepin 시편 차원이 있으면 그 id를 썼습니다.
+
+| 검사 | 결과 |
+|---|---|
+| `node scripts/check.ts --topic <id>` | 아홉 주제 모두 실패 0, 경고 0 |
+| `node scripts/check.ts` | 주제 25개, 실패 0개 |
+| 캡처 | 194장. AI가 주제마다 격자 한 장으로 모아 열어 봤고 모두 실제 제품 UI. 각 폴더의 파일 목록과 `captures` 목록이 일치 |
+| 갤러리 | 이미 떠 있던 4319 갤러리에 아홉 주제가 "수집 완료"로 보이고, 194장 모두 이미지로 응답. 콘솔 오류 없음 |
+
+| 주제 | 레퍼런스(제품/갤러리) | 캡처 | 많이 나온 동작 | 근거를 못 찾은 것 |
+|---|---|---|---|---|
+| `app-entry` | 16 (14/2) | 19 | `guard.notfound` 5, `entry.signin` 4, `entry.tiles` 3 | 5xx 전체 화면, 앱 안의 403, 첫 로딩에서 내용으로 바뀌는 순서 |
+| `nav-menu` | 13 (13/0) | 20 | `nav.current` 12, `sidenav.tree` 11, `envswitch.place` 7 | 메뉴 검색 결과 없음(Discourse 하나), 같은 제품의 접힘과 펼침 짝, 지역 선택 |
+| `data-table` | 16 (10/6) | 26 | `datatable.paging` 5, `daterange.trigger` 5, `sort.control` 4 | 열린 기간 달력, 열 숨기기 메뉴를 편 화면 |
+| `form-input` | 19 (13/6) | 25 | `field.label` 5, `conditional.reveal` 5, `jsonfield.editor` 4 | 달력이 열린 날짜 선택, 업로드 진행과 실패, 저장 실패 |
+| `dialog-menu` | 18 (11/7) | 19 | `dialog.close` 4, `dialog.actions` 4, `confirm.danger` 4 | 도움말 말풍선, 행 `⋯` 메뉴가 열린 상태, 떠날 때의 저장 안 됨 창 |
+| `status-feedback` | 15 (8/7) | 16 | `failure.place` 4, `notice.look` 4, `notice.place` 3 | 검색 결과 없음, 목록 다시 불러오기, 결제 실패와 사용량 한도 띠 |
+| `summary-analytics` | 15 (15/0) | 16 | `metrictabs.delta` 6, `dashboardbuttons.period` 5, `deltacolor.polarity` 4 | 막대 목록 카드의 머리 선택과 더 보기, 옅은 바탕 상태 배지 |
+| `history-diff` | 19 (16/3) | 30 | `history.list` 8, `version.compare` 7, `deploy.target` 6 | 충돌 표식이 남은 상태에서 고르기, 되돌리기와 게시 뒤 확인 창 |
+| `bulk-file` | 16 (14/2) | 23 | `selection.bulk` 5, `import.mapping` 3, `bulkedit.form` 3 | 업로드 일부 실패와 다시 시도, 내보내기 완료 알림, 표 모양 일괄 편집기 |
+
+- **시편 없는 id.** `entry.*`, `guard.*`, `sidenav.*`, `envswitch.place`, `columns.toggle`, `daterange.trigger`, `jsonfield.editor`, `conditional.*`, `repeatfield.add`, `multiselect.chips`, `toggle.label`, `datefield.input`, `slider.number`, `unsaved.warn`, `progress.stage`, `usage.limit`, `deltacolor.polarity`, `periodcompare.*`, `statcard.row`, `servicestatus.banner`, `history.list`, `files.list`, `diff.layout`, `version.compare`, `merge.conflict`, `deploy.*`, `import.*`, `export.*`, `bulkedit.*`. tastepin 시편으로 만들지는 정하지 않았습니다.
+- **기존 시편 값에 없는 모양.** Sentry 보기 목록의 화살표만 있는 쪽 이동(`datatable.paging`), Stripe의 굵은 테두리로 고른 지표 카드(`metrictabs.link`), 바탕을 꽉 채운 상태 배지(`badge.surface`), 진행 정도 없이 "Uploading..."만 보이는 표시(`upload.progress`).
+- **막힌 출처.** help.shopify.com(403, 화면 없는 Chrome에서도 확인 대기 페이지), gitlab.com(Cloudflare 확인), support.monday.com과 help.clickup.com(403), contentful.com(429). 우회하지 않았습니다. 그 밖에 문서는 열렸지만 이미지가 없거나 404인 곳이 많았습니다(AWS, Retool, Stripe 문서 일부, Atlassian).
+- **개인 정보.** 계정 메일, 프로필 사진, 실명이 보이는 부분은 잘라 내거나 덮었고(`points`에 적음), 실존 인물 이름이 줄마다 나오는 화면은 뺐습니다. 공식 문서가 넣은 예시 계정 이름(Ronald Weasley, Cassie Owens, Evelyn 등)은 남겼습니다.
+- **주제 사이의 같은 이미지.** Zendesk 묶음 작업(`data-table` r9, `bulk-file` r11), Linear 활성 이슈(`nav-menu` r5, `data-table` r5, `bulk-file` r13), Infisical 비밀값 패널(`form-input` r15, `dialog-menu` r16)은 같은 이미지를 각 주제의 다른 동작 근거로 씁니다.
+- **사용자에게 찍어 달라는 화면.** 주제마다 4~5개씩 하위 에이전트 보고에 있었습니다. 겹치는 것을 묶으면 로그인한 운영 앱에서 권한 없는 메뉴의 403, 기간 고르기 달력과 열 고치기 메뉴를 편 상태, 여러 행을 고른 뒤의 묶음 작업 막대, 행 `⋯` 메뉴와 도움말 말풍선, 저장 실패와 업로드 일부 실패, 검색 결과 0건, 결제 실패나 사용량 한도 띠, 토스트입니다.
+- 이 PC의 기록 도구에는 today-ref 앱이 없어 `use` 기록과 호출 세기(`calls.ts add 수집`, "등록된 앱이 아닙니다")를 남기지 못했습니다(미기록).
+- 캡처 저장소에는 아직 커밋하지 않았습니다. 사용자는 수집 결과와 갤러리 표시를 아직 보지 않았습니다.
+
+## 2026-11-28 운영 설정 콘솔 제작
+
+환경: Windows 11 머신. 사용자 요청은 "이거 기반으로 /today-ref-use 제작"이고, "이거"는 같은 날 모은 프런트엔드 앱 후보 아홉 수집입니다. 그 수집에서 레퍼런스 12개를 새 주제 `2026-11-28-config-console`로 옮겼고(새 캡처 없음, 캡처 20장 복사), AI가 r1(Sentry 목록), r2(LaunchDarkly 편집), r3(LaunchDarkly 환경 비교), r4(Netlify 게시 실패)를 조합으로 골랐습니다. 열린 할 일 "정체성, 본체 구조의 실제 화면, 오류나 빈 상태를 함께 실행"을 이 제작으로 처음 실행했습니다.
+
+| 검사 | 결과 |
+|---|---|
+| 빌드 | `pnpm --filter work-2026-11-28-config-console build` 통과(타입 검사 포함) |
+| 내장 브라우저 | 1440px과 375px에서 묶음 켜기, 정렬 메뉴, JSON 스키마 오류, 필수 칸 오류, 환경 비교, 운영 첫 게시 실패, 다시 시도 뒤 성공을 눌러 봄. 콘솔 오류 없음, 가로 넘침 없음 |
+| AI 피드백(5단계) | 결함 7건 고침: 비율 0%에서 켜면 "켜짐 0%", 게시한 행이 정렬로 아래로 밀림, 휴대폰에서 비교 칸과 "복사한 뒤 값" 열이 가로 스크롤 밖, 성공 뒤 "0개 항목 게시" 버튼, 시각 형식, 조사가 어색한 오류 문구 |
+| tastepin(6단계) | 완성작 폴더에서 `apply-context` 실행. 상자 걷기, 본문 15px, 입력 40px, 버튼 누름과 흐림, 메뉴 펼침, 검색 250ms 멈춤과 접힘, 빈 상태를 고침 |
+| 다듬기 루프 | 1바퀴 기계 검사 실패 1(휴대폰 묶음 줄 가로 넘침), 하위 에이전트 지적 11건(fact 4, taste 7) 중 5건 고침. 2바퀴 기계 검사 실패 0, 고친 세 상태의 스크린숏을 AI가 직접 열어 새 문제 없음. 버튼 모양 7벌, 모서리 3종(원형 점, 5px, 3px)은 전후 같음 |
+| `node scripts/check.ts --topic` | 통과, tastepin 전달 기록 경고 없음 |
+
+- **정체성.** Noto Sans KR과 JetBrains Mono, 바탕 `#f6f6f4`, 강조 `#2446a8`, 모서리 5px. 처음에는 IBM Plex Sans KR과 `#f4f2ec`를 골랐다가, 음악 완성작에서 사용자가 그 서체와 누런 바탕을 촌스럽다고 한 결정과 겹쳐 바꿨습니다. 사용자가 고른 값이 아니라 `interpretation`입니다.
+- **취향과 부딪쳐 남긴 것.** 왼쪽 띠 메뉴와 드롭다운 범위 거르기 줄, 메뉴 정렬, 머리 줄 교체 묶음 작업(r1 part), 오른쪽 패널 200ms(identity.motion), 강조색 주 버튼 36px, 붉은 상자 안 다시 시도 버튼(r4 part), Noto Sans KR. lint의 서체, 제목 위계, 다크 바탕 채도(0.006) 주의도 정체성 값이라 두었습니다.
+- **기록.** AI 지적 11건은 이 머신이 원장에 바로 쓰지 않아 `~/dev/p/tools/taste/state/pending/window-20261128T010452Z.json`에 남겼습니다. 개인 Mac에서 `record --import-pending`이 필요합니다. 이 PC의 기록 도구에는 today-ref 앱이 없어 `use`, `followup`, `change`, `verification` 기록과 호출 세기를 남기지 못했습니다(미기록).
+- 하위 에이전트를 부르기 전에 완성작 폴더(새 폴더, git 밖)의 사본을 저장하지 않아 diff로 대조하지 못했고, 하위 에이전트가 말한 수정 세 곳을 코드에서 직접 찾아 확인했습니다.
+- 확인하지 못한 것: 움직임의 체감, 실제 휴대폰과 터치, Safari, 다크 모드 화면 전체 검사.
+- 사용자 확인: 정체성과 남긴 충돌을 이대로 둘지 묻자 사용자가 "이대로 확정"이라고 답했습니다. 완성작 README의 "사용자 결정"에 적었고 이 완성작에만 해당합니다. 사용자가 어느 화면을 열어 봤는지는 답에 없습니다. 이 PC에 기록 도구 앱이 없어 `followup`(`authority: user`)은 남기지 못했습니다.
