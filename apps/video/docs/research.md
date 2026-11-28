@@ -53,6 +53,22 @@ Android 11 이상에서는 시스템 폴더 선택기로 내부 저장소 최상
 
 기기를 다시 시작한 뒤에도 이어볼 수 있도록 파일 접근 권한을 저장합니다. 파일 이동과 삭제, 권한 취소가 발생하면 다시 선택할 수 있게 합니다. [접근 권한 유지](https://developer.android.com/training/data-storage/shared/documents-files#persist-permissions)
 
+### 2026-11-28 다른 앱에서 열기
+
+2026-11-28에 Android 공식 문서를 확인했습니다.
+
+- 영상 열기 요청(`ACTION_VIEW`)을 받으려면 필터에 `CATEGORY_DEFAULT`가 있어야 합니다. 형식만 적은 필터는 `content:`와 `file:` 주소를 모두 받는다고 간주됩니다. 장면은 저장소 권한이 없어 `file:` 주소를 읽지 못하므로 `content:`만 적습니다. [Intents and Intent Filters](https://developer.android.com/guide/components/intents-filters)
+- 다른 앱이 붙여 준 임시 읽기 권한은 받은 화면(Activity)이 끝날 때까지 유지됩니다. [Content provider basics](https://developer.android.com/guide/topics/providers/content-provider-basics)
+- 앱을 다시 켠 뒤에도 쓰려면 보낸 앱이 `FLAG_GRANT_PERSISTABLE_URI_PERMISSION`을 함께 붙이고, 받는 앱이 `takePersistableUriPermission`을 불러야 합니다. 이 표시 없이 받은 권한은 유지할 수 없습니다. [Intent](https://developer.android.com/reference/android/content/Intent#FLAG_GRANT_PERSISTABLE_URI_PERMISSION), [ContentResolver](https://developer.android.com/reference/android/content/ContentResolver#takePersistableUriPermission(android.net.Uri,%20int))
+- `singleTop` 화면이 작업 맨 위에 있으면 새 요청이 `onNewIntent()`로 같은 화면에 전달됩니다. [Tasks and the back stack](https://developer.android.com/guide/components/activities/tasks-and-back-stack)
+
+결정은 다음과 같습니다.
+
+- 다른 앱에서 연 영상은 보관함 화면(`MainActivity`)과 다른 재생 전용 화면(`OpenVideoActivity`)에서 엽니다. 닫으면 화면을 끝내 보낸 앱으로 돌아가고, 보낸 앱이 새 작업으로 열어도 보관함 작업에 쌓이지 않게 작업 연결(`taskAffinity`)을 비웁니다.
+- 권한 유지를 시도하되 실패해도 안내하지 않습니다. 대부분의 앱이 유지 가능한 권한을 주지 않아 안내가 매번 뜨기 때문입니다.
+- 사용자 결정(2026-11-28, "남기기로 구현")에 따라 이런 영상도 최근 목록과 이어보기 기록에 남깁니다. 저장 구조는 바꾸지 않습니다. 나중에 열지 못하면 기존 "다시 선택" 안내가 나옵니다.
+- 범용 형식(`application/octet-stream`)은 받지 않습니다. 받으면 모든 미확인 파일의 연결 프로그램 목록에 장면이 뜹니다. 인터넷 주소 재생과 공유하기(`ACTION_SEND`)는 범위 밖입니다.
+
 ## 배포 파일에서 확인한 호환성
 
 일부 최신 Android 기기는 메모리를 16KB 단위로 처리합니다. libVLC처럼 C/C++로 작성된 라이브러리를 포함하는 앱은 해당 환경에 맞는 배포 파일과 앱 패키징이 필요합니다. [Android의 16KB 지원 기준](https://developer.android.com/guide/practices/page-sizes)
