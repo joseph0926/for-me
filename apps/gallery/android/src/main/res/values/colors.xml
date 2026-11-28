@@ -1,0 +1,5 @@
+<resources>
+    <!-- 화면 레퍼런스 "낱장"(apps/today-ref/works/2026-11-28-gallery-app)의 바탕색과 강조색 -->
+    <color name="gallery_background">#FFF5F5F4</color>
+    <color name="gallery_accent">#FF2F5BD8</color>
+</resources>

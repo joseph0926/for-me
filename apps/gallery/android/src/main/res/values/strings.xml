@@ -1,0 +1,4 @@
+<resources>
+    <!-- 앱 이름은 아직 정하지 않았다(README). 임시 이름이다. -->
+    <string name="app_name">갤러리</string>
+</resources>
