@@ -14,6 +14,8 @@ function file(path, content) {
   writeFileSync(full, content);
 }
 
+const apps = [{ id: "today-ref", folder: "apps/today-ref" }, { id: "music", folder: "apps/player" }];
+
 function request(title, stage) {
   return { id: `${title}-id-0000`, appId: "today-ref", kind: "request", title, stage, deleted: false };
 }
@@ -38,19 +40,19 @@ test("문서의 할 일을 모으고 생성물 폴더는 건너뛴다", () => {
 });
 
 test("이 머신의 열린 요청이 문서에 없으면 알린다", () => {
-  const problems = compare([], { records: [request("할 일: 블로그 다시 진행", "open")] });
+  const problems = compare([], { apps, records: [request("할 일: 블로그 다시 진행", "open")] });
   assert.deepEqual(problems.map((p) => [p.kind, p.record.title]), [["doc-missing", "블로그 다시 진행"]]);
 });
 
 test("문서에서 끝난 할 일이 이 머신 기록에 열려 있으면 기록이 뒤처졌다고 알린다", () => {
-  const docs = [{ title: "블로그 다시 진행", done: true, file: "s.md", line: 1 }];
-  const problems = compare(docs, { records: [request("할 일: 블로그 다시 진행", "open")] });
+  const docs = [{ title: "블로그 다시 진행", done: true, file: "apps/today-ref/docs/scope.md", line: 1 }];
+  const problems = compare(docs, { apps, records: [request("할 일: 블로그 다시 진행", "open")] });
   assert.deepEqual(problems.map((p) => p.kind), ["journal-behind"]);
 });
 
 test("이 머신 기록에서 끝난 요청이 문서에 열려 있으면 문서가 뒤처졌다고 알린다", () => {
-  const docs = [{ title: "보관함 탭 나누기", done: false, file: "s.md", line: 1 }];
-  const problems = compare(docs, { records: [request("보관함 탭 나누기", "done")] });
+  const docs = [{ title: "보관함 탭 나누기", done: false, file: "apps/today-ref/docs/scope.md", line: 1 }];
+  const problems = compare(docs, { apps, records: [request("보관함 탭 나누기", "done")] });
   assert.deepEqual(problems.map((p) => p.kind), ["doc-behind"]);
 });
 
@@ -60,16 +62,27 @@ test("결정 대기 요청은 문서에 있어야 하고, 진행 중인 요청�
     request("수집 진행", "in_progress"),
     { ...request("할 일: 지운 일", "open"), deleted: true },
   ];
-  const problems = compare([], { records });
+  const problems = compare([], { apps, records });
   assert.deepEqual(problems.map((p) => p.record.title), ["결정 대기: 서체 다시 고르기"]);
 });
 
 test("결정이 끝난 결정 대기 요청과 문서의 완료 줄은 어긋남이 아니다", () => {
-  const docs = [{ title: "결정 대기: 서체 다시 고르기", done: true, file: "s.md", line: 1 }];
-  assert.deepEqual(compare(docs, { records: [request("결정 대기: 서체 다시 고르기", "done")] }), []);
+  const docs = [{ title: "결정 대기: 서체 다시 고르기", done: true, file: "apps/today-ref/docs/scope.md", line: 1 }];
+  assert.deepEqual(compare(docs, { apps, records: [request("결정 대기: 서체 다시 고르기", "done")] }), []);
 });
 
 test("같은 제목으로 열린 할 일과 열린 요청은 어긋남이 아니다", () => {
-  const docs = [{ title: "블로그 다시 진행", done: false, file: "s.md", line: 1 }];
-  assert.deepEqual(compare(docs, { records: [request("할 일: 블로그 다시 진행", "open")] }), []);
+  const docs = [{ title: "블로그 다시 진행", done: false, file: "apps/today-ref/docs/scope.md", line: 1 }];
+  assert.deepEqual(compare(docs, { apps, records: [request("할 일: 블로그 다시 진행", "open")] }), []);
+});
+
+test("다른 앱의 동명 할 일과 요청을 섞지 않는다", () => {
+  const docs = [{ title: "검색", done: false, file: "apps/today-ref/docs/scope.md", line: 1 }];
+  const record = { ...request("할 일: 검색", "open"), appId: "music" };
+  assert.deepEqual(compare(docs, { apps, records: [record] }).map((p) => p.kind), ["doc-missing"]);
+  assert.deepEqual(compare(docs, { apps, records: [{ ...record, stage: "done" }] }), []);
+  docs.push({ title: "검색", done: true, file: "apps/player/docs/scope.md", line: 1 });
+  const [problem] = compare(docs, { apps, records: [record] });
+  assert.equal(problem.kind, "journal-behind");
+  assert.equal(problem.doc.file, "apps/player/docs/scope.md");
 });
