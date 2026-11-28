@@ -28,6 +28,30 @@ export const products = [
     installs: [{ kind: "android", packageId: "dev.forme.video" }],
   },
   {
+    id: "music",
+    name: "음악 앱",
+    dir: "apps/music",
+    version: { file: "android/build.gradle.kts", pattern: /val appVersion = "([^"]+)"/ },
+    sources: ["android/src", "android/build.gradle.kts", "build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradle"],
+    builds: [
+      { label: "디버그 APK", kind: "apk", path: "android/build/outputs/apk/debug" },
+      { label: "릴리스 APK", kind: "apk", path: "android/build/outputs/apk/release" },
+    ],
+    installs: [{ kind: "android", packageId: "dev.forme.music" }],
+  },
+  {
+    id: "gallery",
+    name: "갤러리 앱",
+    dir: "apps/gallery",
+    version: { file: "android/build.gradle.kts", pattern: /val appVersion = "([^"]+)"/ },
+    sources: ["android/src", "android/build.gradle.kts", "build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradle"],
+    builds: [
+      { label: "디버그 APK", kind: "apk", path: "android/build/outputs/apk/debug" },
+      { label: "릴리스 APK", kind: "apk", path: "android/build/outputs/apk/release" },
+    ],
+    installs: [{ kind: "android", packageId: "dev.forme.gallery" }],
+  },
+  {
     id: "screen-gif",
     name: "screen-gif",
     dir: "apps/screen-gif",
