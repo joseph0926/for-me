@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "@sun-typeface/suit/fonts/variable/woff2/SUIT-Variable.css";
+
+/*
+ * 이 완성작의 시각 정체성(topic.json identity).
+ * 사진이 화면의 색을 정하므로 바탕과 면은 무채색 단계만 쓰고 색은 강조색 하나(코발트 파랑)에만 둔다.
+ * 처음 고른 남보라(#5a3ee6)는 tastepin 규칙(보라 계열은 AI나 자동화 표시에만)에 걸려 6단계에서 바꿨다.
+ * 사진 위의 선택 체크는 흰 테두리와 그림자로 감싸므로 하늘색 사진 위에서도 묻히지 않는다.
+ * 사진 보기와 추억은 테마와 관계없이 검은 바탕이다(--stage).
+ */
+:root {
+  --surface: #f5f5f4;
+  --raised: #ffffff;
+  --sunken: #e8e8e6;
+  --ink: #121212;
+  --muted: #5d5d5a;
+  --faint: #8a8a86;
+  --line: #dfdfdc;
+  --accent: #2f5bd8;
+  --accent-ink: #ffffff;
+  --danger: #c62a1f;
+  --danger-ink: #ffffff;
+  --backdrop: #e4e4e2;
+  --stage: #000000;
+  /* 검은 사진 보기 위의 강조색. 테마와 관계없이 어두운 화면 값을 쓴다. */
+  --accent-on-stage: #7f9dff;
+  /* 알림 띠. 밝고 어두운 화면 모두에서 짙은 띠로 둔다. */
+  --inverse: #1c1c1e;
+  --shadow: 0 8px 24px rgb(0 0 0 / 0.14), 0 1px 3px rgb(0 0 0 / 0.08);
+  --radius: 6px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0e0e0f;
+    --raised: #19191b;
+    --sunken: #232326;
+    --ink: #f3f3f2;
+    --muted: #a5a5a1;
+    --faint: #76767a;
+    --line: #2b2b2e;
+    --accent: #7f9dff;
+    --accent-ink: #071233;
+    --danger: #ff7b6e;
+    --danger-ink: #2a0905;
+    --backdrop: #050505;
+    --shadow: 0 8px 24px rgb(0 0 0 / 0.55), 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+}
+
+@theme inline {
+  --font-sans: "SUIT Variable", system-ui, sans-serif;
+  --font-title: var(--font-sans);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-stage: var(--stage);
+  --color-accent-stage: var(--accent-on-stage);
+  --color-inverse: var(--inverse);
+  --radius-work: var(--radius);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* 키보드 초점: 테두리에 붙은 1px 강조색 선과 바깥 3px 옅은 번짐 */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.scroll-area {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 사진 위에 얹는 흰 글자. 밝은 사진에서도 읽히도록 그림자를 얇게 준다. */
+.on-photo {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+/* 추억 한 장이 머무는 동안(motion.ts의 memorySlideMs와 같은 3.5초) 천천히 커진다.
+ * 장마다 새 요소에서 시작하므로, 다음 장으로 넘어가며 옅어지는 사진도 커진 크기를 지킨다. */
+@keyframes memory-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.memory-drift {
+  animation: memory-drift 3.5s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-drift {
+    animation: none;
+  }
+}

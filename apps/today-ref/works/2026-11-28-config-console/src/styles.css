@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/*
+ * 이 완성작의 시각 정체성(topic.json identity). 결재 서류의 흰 종이에 가까운 무채색 바탕, 승인 도장의 코발트 잉크 강조,
+ * 모서리 5px 한 값. 노랑(다름), 초록(같음, 바뀐 뒤 값), 빨강(실패)은 상태에만 쓰고 강조로 쓰지 않는다.
+ */
+:root {
+  --surface: #f6f6f4;
+  --panel: #ffffff;
+  --ink: #1d1f24;
+  --muted: #676a72;
+  --line: #e2e2de;
+  --line-strong: #cfcfca;
+  --accent: #2446a8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e8ecf7;
+  --diff: #f4e8a6;
+  --diff-ink: #5a4700;
+  --same: #2f7a4d;
+  --added: #e2f2e5;
+  --added-ink: #1f5634;
+  --danger: #b3261e;
+  --danger-soft: #fbe9e7;
+  --backdrop: rgb(29 31 36 / 0.28);
+  --radius: 5px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #17181b;
+    --panel: #1f2024;
+    --ink: #e9e9e6;
+    --muted: #9a9ca3;
+    --line: #313238;
+    --line-strong: #44464d;
+    --accent: #8ea6ec;
+    --accent-ink: #10162b;
+    --accent-soft: #232b45;
+    --diff: #4a4220;
+    --diff-ink: #f1df8a;
+    --same: #7cc497;
+    --added: #1f3a29;
+    --added-ink: #a9dcb9;
+    --danger: #f08a80;
+    --danger-soft: #3d2120;
+    --backdrop: rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Noto Sans KR Variable", sans-serif;
+  --font-title: var(--font-sans);
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-diff: var(--diff);
+  --color-diff-ink: var(--diff-ink);
+  --color-same: var(--same);
+  --color-added: var(--added);
+  --color-added-ink: var(--added-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --radius-work: var(--radius);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 마우스로 누른 뒤에는 초점 테두리를 남기지 않고, 키보드로 옮길 때만 1px 선과 3px 옅은 번짐을 보인다. */
+:where(button, a, input, textarea, [tabindex]):focus {
+  outline: none;
+}
+:where(button, a, [tabindex]):focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}

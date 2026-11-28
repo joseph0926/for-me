@@ -1,0 +1,102 @@
+{
+  "states": [
+    {
+      "id": "list",
+      "label": "설정 목록: 범위 거르기 한 줄, 정렬, 토큰이 남는 검색 줄",
+      "path": "/#/settings"
+    },
+    {
+      "id": "bulk",
+      "label": "두 행을 고른 뒤 머리 줄이 묶음 작업 줄로 바뀐 상태",
+      "path": "/#/settings",
+      "steps": [
+        { "click": { "role": "checkbox", "name": "연휴 배송 안내 띠 고르기" } },
+        { "click": { "role": "checkbox", "name": "결제 수단별 수수료 고르기" } },
+        { "wait": 300 }
+      ]
+    },
+    {
+      "id": "sort-menu",
+      "label": "정렬 메뉴를 연 상태",
+      "path": "/#/settings",
+      "steps": [
+        { "click": { "role": "button", "name": "정렬" } },
+        { "wait": 300 }
+      ]
+    },
+    {
+      "id": "empty",
+      "label": "찾는 말에 맞는 설정이 없을 때",
+      "path": "/#/settings",
+      "steps": [
+        { "fill": { "role": "textbox", "name": "설정 찾기" }, "value": "없는 설정" },
+        { "wait": 200 }
+      ]
+    },
+    {
+      "id": "edit-json",
+      "label": "JSON 설정의 편집 패널: 변형 칩, JSON 편집기, 스키마 검증 칸",
+      "path": "/#/settings",
+      "steps": [
+        { "click": { "role": "button", "name": "연휴 배송 안내 띠", "exact": true } },
+        { "wait": 400 },
+        { "click": { "role": "button", "name": "2번째 값" } },
+        { "wait": 200 }
+      ]
+    },
+    {
+      "id": "edit-schema-error",
+      "label": "스키마와 맞지 않는 JSON 값을 저장하려 한 뒤의 오류",
+      "path": "/#/settings",
+      "steps": [
+        { "click": { "role": "button", "name": "연휴 배송 안내 띠", "exact": true } },
+        { "wait": 400 },
+        { "click": { "role": "button", "name": "2번째 값" } },
+        { "fill": { "role": "textbox", "name": "2번째 값 JSON" }, "value": "{\n  \"show\": \"yes\"\n}" },
+        { "click": { "role": "button", "name": "저장" } },
+        { "wait": 200 }
+      ]
+    },
+    {
+      "id": "new-errors",
+      "label": "새 설정을 빈 채로 만들려 한 뒤의 필수 칸 오류",
+      "path": "/#/settings",
+      "steps": [
+        { "click": { "role": "button", "name": "새 설정" } },
+        { "wait": 400 },
+        { "click": { "role": "button", "name": "만들기" } },
+        { "wait": 200 }
+      ]
+    },
+    {
+      "id": "publish-compare",
+      "label": "스테이징과 운영의 칸별 비교 표",
+      "path": "/#/publish"
+    },
+    {
+      "id": "publish-detail",
+      "label": "한 설정을 열어 항목마다 현재 값과 복사 뒤 값을 보는 화면",
+      "path": "/#/publish/checkout.retry-limit"
+    },
+    {
+      "id": "publish-failed",
+      "label": "운영 첫 게시 실패: 붉은 안내 상자, 다시 시도, 원인 기록",
+      "path": "/#/publish/checkout.retry-limit",
+      "steps": [
+        { "click": { "role": "button", "name": "운영에 3개 항목 게시" } },
+        { "wait": 1400 }
+      ]
+    },
+    {
+      "id": "publish-done",
+      "label": "다시 시도 뒤 게시 성공",
+      "path": "/#/publish/checkout.retry-limit",
+      "steps": [
+        { "click": { "role": "button", "name": "운영에 3개 항목 게시" } },
+        { "wait": 1400 },
+        { "click": { "role": "button", "name": "다시 시도" } },
+        { "wait": 1400 }
+      ]
+    }
+  ]
+}

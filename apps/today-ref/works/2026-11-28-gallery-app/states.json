@@ -1,0 +1,53 @@
+{
+  "states": [
+    {
+      "id": "library",
+      "label": "일 단위 보관함: 추억 줄, 날짜를 얹은 큰 칸과 3열 격자, 단위 전환",
+      "path": "/"
+    },
+    {
+      "id": "years",
+      "label": "연 단위 보관함의 연도 카드",
+      "path": "/",
+      "steps": [{ "click": { "role": "tab", "name": "연", "exact": true } }, { "wait": 500 }]
+    },
+    {
+      "id": "viewer-info",
+      "label": "사진 보기에서 정보를 연 상태",
+      "path": "/",
+      "steps": [
+        { "click": { "role": "button", "name": "사진, 11월 22일 오후 3:41", "exact": true } },
+        { "wait": 700 },
+        { "click": { "role": "button", "name": "정보", "exact": true } },
+        { "wait": 700 }
+      ]
+    },
+    {
+      "id": "selection",
+      "label": "여러 장 선택과 아래 동작 막대",
+      "path": "/",
+      "steps": [
+        { "click": { "role": "button", "name": "선택", "exact": true } },
+        { "click": { "role": "button", "name": "사진, 11월 22일 오후 3:41", "exact": true } },
+        { "click": { "role": "button", "name": "사진, 11월 22일 오후 4:02", "exact": true } },
+        { "wait": 400 }
+      ]
+    },
+    {
+      "id": "albums",
+      "label": "앨범: 기기 폴더 줄과 2열 앨범 카드",
+      "path": "/",
+      "steps": [{ "click": { "role": "tab", "name": "앨범", "exact": true } }, { "wait": 400 }]
+    },
+    {
+      "id": "search",
+      "label": "검색 결과의 +N 칸과 최근 순",
+      "path": "/",
+      "steps": [
+        { "click": { "role": "tab", "name": "검색", "exact": true } },
+        { "click": { "role": "button", "name": "바다", "exact": true } },
+        { "wait": 400 }
+      ]
+    }
+  ]
+}

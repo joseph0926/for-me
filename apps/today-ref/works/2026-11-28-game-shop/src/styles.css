@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "@fontsource/gothic-a1/400.css";
+@import "@fontsource/gothic-a1/700.css";
+@import "@fontsource/gothic-a1/800.css";
+
+/*
+ * 이 완성작의 시각 정체성(topic.json identity). 2026-11-28 사용자 피드백("전체적으로 최악", 색감과 디자인)으로
+ * 클라렛 바탕과 상품마다 다른 원색 바탕을 버리고, 레퍼런스(r2 VALORANT의 짙은 남색에 강조 하나, r3 FIFA 21의 한 계열)처럼
+ * 거의 무채색인 짙은 회남색 한 계열에 하늘색 강조 하나로 줄였다. 상품 카드의 색은 data.ts의 등급(일반, 레어, 영웅)에만 쓴다.
+ * 금색은 골드 팩 포장과 골드 선수 카드에만 쓰고 바탕과 주 동작에 넓히지 않는다(예전 게임 상점의 사용자 결정).
+ */
+:root {
+  --surface: #131417;
+  --raised: #1c1d21;
+  --sunken: #0e0f11;
+  --strip: #0a0b0c;
+  --ink: #f2f3f5;
+  --muted: #a4a8b1;
+  --faint: #868a94;
+  --line: #2b2d33;
+  --accent: #8fd0ff;
+  --accent-ink: #08233a;
+  --warn: #ff6b6b;
+  --radius: 4px;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Gothic A1", system-ui, sans-serif;
+  --font-title: "Gothic A1", system-ui, sans-serif;
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-strip: var(--strip);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-warn: var(--warn);
+  --radius-work: var(--radius);
+}
+
+html,
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+}
+
+/* 제목은 본문과 같은 서체에서 굵기만 올린다. */
+.font-title {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* 키보드 초점만 보인다: 테두리에 붙은 1px 강조선과 바깥 3px 옅은 번짐. 마우스로 누른 뒤에는 남지 않는다. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+/* 하늘색 주 버튼 위에서는 포인트 아이콘을 짙게 칠해 같은 모양으로 보이게 한다. */
+.bg-accent .currency-points path:first-child {
+  fill: var(--accent-ink);
+}
+
+/* 팩 개봉에서 높은 카드의 뒷면 테두리가 2px에서 5px까지 커졌다 돌아온다. 금색과 번지는 광원은 쓰지 않는다. */
+@keyframes tease {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 가로로 넘기는 진열 줄. 넘김 정도는 아래 진행 막대가 보여 준다. */
+.track {
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}

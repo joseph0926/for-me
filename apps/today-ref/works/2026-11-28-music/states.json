@@ -1,0 +1,122 @@
+{
+  "states": [
+    {
+      "id": "home",
+      "label": "홈의 머리말 추천 곡 세 줄과 최근 들은 음반 줄",
+      "path": "/"
+    },
+    {
+      "id": "library",
+      "label": "보관함의 2×2 바로가기와 내 플레이리스트",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "보관함",
+            "exact": true
+          }
+        },
+        {
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "id": "actions",
+      "label": "곡 더보기 시트",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "전체보기"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "늦은 오후의 방"
+          }
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "식탁 위의 볕 더보기"
+          }
+        },
+        {
+          "wait": 500
+        }
+      ]
+    },
+    {
+      "id": "player",
+      "label": "재생 화면의 커버, 가사 두 줄, 재생바와 조작",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "재생 화면 열기"
+          }
+        },
+        {
+          "wait": 700
+        }
+      ]
+    },
+    {
+      "id": "lyrics",
+      "label": "재생 화면의 가사 보기",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "재생 화면 열기"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "가사",
+            "exact": true
+          }
+        },
+        {
+          "wait": 900
+        }
+      ]
+    },
+    {
+      "id": "queue",
+      "label": "재생 화면의 대기열과 셔플, 반복 칸",
+      "path": "/",
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "재생 화면 열기"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "대기열",
+            "exact": true
+          }
+        },
+        {
+          "wait": 600
+        }
+      ]
+    }
+  ]
+}

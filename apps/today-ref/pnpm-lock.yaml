@@ -367,43 +367,6 @@ importers:
         specifier: 8.3.8
         version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
 
-  works/2026-11-18-game-shop:
-    dependencies:
-      motion:
-        specifier: 14.13.0
-        version: 14.13.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      pretendard:
-        specifier: 1.3.9
-        version: 1.3.9
-      react:
-        specifier: 19.3.1
-        version: 19.3.1
-      react-dom:
-        specifier: 19.3.1
-        version: 19.3.1(react@19.3.1)
-    devDependencies:
-      '@tailwindcss/vite':
-        specifier: 4.3.5
-        version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 19.3.0
-        version: 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react':
-        specifier: 6.3.0
-        version: 6.3.0(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
-      tailwindcss:
-        specifier: 4.3.5
-        version: 4.3.5
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.3.8
-        version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
-
   works/2026-11-18-stay:
     dependencies:
       motion:
@@ -663,6 +626,157 @@ importers:
         specifier: 8.3.8
         version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
 
+  works/2026-11-28-config-console:
+    dependencies:
+      '@fontsource-variable/jetbrains-mono':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-sans-kr':
+        specifier: 5.3.1
+        version: 5.3.1
+      motion:
+        specifier: 14.13.0
+        version: 14.13.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 4.3.5
+        version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.3.0
+        version: 6.3.0(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      tailwindcss:
+        specifier: 4.3.5
+        version: 4.3.5
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.3.8
+        version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
+
+  works/2026-11-28-gallery-app:
+    dependencies:
+      '@sun-typeface/suit':
+        specifier: 2.0.5
+        version: 2.0.5
+      motion:
+        specifier: 14.13.0
+        version: 14.13.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 4.3.5
+        version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.3.0
+        version: 6.3.0(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      tailwindcss:
+        specifier: 4.3.5
+        version: 4.3.5
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.3.8
+        version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
+
+  works/2026-11-28-game-shop:
+    dependencies:
+      '@fontsource/gothic-a1':
+        specifier: 5.3.0
+        version: 5.3.0
+      motion:
+        specifier: 14.13.0
+        version: 14.13.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 4.3.5
+        version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.3.0
+        version: 6.3.0(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      tailwindcss:
+        specifier: 4.3.5
+        version: 4.3.5
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.3.8
+        version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
+
+  works/2026-11-28-music:
+    dependencies:
+      motion:
+        specifier: 14.13.0
+        version: 14.13.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+      wanted-sans:
+        specifier: 1.0.3
+        version: 1.0.3
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: 4.3.5
+        version: 4.3.5(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.3.0
+        version: 6.3.0(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0))
+      tailwindcss:
+        specifier: 4.3.5
+        version: 4.3.5
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.3.8
+        version: 8.3.8(@types/node@24.19.2)(jiti@2.7.0)
+
 packages:
 
   '@emnapi/core@2.0.0-beta.2':
@@ -673,6 +787,15 @@ packages:
 
   '@emnapi/wasi-threads@2.2.0':
     resolution: {integrity: sha512-JP7OYH38Q7+pyTAe14raZHLQIK7BDKbdwji+Xi3pcd/6QkJYQH3SX4wu6EplGrGJWRepoNzedfm0G3B9Z4e9Rw==}
+
+  '@fontsource-variable/jetbrains-mono@5.3.0':
+    resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
+
+  '@fontsource-variable/noto-sans-kr@5.3.1':
+    resolution: {integrity: sha512-f5aty6Qgk2LVU5TjCtXHxiYHqUWYW8f75ll0Chn8ucCqoOlIomcACUwf1V47yUt6wTdWZiGr3dcbQk+zlOspMA==}
+
+  '@fontsource/gothic-a1@5.3.0':
+    resolution: {integrity: sha512-0HmmE3YQgdcXkVZd/pRTw7MOc9PffY7tNrR/dovEGO00cno/4ImiHxEXdJoq80Bs2jC52wuvuFRcepJ38mksEw==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -803,6 +926,9 @@ packages:
 
   '@rolldown/pluginutils@1.1.1':
     resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
+
+  '@sun-typeface/suit@2.0.5':
+    resolution: {integrity: sha512-NJ0hxmQgDjDBFkocQ7rxx3wPahJbj3uATfXudN3oj6hh/rAedElhdYBbsSwz4qJsdjac6aW6cqK6R1bpsNGOaQ==}
 
   '@tailwindcss/node@4.3.5':
     resolution: {integrity: sha512-yT53FzV4ke0cr/BguDxhWMpm5MJu1O2muzk+tKw6lKHjODAsYArBbWwFbJiaksfzFv1tpkO9QHGzmfs1hJT66g==}
@@ -1295,6 +1421,9 @@ packages:
       yaml:
         optional: true
 
+  wanted-sans@1.0.3:
+    resolution: {integrity: sha512-YU+mQRJMc97zMGFmxFjOvjdrF5Hi2zagc69bNP9n//i77Dlf9AWGfziZWYKdhQzPK5tw+e0iHcjLrZXDatxRTQ==}
+
 snapshots:
 
   '@emnapi/core@2.0.0-beta.2':
@@ -1312,6 +1441,12 @@ snapshots:
     dependencies:
       tslib: 2.9.1
     optional: true
+
+  '@fontsource-variable/jetbrains-mono@5.3.0': {}
+
+  '@fontsource-variable/noto-sans-kr@5.3.1': {}
+
+  '@fontsource/gothic-a1@5.3.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -1394,6 +1529,8 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.1.1': {}
+
+  '@sun-typeface/suit@2.0.5': {}
 
   '@tailwindcss/node@4.3.5':
     dependencies:
@@ -1735,3 +1872,5 @@ snapshots:
       '@types/node': 24.19.2
       fsevents: 2.3.3
       jiti: 2.7.0
+
+  wanted-sans@1.0.3: {}
