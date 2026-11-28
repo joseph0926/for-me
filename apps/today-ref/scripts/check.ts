@@ -1,9 +1,10 @@
-// 주제 파일, 캡처와 완성작 폴더를 검사한다. 사용: node scripts/check.ts [today-ref 폴더]
+// 주제 파일, 캡처와 완성작 폴더를 검사한다. 사용: node scripts/check.ts [today-ref 폴더] [--topic <주제 id>]
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { extname, join, resolve } from "node:path";
+import { parseArgs } from "node:util";
 
-import { collectTopics, limits, parseTopicFile, workFolder, type TopicFile } from "../topic.ts";
+import { collectTopics, isTopicId, limits, parseTopicFile, workFolder, type TopicFile } from "../topic.ts";
 import { capturesDir, capturesRepo } from "./captures.ts";
 
 export interface TopicReport {
@@ -18,18 +19,30 @@ export interface TopicReport {
 export const defaultDeliveries =
   process.env.TODAY_REF_TASTE_DELIVERIES ?? join(homedir(), "dev", "p", "tools", "taste", "state", "deliveries.jsonl");
 
+// topic을 주면 그 주제만 검사한다. 같은 사본에서 다른 세션이 만들고 있는 주제는 중간 상태라 전체 검사를 실패시키는데,
+// 주제끼리 비교하는 검사가 없어 범위를 좁혀도 놓치는 검사는 없다.
 export function checkWorkspace(
   root: string,
   deliveries: string | null = defaultDeliveries,
   captures: string = capturesDir(root),
+  topic: string | null = null,
 ): TopicReport[] {
   const topicsDir = join(root, "topics");
-  if (!existsSync(topicsDir)) return [];
+  if (topic !== null && !isTopicId(topic)) {
+    return [{ folder: topic, errors: ["--topic은 주제 id여야 합니다 (예: 2026-11-18-chat)"], warnings: [] }];
+  }
+  if (!existsSync(topicsDir)) {
+    return topic === null ? [] : [{ folder: topic, errors: ["topics 폴더가 없습니다"], warnings: [] }];
+  }
   const refined = deliveries === null ? null : refinedWorks(deliveries);
 
-  const files = readdirSync(topicsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => readTopicFile(entry.name, join(topicsDir, entry.name, "topic.json")));
+  const folders =
+    topic !== null
+      ? [topic]
+      : readdirSync(topicsDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => entry.name);
+  const files = folders.map((folder) => readTopicFile(folder, join(topicsDir, folder, "topic.json")));
 
   return collectTopics(files).map(({ folder, result }) => {
     if (!result.ok) return { folder, errors: result.errors, warnings: [] };
@@ -138,9 +151,11 @@ function imageType(head: Buffer): string | null {
 }
 
 if (import.meta.main) {
-  const root = resolve(process.argv[2] ?? join(import.meta.dirname, ".."));
+  const { values, positionals } = parseArgs({ options: { topic: { type: "string" } }, allowPositionals: true });
+  const root = resolve(positionals[0] ?? join(import.meta.dirname, ".."));
+  const topic = values.topic ?? null;
   const captures = capturesDir(root);
-  const reports = checkWorkspace(root, defaultDeliveries, captures);
+  const reports = checkWorkspace(root, defaultDeliveries, captures, topic);
   const notice = deliveriesNotice(defaultDeliveries, refinedWorks(defaultDeliveries));
   for (const { folder, errors, warnings } of reports) {
     console.log(`${errors.length === 0 ? "통과" : "실패"} ${folder}`);
@@ -150,6 +165,7 @@ if (import.meta.main) {
   const failed = reports.filter((report) => report.errors.length > 0).length;
   if (notice) console.log(notice);
   console.log(capturesNotice(root, captures));
-  console.log(`주제 ${reports.length}개, 실패 ${failed}개`);
+  const scope = topic === null ? "" : ` (${topic}만 검사. 다른 주제는 보지 않았습니다)`;
+  console.log(`주제 ${reports.length}개, 실패 ${failed}개${scope}`);
   process.exitCode = failed > 0 ? 1 : 0;
 }
