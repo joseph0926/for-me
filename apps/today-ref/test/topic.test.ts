@@ -221,6 +221,19 @@ describe("검사 명령", () => {
     assert.match(byFolder("2026-11-20-feed")?.errors.join() ?? "", /works\/2026-11-20-feed/);
   });
 
+  test("주제 하나만 검사하면 다른 주제가 깨져 있어도 그 주제의 결과만 낸다", () => {
+    const scoped = checkWorkspace(root, defaultDeliveries, join(root, "captures"), "2026-11-18-chat");
+    assert.deepEqual(scoped.map((report) => report.folder), ["2026-11-18-chat"]);
+    assert.deepEqual(scoped[0], byFolder("2026-11-18-chat"));
+  });
+
+  test("없는 주제나 주제 id가 아닌 값을 주면 통과시키지 않는다", () => {
+    const missing = checkWorkspace(root, defaultDeliveries, join(root, "captures"), "2026-11-30-none");
+    assert.match(missing[0]?.errors.join() ?? "", /topic\.json이 없습니다/);
+    const outside = checkWorkspace(root, defaultDeliveries, join(root, "captures"), "../2026-11-18-chat");
+    assert.match(outside[0]?.errors.join() ?? "", /주제 id여야/);
+  });
+
   test("수집으로 끝난 주제는 완성작 폴더가 없어도 통과한다", () => {
     const fixture = mkdtempSync(join(root, "collected-"));
     const folder = "2026-11-21-delete";
