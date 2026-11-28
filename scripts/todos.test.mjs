@@ -64,6 +64,11 @@ test("결정 대기 요청은 문서에 있어야 하고, 진행 중인 요청�
   assert.deepEqual(problems.map((p) => p.record.title), ["결정 대기: 서체 다시 고르기"]);
 });
 
+test("결정이 끝난 결정 대기 요청과 문서의 완료 줄은 어긋남이 아니다", () => {
+  const docs = [{ title: "결정 대기: 서체 다시 고르기", done: true, file: "s.md", line: 1 }];
+  assert.deepEqual(compare(docs, { records: [request("결정 대기: 서체 다시 고르기", "done")] }), []);
+});
+
 test("같은 제목으로 열린 할 일과 열린 요청은 어긋남이 아니다", () => {
   const docs = [{ title: "블로그 다시 진행", done: false, file: "s.md", line: 1 }];
   assert.deepEqual(compare(docs, { records: [request("할 일: 블로그 다시 진행", "open")] }), []);
