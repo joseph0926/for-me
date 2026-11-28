@@ -7,6 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { capturesDir } from "../apps/today-ref/scripts/captures.ts";
 
 // 빌드나 설치가 만드는 폴더는 소스의 수정 시각을 셀 때 뺀다.
 const generatedDirs = new Set(["node_modules", "dist", "target", "build", ".gradle", ".kotlin", ".git"]);
@@ -117,14 +118,19 @@ export const products = [
 function todayRefBuilds(productDir) {
   const packageSources = ["src", "index.html", "package.json", "vite.config.ts"];
   const builds = [
-    { label: "갤러리", kind: "dist", path: "gallery/dist", sources: [...packageSources.map((s) => `gallery/${s}`), "topic.ts", "topics"] },
-    { label: "템플릿", kind: "dist", path: "template/dist", sources: packageSources.map((s) => `template/${s}`) },
+    {
+      label: "갤러리",
+      kind: "dist",
+      path: "gallery/dist",
+      sources: [...packageSources.map((s) => `gallery/${s}`), "topic.ts", "topics", capturesDir(productDir)],
+    },
+    { label: "템플릿", kind: "dist", path: "template/dist", sources: [...packageSources, "public"].map((s) => `template/${s}`) },
   ];
   const worksDir = join(productDir, "works");
   const works = existsSync(worksDir) ? readdirSync(worksDir, { withFileTypes: true }).filter((e) => e.isDirectory()) : [];
   for (const work of works) {
     const base = `works/${work.name}`;
-    builds.push({ label: `완성작 ${work.name}`, kind: "dist", path: `${base}/dist`, sources: packageSources.map((s) => `${base}/${s}`) });
+    builds.push({ label: `완성작 ${work.name}`, kind: "dist", path: `${base}/dist`, sources: [...packageSources, "public"].map((s) => `${base}/${s}`) });
   }
   return builds;
 }
@@ -151,7 +157,7 @@ export function newestSource(productDir, sourcePaths) {
     }
   };
   for (const source of sourcePaths) {
-    const path = join(productDir, source);
+    const path = resolve(productDir, source);
     if (existsSync(path)) visit(path);
   }
   return newest;
@@ -200,7 +206,8 @@ function readArtifact(productDir, build, probes) {
   if (!existsSync(path)) return null;
   if (build.kind === "dist") {
     const index = join(path, "index.html");
-    return { path, version: null, mtimeMs: statSync(existsSync(index) ? index : path).mtimeMs };
+    const stat = statSync(index, { throwIfNoEntry: false });
+    return stat?.isFile() ? { path: index, version: null, mtimeMs: stat.mtimeMs } : null;
   }
   return { path, version: probes.exeVersion(path), mtimeMs: statSync(path).mtimeMs };
 }
@@ -215,6 +222,9 @@ export function checkBuild(productDir, build, sourceVersion, productSources, pro
   const changed = newestSource(productDir, build.sources ?? productSources);
   if (changed && changed.mtimeMs > artifact.mtimeMs) {
     return { label: build.label, state: "old", detail: `빌드 뒤 소스가 바뀜: ${changed.path} ${formatTime(changed.mtimeMs)} (${built})` };
+  }
+  if (build.kind !== "dist" && !sourceVersion) {
+    return { label: build.label, state: "unchecked", detail: `소스 버전을 읽지 못함 (${built})` };
   }
   const version = artifact.version ? `${artifact.version}, ` : "";
   return { label: build.label, state: "ok", detail: `${version}${built}, 그 뒤 소스 변경 없음` };
@@ -233,19 +243,31 @@ function checkExeInstall(productDir, install, sourceVersion, probes) {
   if (existsSync(build) && sha256(build) !== sha256(path)) {
     return [{ label: install.label, state: "old", detail: `${version}이지만 ${install.sameAs}와 내용이 다름 (${installed}, 빌드 ${formatTime(statSync(build).mtimeMs)})` }];
   }
+  if (!sourceVersion) return [{ label: install.label, state: "unchecked", detail: `소스 버전을 읽지 못함 (${installed})` }];
   const same = existsSync(build) ? `, ${install.sameAs}와 같은 파일` : "";
   return [{ label: install.label, state: "ok", detail: `${version} (${installed})${same}` }];
 }
 
 function checkAndroidInstall(install, sourceVersion, probes) {
-  const devices = probes.androidDevices();
+  let devices;
+  try {
+    devices = probes.androidDevices();
+  } catch {
+    return [{ label: "Android 기기", state: "unchecked", detail: "adb 기기 목록 조회 실패" }];
+  }
   if (devices === null) return [{ label: "Android 기기", state: "unchecked", detail: "adb를 찾지 못함" }];
   if (devices.length === 0) return [{ label: "Android 기기", state: "unchecked", detail: "연결된 기기나 가상 기기 없음" }];
   return devices.map((serial) => {
     const label = `기기 ${serial}`;
-    const version = probes.androidVersion(serial, install.packageId);
+    let version;
+    try {
+      version = probes.androidVersion(serial, install.packageId);
+    } catch {
+      return { label, state: "unchecked", detail: `${install.packageId} 설치 버전 조회 실패` };
+    }
     if (!version) return { label, state: "missing", detail: `${install.packageId} 설치 안 됨` };
-    if (sourceVersion && version !== sourceVersion) return { label, state: "old", detail: `${version}, 소스는 ${sourceVersion}` };
+    if (!sourceVersion) return { label, state: "unchecked", detail: `설치 버전 ${version}, 소스 버전을 읽지 못함` };
+    if (version !== sourceVersion) return { label, state: "old", detail: `${version}, 소스는 ${sourceVersion}` };
     return { label, state: "ok", detail: version };
   });
 }
@@ -300,6 +322,7 @@ export function checkNodeVersion(root, runningVersion = process.versions.node) {
 // 운영체제 기능을 부르는 부분. 테스트는 이 객체를 바꿔 끼운다.
 export function systemProbes(platform = process.platform) {
   const adb = findAdb(platform);
+  const adbOptions = { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 10000 };
   return {
     exeVersion(path) {
       if (platform !== "win32") return null;
@@ -313,13 +336,10 @@ export function systemProbes(platform = process.platform) {
     // adb devices는 adb 서버가 꺼져 있으면 켜고 그 안내를 stderr에 쓴다. 보고에 섞이지 않게 stderr는 버린다.
     androidDevices() {
       if (!adb) return null;
-      return parseAdbDevices(execFileSync(adb, ["devices"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
+      return parseAdbDevices(execFileSync(adb, ["devices"], adbOptions));
     },
     androidVersion(serial, packageId) {
-      const output = execFileSync(adb, ["-s", serial, "shell", "dumpsys", "package", packageId], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      });
+      const output = execFileSync(adb, ["-s", serial, "shell", "dumpsys", "package", packageId], adbOptions);
       return parseDumpsysVersion(output);
     },
   };
@@ -393,6 +413,6 @@ function main(args) {
   return states.some((state) => state === "old" || state === "missing") ? 1 : 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   process.exitCode = main(process.argv.slice(2));
 }

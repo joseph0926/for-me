@@ -42,34 +42,33 @@ export function collectDocTodos(root) {
   return todos;
 }
 
+function requestTitle(record) {
+  return record.title.startsWith(journalTodoPrefix) ? record.title.slice(journalTodoPrefix.length) : record.title;
+}
+
 // 문서에 있어야 하는 기록: 시작하지 않은 요청(open)과 아직 끝나지 않은 "결정 대기:" 요청.
 export function journalTodos(journal) {
   return journal.records
     .filter((r) => !r.deleted && r.kind === "request")
     .filter((r) => r.stage === "open" || (r.title.startsWith("결정 대기:") && r.stage !== "done"))
-    .map((r) => ({ id: r.id, appId: r.appId, stage: r.stage, title: r.title.startsWith(journalTodoPrefix) ? r.title.slice(journalTodoPrefix.length) : r.title }));
-}
-
-// 끝난 요청은 문서에 열린 할 일로 남아 있으면 안 된다.
-function doneJournalTitles(journal) {
-  return new Set(
-    journal.records
-      .filter((r) => !r.deleted && r.kind === "request" && r.stage === "done")
-      .map((r) => (r.title.startsWith(journalTodoPrefix) ? r.title.slice(journalTodoPrefix.length) : r.title)),
-  );
+    .map((r) => ({ id: r.id, appId: r.appId, stage: r.stage, title: requestTitle(r) }));
 }
 
 export function compare(docTodos, journal) {
   const problems = [];
-  const docsByTitle = new Map(docTodos.map((todo) => [todo.title, todo]));
+  const folders = journal.apps.filter((app) => app.folder).sort((a, b) => b.folder.length - a.folder.length);
+  const docsByApp = Map.groupBy(docTodos, (doc) => folders.find((app) => doc.file.startsWith(app.folder + "/"))?.id);
   for (const record of journalTodos(journal)) {
-    const doc = docsByTitle.get(record.title);
+    const doc = docsByApp.get(record.appId)?.find((todo) => todo.title === record.title);
     if (!doc) problems.push({ kind: "doc-missing", record });
     else if (doc.done) problems.push({ kind: "journal-behind", record, doc });
   }
-  const done = doneJournalTitles(journal);
-  for (const doc of docTodos) {
-    if (!doc.done && done.has(doc.title)) problems.push({ kind: "doc-behind", doc });
+  const done = journal.records.filter((record) => !record.deleted && record.kind === "request" && record.stage === "done");
+  for (const [appId, records] of Map.groupBy(done, (record) => record.appId)) {
+    const titles = new Set(records.map(requestTitle));
+    for (const doc of docsByApp.get(appId) ?? []) {
+      if (!doc.done && titles.has(doc.title)) problems.push({ kind: "doc-behind", doc });
+    }
   }
   return problems;
 }
@@ -77,7 +76,8 @@ export function compare(docTodos, journal) {
 function readJournal(root) {
   const cli = join(root, "apps", "journal", "src", "cli.mjs");
   if (!existsSync(join(root, "apps", "journal", "data", "journal.json"))) return null;
-  return JSON.parse(execFileSync(process.execPath, [cli, "read"], { cwd: root, encoding: "utf8" }));
+  // 기록 전체가 1MiB(execFileSync 기본 한도)를 넘어 2026-11-28에 ENOBUFS로 멈췄다. 기록은 계속 쌓이므로 넉넉히 둔다.
+  return JSON.parse(execFileSync(process.execPath, [cli, "read"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }));
 }
 
 const problemText = {
@@ -110,6 +110,6 @@ function main(args) {
   return problems.length > 0 ? 1 : 0;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   process.exitCode = main(process.argv.slice(2));
 }
