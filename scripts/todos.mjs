@@ -42,11 +42,11 @@ export function collectDocTodos(root) {
   return todos;
 }
 
-// 문서에 있어야 하는 기록: 시작하지 않은 요청(open)과 "결정 대기:"로 시작하는 요청.
+// 문서에 있어야 하는 기록: 시작하지 않은 요청(open)과 아직 끝나지 않은 "결정 대기:" 요청.
 export function journalTodos(journal) {
   return journal.records
     .filter((r) => !r.deleted && r.kind === "request")
-    .filter((r) => r.stage === "open" || r.title.startsWith("결정 대기:"))
+    .filter((r) => r.stage === "open" || (r.title.startsWith("결정 대기:") && r.stage !== "done"))
     .map((r) => ({ id: r.id, appId: r.appId, stage: r.stage, title: r.title.startsWith(journalTodoPrefix) ? r.title.slice(journalTodoPrefix.length) : r.title }));
 }
 
