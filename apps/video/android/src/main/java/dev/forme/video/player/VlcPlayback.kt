@@ -131,6 +131,8 @@ class VlcPlayback(
                 IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
             val saved = repository.find(uri.toString())
+            // 파일을 열지 못해도 오류 화면에 저장된 파일 이름을 보인다. 다른 앱에서 연 화면은 최근 목록을 읽기 전에 여기까지 온다.
+            saved?.let { state = state.copy(title = it.title) }
             val document = withContext(Dispatchers.IO) {
                 try {
                     openVideoDocument(context.contentResolver, accessUri,

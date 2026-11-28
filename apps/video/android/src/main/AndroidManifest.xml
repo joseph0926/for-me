@@ -19,5 +19,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--
+            다른 앱의 연결 프로그램 목록에 장면을 띄운다. 이 앱은 저장소 권한이 없어 file: 주소를 읽지 못하므로 content:만 받는다.
+            범용 형식(application/octet-stream)은 모든 미확인 파일에 장면이 뜨므로 받지 않는다.
+            보낸 앱이 새 작업으로 열어도 보관함이 있는 작업에 쌓이지 않도록 작업 연결을 비우고, 닫으면 최근 앱 목록에서도 뺀다.
+        -->
+        <activity
+            android:name=".OpenVideoActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|fontScale"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:autoRemoveFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="application/x-matroska" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

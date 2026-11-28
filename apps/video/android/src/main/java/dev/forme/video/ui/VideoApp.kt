@@ -25,8 +25,11 @@ import dev.forme.video.R
 import dev.forme.video.VideoViewModel
 import java.util.Locale
 
+/**
+ * [closeApp]이 있으면 다른 앱에서 연 영상만 보여 주는 화면이다. 영상을 닫으면 보관함 대신 [closeApp]을 부른다.
+ */
 @Composable
-fun VideoApp(model: VideoViewModel) {
+fun VideoApp(model: VideoViewModel, closeApp: (() -> Unit)? = null) {
     val selection by model.selection.collectAsStateWithLifecycle()
     val notice by model.notice.collectAsStateWithLifecycle()
     val saveFailed by model.repository.saveFailed.collectAsStateWithLifecycle()
@@ -71,8 +74,11 @@ fun VideoApp(model: VideoViewModel) {
                 // 재생 화면을 교차 전환하면 두 재생기가 동시에 열리므로 한 인스턴스만 유지한다.
                 key(current.sequence) {
                     PlayerScreen(current, model, current.savedTitle,
-                        openFile, Modifier.weight(1f))
+                        openFile, Modifier.weight(1f),
+                        closeLabel = if (closeApp != null) R.string.close_video else R.string.back_to_list)
                 }
+            } else if (closeApp != null) {
+                LaunchedEffect(Unit) { closeApp() }
             } else {
                 val recent by model.recent.collectAsStateWithLifecycle()
                 libraryState.SaveableStateProvider("library") {

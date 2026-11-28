@@ -81,6 +81,7 @@ internal fun PlayerScreen(
     savedTitle: String?,
     openFile: () -> Unit,
     modifier: Modifier,
+    closeLabel: Int = R.string.back_to_list,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -110,7 +111,7 @@ internal fun PlayerScreen(
     val title = state.title.ifBlank { savedTitle ?: context.getString(R.string.app_name) }
     val fatalError = state.error?.takeUnless { it == R.string.audio_focus_failed }
     if (fatalError != null) {
-        PlaybackFailure(title, fatalError, selection.accessUri.toString(), openFile, model::closeVideo, modifier)
+        PlaybackFailure(title, fatalError, selection.accessUri.toString(), openFile, model::closeVideo, closeLabel, modifier)
         return
     }
 
@@ -348,7 +349,7 @@ internal fun PlayerScreen(
                             Row(Modifier.fillMaxWidth().padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
                                 VideoIconButton(model::closeVideo, Modifier.size(48.dp)) {
-                                    Icon(painterResource(R.drawable.ic_back), stringResource(R.string.back_to_list))
+                                    Icon(painterResource(R.drawable.ic_back), stringResource(closeLabel))
                                 }
                                 Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
                                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -703,6 +704,7 @@ private fun PlaybackFailure(
     address: String,
     openFile: () -> Unit,
     closeVideo: () -> Unit,
+    closeLabel: Int,
     modifier: Modifier,
 ) {
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -718,7 +720,7 @@ private fun PlaybackFailure(
             }
         }
         VideoButton(stringResource(R.string.choose_again), openFile)
-        VideoButton(stringResource(R.string.back_to_list), closeVideo, secondary = true)
+        VideoButton(stringResource(closeLabel), closeVideo, secondary = true)
     }
 }
 

@@ -64,16 +64,28 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun select(uri: Uri, fromPicker: Boolean) {
         mutableNotice.value = null
-        if (fromPicker) {
-            try {
-                getApplication<Application>().contentResolver.takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: SecurityException) {
-                mutableNotice.value = R.string.temporary_access
-            }
-        }
+        if (fromPicker && !keepReadAccess(uri)) mutableNotice.value = R.string.temporary_access
         val accessUri = if (fromPicker) uri else folders.readableUri(uri)
         selectVideo(uri, accessUri, null)
+    }
+
+    /**
+     * 다른 앱이 넘긴 영상을 연다. 그 앱이 유지 가능한 권한을 주지 않으면 대부분 이렇게 되므로 실패해도 안내하지 않는다.
+     * 권한을 유지하지 못한 영상도 이어보기 기록에 남기며, 나중에 최근 목록에서 열지 못하면 다시 선택 안내가 나온다.
+     */
+    fun openFromOtherApp(uri: Uri) {
+        mutableNotice.value = null
+        keepReadAccess(uri)
+        selectVideo(uri, uri, null)
+    }
+
+    /** 앱을 다시 켠 뒤에도 [uri]를 읽을 수 있게 권한을 유지한다. 권한을 준 쪽이 유지를 허락하지 않았으면 false다. */
+    private fun keepReadAccess(uri: Uri): Boolean = try {
+        getApplication<Application>().contentResolver.takePersistableUriPermission(
+            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        true
+    } catch (_: SecurityException) {
+        false
     }
 
     fun playFromFolder(access: Uri, queue: FolderQueue?) {
