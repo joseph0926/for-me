@@ -1,0 +1,245 @@
+{
+  "id": "2026-11-28-nav-menu",
+  "date": "2026-11-28",
+  "title": "운영 앱 상단과 좌측 메뉴: 계층, 선택, 접힘, 메뉴 검색, 환경 선택, 탭",
+  "platform": "web",
+  "brief": "docs/collection-candidates.md의 \"프런트엔드 앱에서 찾은 후보\" 표 중 \"상단과 좌측 메뉴\" 줄(계층 메뉴, 선택 상태, 접힘과 펼침, 메뉴 검색과 결과 없음, 환경 선택, 탭 전환)에서 온 수집입니다. 운영 도구와 개발자 도구에서 여러 단계로 접히는 좌측 메뉴와 현재 위치 표시, 좌측 메뉴를 아이콘만 남기거나 숨기는 접힘, 메뉴 안 검색과 결과 없음, 조직, 프로젝트, 환경(production, staging, branch)을 고르는 자리, 화면 위 탭 전환을 봅니다. 공식 문서, 변경 기록, 공식 블로그와 제품 팀이 쓴 공식 포럼 글에 실린 공개 이미지만 curl로 받아 썼고, 로그인과 조작은 하지 않았습니다. 계정 이름, 이메일, 사람 사진이 보이는 부분은 잘라 냈습니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "Azure 포털",
+      "source": "Microsoft Learn 공식 문서",
+      "title": "서비스 메뉴 위 검색과 접힌 폴더, 포털 메뉴 접기 단추",
+      "url": "https://learn.microsoft.com/en-us/azure/azure-portal/azure-portal-overview",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "sidenav.search", "sidenav.collapse", "nav.current", "pagehead.trail"],
+      "captures": ["r1-1.png", "r1-2.png"],
+      "points": [
+        "fold: 가상 머신 화면 왼쪽 서비스 메뉴는 Overview부터 Resource visualizer까지 펼친 항목 뒤에 Connect, Networking, Settings 같은 폴더가 › 표시와 함께 접힌 채 이어지고, 현재 항목 Overview는 옅은 회색 바탕입니다.",
+        "서비스 메뉴 맨 위에 'Search' 입력칸, 그 오른쪽에 모든 폴더를 한 번에 펼치거나 접는 ⌃⌄ 단추와 메뉴를 접는 « 단추가 한 줄로 붙어 있습니다. 문서 본문은 폴더가 기본으로 접혀 있고 설정에서 펼침으로 바꿀 수 있다고 적습니다.",
+        "crumb: 화면 위 파란 머리 아래에 'Home > Virtual machines >' 경로를 두고 그 아래에 리소스 이름 myVM1을 크게 둡니다. 탭은 Properties, Monitoring처럼 글자 아래 밑줄로 현재를 표시합니다.",
+        "r1-2는 포털 전체 메뉴를 고정한 상태의 오른쪽 위 « 단추입니다. 문서는 고정(docked)과 햄버거로 여는 펼침(flyout) 두 방식을 설명합니다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "GitLab",
+      "source": "GitLab 공식 문서",
+      "title": "프로젝트 메뉴의 접힌 그룹과 범위를 좁힌 검색 결과",
+      "url": "https://docs.gitlab.com/tutorials/left_sidebar/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "nav.current", "globalsearch.group"],
+      "captures": ["r2-1.png", "r2-2.png"],
+      "points": [
+        "fold: 'Project' 제목 아래 현재 프로젝트 'Gitlab Shell'을 파란 바탕 칩으로 두고, Pinned와 Manage, Plan, Code, Build, Deploy, Settings 같은 그룹을 모두 오른쪽 › 표시로 접어 한 줄씩만 보여 줍니다.",
+        "그룹 줄마다 왼쪽에 선 아이콘이 있고 줄 간격이 좁아 그룹 12개가 한 화면 높이 안에 들어갑니다.",
+        "kind: 검색창에 ':shell'처럼 앞에 기호를 붙이면 'Projects I'm a member of' 제목 아래 프로젝트 결과만 나오고, 결과 줄에 그룹 경로가 옅은 글자로 붙습니다.",
+        "18.11 버전 문서 이미지입니다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "Vercel",
+      "source": "Vercel 변경 기록",
+      "title": "팀 전환과 Find 칸이 위에 있는 좌측 메뉴, 프로젝트 전환과 알약 탭",
+      "url": "https://vercel.com/changelog/dashboard-navigation-redesign-rollout",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["envswitch.place", "sidenav.search", "nav.current", "tabs.indicator"],
+      "captures": ["r3-1.png"],
+      "points": [
+        "side: 좌측 메뉴 맨 위에 팀 이름 'Acme'와 'Pro' 배지, 오른쪽 끝 ⇕ 단추를 두고, 본문 위 머리에는 프로젝트 'site ⇕'를 따로 둡니다. 팀과 프로젝트 전환 자리가 메뉴와 본문으로 나뉩니다.",
+        "팀 이름 바로 아래에 'Find…' 칸과 단축키 F 표시를 둡니다. 찾기 결과나 결과 없음은 그림에 없습니다.",
+        "tone: 현재 항목 Deployments는 둥근 회색 바탕으로 채우고, Logs와 Observability처럼 하위가 있는 항목은 오른쪽 끝에 ›를 둡니다.",
+        "pill: 본문 머리의 Deployment, Resources 탭 중 현재 탭만 둥근 회색 바탕입니다. 2026-02-26 변경 기록의 대표 그림이라 실제 화면을 다듬은 그림일 수 있습니다."
+      ]
+    },
+    {
+      "id": "r4",
+      "kind": "product",
+      "product": "Supabase",
+      "source": "Supabase 공식 블로그",
+      "title": "머리 경로 안의 조직, 프로젝트, 브랜치 전환과 Production 표시",
+      "url": "https://supabase.com/blog/supabase-branching",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["envswitch.place", "pagehead.trail", "sidenav.collapse", "tabs.indicator"],
+      "captures": ["r4-1.png"],
+      "points": [
+        "crumb: 화면 맨 위 한 줄에 '조직 Pro ⇕ / 프로젝트 ⇕ / main Production ⇕'를 빗금으로 이어 두고, 각 단계 옆의 ⇕가 그 단계를 바꾸는 단추입니다. 운영 브랜치에는 주황 테두리 'Production' 배지가 붙습니다.",
+        "브랜치 ⇕를 연 목록 맨 위에 'Find branch…' 검색칸, 현재 브랜치 main 줄에 회색 바탕과 체크, 맨 아래에 구분선과 'Manage branches'를 둡니다.",
+        "rail: 좌측 메뉴는 글자 없이 아이콘만 세로로 늘어선 좁은 띠이고 구분선으로 몇 묶음을 나눕니다. 넓게 펼친 상태는 그림에 없습니다.",
+        "본문의 Overview, Pull requests, All branches 탭은 테두리로 이어 붙인 칸 모양이며, 2023-12 블로그 그림이라 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r5",
+      "kind": "product",
+      "product": "Linear",
+      "source": "Linear 공식 문서",
+      "title": "팀 아래로 세 단계 들여쓴 좌측 메뉴와 작업공간 메뉴",
+      "url": "https://linear.app/docs/conceptual-model",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "nav.current", "envswitch.place", "pagehead.trail"],
+      "captures": ["r5-1.png", "r5-2.png"],
+      "points": [
+        "indent: 'Your teams ▾' 아래 Engineering ▾, 그 아래 Triage, Issues, Cycles, 다시 그 아래 Current와 Upcoming을 세로 선과 함께 들여써 세 단계를 보여 줍니다.",
+        "tone: 현재 항목 Issues만 둥근 회색 바탕이고 글자 굵기는 다른 줄과 같습니다. Inbox 1, Triage 39처럼 개수는 줄 오른쪽 끝 작은 칸에 둡니다.",
+        "inline: 창 머리 가운데에 'Engineering › Active issues'를 두고, 본문 위 줄에는 All issues, Active, Backlog 보기를 테두리 칩으로 늘어놓은 뒤 '5 more…'로 나머지를 접습니다.",
+        "side: r5-2는 좌측 메뉴 맨 위 작업공간 이름 'Acme ▾'를 눌러 연 메뉴로 Preferences와 Workspace settings 등이 나옵니다. 작업공간 목록이 나오는 하위 메뉴는 계정 이메일이 보여 잘라 냈습니다(같은 사이트 workspaces 문서 그림)."
+      ]
+    },
+    {
+      "id": "r6",
+      "kind": "product",
+      "product": "Cloudflare One",
+      "source": "Cloudflare 변경 기록",
+      "title": "작업 이름으로 묶은 접힌 그룹과 New 배지",
+      "url": "https://developers.cloudflare.com/changelog/post/new-cloudflare-one-navigation-and-product-experience/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "nav.current"],
+      "captures": ["r6-1.png"],
+      "points": [
+        "fold: Insights, Team & Resources, Networks, Access controls 같은 그룹이 모두 오른쪽 ▾로 접혀 있고 Overview와 Settings만 하위 없이 바로 가는 줄입니다.",
+        "tone: 현재 항목 Overview는 연한 파란 바탕과 파란 테두리의 알약 모양이며 글자가 굵어집니다.",
+        "Reusable components, Integrations 그룹 이름 오른쪽에 파란 'New' 배지를 ▾ 앞에 둡니다.",
+        "2025-11-17 변경 기록 그림입니다. 본문은 옛 이름과 새 이름 모두로 대시보드 검색이 된다고 적지만 검색 화면은 그림에 없습니다."
+      ]
+    },
+    {
+      "id": "r7",
+      "kind": "product",
+      "product": "Cloudflare Zero Trust",
+      "source": "Cloudflare 공식 블로그",
+      "title": "좌측 메뉴 머리에서 여는 계정 거르기 목록과 밑줄 탭",
+      "url": "https://blog.cloudflare.com/zero-trust-navigation/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["envswitch.place", "tabs.indicator", "nav.current"],
+      "captures": ["r7-1.png"],
+      "points": [
+        "side: 좌측 메뉴 머리의 '← Cloudflare Zero Trust ×' 옆으로 계정 목록이 겹쳐 열리고, 목록 맨 위에 'Filter…' 입력칸, 아래에 Account 1(굵게), Account 2, Account 3를 둡니다.",
+        "underline: 본문의 Last hour, Last 24 hours, Last 7 days, Last 30 days 탭 중 현재 탭은 파란 글자와 파란 밑줄입니다.",
+        "현재 메뉴 Home은 연한 파란 알약 바탕, Analytics와 Gateway 같은 그룹은 ▾로 접혀 있습니다.",
+        "2023-03-07 블로그 그림이며 r6의 2025 화면으로 바뀌기 전 모습입니다."
+      ]
+    },
+    {
+      "id": "r8",
+      "kind": "product",
+      "product": "Datadog",
+      "source": "Datadog 공식 블로그",
+      "title": "Go to 칸과 묶음별 메뉴, 옆으로 열리는 하위 패널",
+      "url": "https://www.datadoghq.com/blog/datadog-navigation-redesign/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "sidenav.search", "nav.current"],
+      "captures": ["r8-1.jpg", "r8-2.jpg"],
+      "points": [
+        "flyout: Security 줄을 고르면 좌측 메뉴 오른쪽으로 검은 패널이 본문 위에 겹쳐 열리고, Application Security, Cloud Security Management 같은 제목 아래 하위 항목을 두 열로 나눠 보여 줍니다.",
+        "좌측 메뉴 맨 위에 'Go to… ⌘+K' 칸을 두고 그 아래를 Recent, Dashboards처럼 자주 쓰는 묶음, Infrastructure부터 Security까지 제품 묶음, Metrics부터 아래 묶음으로 가는 구분선으로 나눕니다.",
+        "tone: 하위 패널이 열린 Security 줄만 조금 밝은 바탕으로 바뀌고 나머지 줄은 아이콘과 글자만 있습니다.",
+        "2024-04-16 블로그 그림이며 아래쪽 계정 줄은 잘라 냈습니다. r8-1의 분홍 테두리는 블로그가 강조로 그린 것입니다."
+      ]
+    },
+    {
+      "id": "r9",
+      "kind": "product",
+      "product": "Elastic Cloud (Kibana)",
+      "source": "Elastic 공식 블로그",
+      "title": "제목으로 묶은 메뉴, 아래 접히는 관리 메뉴, 머리 경로의 공간 표시",
+      "url": "https://www.elastic.co/blog/elastic-redesigned-navigation-menu-kibana",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.tree", "envswitch.place", "pagehead.trail", "tabs.indicator", "sidenav.collapse"],
+      "captures": ["r9-1.png", "r9-2.png"],
+      "points": [
+        "label: Kibana, Content, Build 같은 굵은 작은 제목 아래 항목을 펼쳐 두고, 메뉴 맨 아래 Recent와 Management만 ▾로 접고 펴며, 펼친 Management 안의 현재 항목 Stack Management에 회색 바탕을 둡니다.",
+        "crumb: 화면 맨 위 왼쪽에 메뉴를 접는 ⇤ 단추, 로고, 현재 공간 'MS' 사각 아바타, 'Deployment ▾ / Stack Management / Spaces / Edit…' 경로를 한 줄로 둡니다.",
+        "underline: General settings, Permissions 6, Content 탭 중 현재 탭은 파란 글자와 파란 밑줄이며 개수는 탭 이름 옆 회색 칸입니다.",
+        "r9-2는 Search, Observability, Security 세 메뉴를 나란히 놓아 묶음 제목 방식과 › 로 여는 방식이 함께 쓰이는 것을 보여 줍니다. 2024-11-12 블로그 그림입니다."
+      ]
+    },
+    {
+      "id": "r10",
+      "kind": "product",
+      "product": "Sentry",
+      "source": "Sentry 변경 기록",
+      "title": "아이콘과 이름의 1단 띠, 접을 수 있는 2단 메뉴, 페이지 위 환경 거르기",
+      "url": "https://sentry.io/changelog/new-nav-issue-views-ga/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.collapse", "sidenav.tree", "nav.current", "envswitch.place"],
+      "captures": ["r10-1.png"],
+      "points": [
+        "rail: 맨 왼쪽 좁은 띠에 Issues, Explore, Dashboards, Insights, Settings를 아이콘과 작은 이름으로 세로로 두고, 고른 Issues만 아이콘에 연한 보라 바탕과 보라 글자를 줍니다.",
+        "그 오른쪽 2단 메뉴 머리 'Issues' 옆에 «를 두어 2단만 접게 합니다. 현재 항목 Feed는 연한 보라 바탕과 보라 글자입니다.",
+        "fold: 'Starred Views ⌃' 묶음은 접고 펼 수 있고, 줄마다 아이콘과 오른쪽 끝 개수 칸(0, 11, 99+)을 둡니다.",
+        "filter: 환경 선택은 전역 머리가 아니라 본문 맨 위 'My Projects ▾ | All Envs ▾ | 14D ▾' 묶음 칸에 있습니다. 2025-06 변경 기록 그림입니다."
+      ]
+    },
+    {
+      "id": "r11",
+      "kind": "product",
+      "product": "Checkly",
+      "source": "Checkly 공식 블로그",
+      "title": "단계 제목으로 묶은 메뉴와 아이콘만 남긴 접힌 메뉴",
+      "url": "https://www.checklyhq.com/blog/inside-the-sidebar-redesign",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["sidenav.collapse", "sidenav.tree", "nav.current", "envswitch.place"],
+      "captures": ["r11-1.jpg", "r11-2.jpg"],
+      "points": [
+        "label: DETECT, COMMUNICATE, RESOLVE, CONFIGURATION 대문자 제목 아래 항목을 펼쳐 두고 제목 줄 오른쪽에 + 단추를 둡니다. 현재 항목 Status pages는 회색 바탕입니다.",
+        "hide: 메뉴 맨 위 줄에 로고, 파란 '+ New' 단추, 오른쪽 끝에 메뉴를 접는 ⇤ 단추를 둡니다. 글은 새 메뉴를 접으면 아이콘 띠도 남기지 않고 완전히 숨기며, 마우스를 대면 다시 밀려 나온다고 적습니다.",
+        "rail: r11-2는 바꾸기 전 메뉴로 아이콘만 세로로 늘어서고, 현재 Home 아이콘에 회색 바탕과 왼쪽 파란 세로 막대를 둡니다. 글은 이름 없는 아이콘 때문에 사용자가 아이콘을 차례로 눌러 보며 페이지를 찾았다고 적습니다(화살표와 동그라미는 글쓴이가 그린 설명).",
+        "head: 계정 전환 'Production E2E MaC ⇕'는 좌측 메뉴가 아니라 본문 머리 왼쪽에 있습니다. 2025-05-14 글이며, 이메일과 사람 사진이 보이는 머리는 잘라 냈습니다."
+      ]
+    },
+    {
+      "id": "r12",
+      "kind": "product",
+      "product": "Discourse 관리자",
+      "source": "Discourse Meta 공식 포럼(제품 팀 글)",
+      "title": "관리 메뉴 거르기의 결과 없음 안내와 거른 결과의 펼친 그룹",
+      "url": "https://meta.discourse.org/t/introducing-admin-sidebar-navigation/289281",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["search.empty", "sidenav.search", "sidenav.tree"],
+      "captures": ["r12-1.png", "r12-2.png"],
+      "points": [
+        "suggest: 좌측 관리 메뉴 위 거르기 칸에 찾는 말이 남은 채로 메뉴 자리 전체가 굵은 'No results', 찾은 말을 따옴표로 되풀이한 문장, 'search site settings'와 'admin user list' 두 링크로 바뀝니다.",
+        "거르기 칸 오른쪽 안에 × 지우기 단추가 있고, 칸 위에는 '← Back to Forum ⇕' 줄이 그대로 남습니다.",
+        "r12-2는 'log'로 거른 결과로, 일치 항목이 든 Security 그룹만 ⌄로 펼쳐 Error Logs, Search Logs, Staff Action Logs를 보이고 다른 그룹은 ›로 접어 둡니다.",
+        "제품 팀이 쓴 글의 2024-04 댓글 그림(61번, 64번 댓글)이라 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r13",
+      "kind": "product",
+      "product": "Grafana",
+      "source": "Grafana 공식 문서(9.5 새 기능)",
+      "title": "본문 위에 겹쳐 열린 메뉴와 왼쪽 주황 막대 현재 표시, 머리 경로",
+      "url": "https://grafana.com/docs/grafana/latest/whatsnew/whats-new-in-v9/whats-new-in-v9-5/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["nav.current", "sidenav.collapse", "sidenav.tree", "pagehead.trail"],
+      "captures": ["r13-1.png"],
+      "points": [
+        "accent: 현재 항목 Dashboards는 왼쪽 끝 짧은 주황 세로 막대와 흰 굵은 글자로 표시하고, 바탕색은 다른 줄과 같습니다.",
+        "overlay: 머리 왼쪽 ☰로 연 메뉴가 본문 위에 겹치고 본문은 흐리게 어두워집니다. Starred, Dashboards, Alerts & incidents 같은 줄 오른쪽에 ⌄가 있어 하위를 펼칩니다.",
+        "crumb: ☰ 바로 오른쪽에 'Home › Dashboards › GrafanaCloud › Usage Insights…' 경로를 두고, 그 위 맨 윗줄 가운데에 'Search or jump to… cmd+k' 칸을 둡니다.",
+        "2023년 9.4~9.5 무렵 문서 그림이며, 이후 고정(dock) 방식이 바뀌었으므로 현재 화면은 확인하지 않았습니다."
+      ]
+    }
+  ],
+  "selection": null,
+  "status": "collected"
+}

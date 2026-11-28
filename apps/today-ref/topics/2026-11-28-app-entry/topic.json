@@ -1,0 +1,292 @@
+{
+  "id": "2026-11-28-app-entry",
+  "date": "2026-11-28",
+  "title": "운영 앱 진입과 보호 화면: 시작 타일, 인증 전후, 권한 거부, 없는 화면, 첫 로딩",
+  "platform": "web",
+  "brief": "docs/collection-candidates.md의 \"프런트엔드 앱에서 찾은 후보\" 표 첫 줄인 \"앱 진입과 보호 화면\"(타일형 시작 화면, 인증 전후 화면, 권한 거부, 오류와 찾을 수 없는 화면, 첫 로딩)을 실제 운영 도구 화면으로 확인하기 위한 수집입니다. 여러 서비스나 작업 공간을 고르는 시작 화면(AWS 콘솔 홈, Google Admin 홈, Atlassian 앱 전환), 로그인 화면과 첫 로딩에서 로그인으로 넘어가는 순서, 권한이 없을 때 접근을 요청하는 화면, 앱 틀 안과 밖의 404, 연결 실패를 봅니다. 로그인과 조작 없이 공식 블로그와 문서, 커뮤니티 공지의 그림, SaaSFrame 무료 공개 예시, 공개 페이지를 화면 없는 Chrome으로 찍은 것만 썼고 로그인 화면에는 아무것도 입력하지 않았습니다. 공식 그림의 계정 메일과 프로필 사진 자리는 주변 색으로 덮었습니다.",
+  "references": [
+    {
+      "id": "r1",
+      "kind": "product",
+      "product": "AWS Management Console",
+      "source": "AWS News Blog",
+      "title": "위젯 카드로 서비스와 계정 상태를 모은 콘솔 홈",
+      "url": "https://aws.amazon.com/blogs/aws/announcing-a-visual-update-to-the-aws-management-console-preview/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.tiles"],
+      "captures": ["r1-1.png"],
+      "points": [
+        "로그인 직후 'Console Home'이 Recently visited, Security, Welcome to AWS, Cost and usage, AWS Health 카드를 격자로 둡니다. 서비스 고르기는 그중 한 카드입니다.",
+        "Recently visited 카드는 서비스 아이콘과 이름을 두 열 목록으로 두고 아래에 'View all services' 링크를 둡니다.",
+        "카드마다 왼쪽 위 잡는 점, 오른쪽 위 ⋮, 오른쪽 아래 크기 조절 표시가 있고 머리 오른쪽에 'Reset to default layout'과 주황 'Add widgets'가 있습니다.",
+        "2024-11 글의 화면입니다. 위 막대 오른쪽의 역할, 메일과 계정 번호 글자는 주변 색으로 덮었고 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r2",
+      "kind": "product",
+      "product": "Google Admin",
+      "source": "Google Workspace Updates",
+      "title": "자주 쓰는 관리 영역을 카드 격자로 둔 관리 콘솔 홈",
+      "url": "https://workspaceupdates.googleblog.com/2021/03/new-admin-console-home-page-design.html",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.tiles"],
+      "captures": ["r2-1.png"],
+      "points": [
+        "위 줄에 Users, Billing, Domains 세 카드를 접을 수 있게 펼쳐 두고 각각 'Add a user' 같은 바로가기 글자 링크를 나열합니다.",
+        "아래는 Groups, Apps, Devices, Security 같은 영역을 아이콘, 이름, 한 줄 설명의 작은 타일로 3열 격자에 둡니다.",
+        "오른쪽에 접을 수 있는 'Tools' 패널이 따로 있고 위 막대에는 설정 검색 상자가 가운데 넓게 놓입니다.",
+        "2021-03 글의 화면입니다. 오른쪽 위 프로필 사진 자리는 덮었고 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r3",
+      "kind": "product",
+      "product": "Google Admin",
+      "source": "Google Workspace Updates",
+      "title": "설정이 남은 일을 카드 안에 보여 주는 관리 콘솔 홈",
+      "url": "https://workspaceupdates.googleblog.com/2021/08/improved-experience-for-admin-console-home-cards.html",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.tiles"],
+      "captures": ["r3-1.png"],
+      "points": [
+        "Users 카드는 '3 users'와 라이선스 남은 수 막대, Domains 카드는 노란 띠로 도메인 확인 요청과 'VERIFY DOMAIN'을 보여 줍니다.",
+        "Billing 카드는 그림과 함께 결제 설정 안내, 무료 체험 남은 날, 'SET UP BILLING'을 둡니다. 시작 화면 카드가 첫 설정 할 일을 겸합니다.",
+        "왼쪽에는 Home이 선택된 메뉴가 늘 보이고 아래 영역 타일은 r2보다 작고 촘촘합니다.",
+        "2021-08 글의 작은 그림이라 글자가 흐리며 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r4",
+      "kind": "product",
+      "product": "Atlassian",
+      "source": "Atlassian Community 공지",
+      "title": "조직 줄과 앱 목록으로 나눈 앱 전환 메뉴",
+      "url": "https://community.atlassian.com/forums/Atlassian-Home-articles/We-re-rolling-out-a-new-app-switcher-experience/ba-p/2614142",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.switcher"],
+      "captures": ["r4-1.png"],
+      "points": [
+        "왼쪽 좁은 줄에 조직마다 두 글자 색 상자를 세로로 두고, 고른 조직은 파란 테두리와 왼쪽 막대로 표시합니다.",
+        "오른쪽은 조직 이름 아래 'YOUR APPS' 목록이며, 앱 아이콘과 이름 아래에 사이트 이름을 작게 붙이고 사이트가 여럿인 앱은 오른쪽 ⌄로 펼칩니다.",
+        "타일 격자가 아니라 목록형 실행기입니다. Atlassian 직원이 쓴 2024-02 공지의 그림입니다.",
+        "조직 이름 아래 메일 주소 줄은 덮었고 현재 화면은 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r5",
+      "kind": "product",
+      "product": "GitHub",
+      "source": "공개 페이지",
+      "title": "아이디와 비밀번호 폼 아래에 외부 계정 버튼",
+      "url": "https://github.com/login",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.signin"],
+      "captures": ["r5-1.png"],
+      "points": [
+        "가운데 좁은 단에 로고, 'Sign in to GitHub', 아이디와 비밀번호 칸, 초록 'Sign in'을 두고 'or' 구분선 아래에 Google, Apple 버튼을 둡니다.",
+        "'Forgot password?'는 비밀번호 이름표와 같은 줄 오른쪽에 있고, 가입과 passkey 로그인은 맨 아래 글자 링크입니다.",
+        "처음 열 때 아이디 칸에 파란 초점 테두리가 있습니다. 화면 없는 Chrome으로 찍었고 입력하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r6",
+      "kind": "product",
+      "product": "Linear",
+      "source": "공개 페이지",
+      "title": "입력 칸 없이 로그인 방법 버튼만 세로로 둔 화면",
+      "url": "https://linear.app/login",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.signin"],
+      "captures": ["r6-1.png"],
+      "points": [
+        "로고와 'Log in to Linear' 아래에 Google, email, SAML SSO, passkey 네 버튼을 같은 너비로 쌓고 Google만 보라색으로 채웁니다.",
+        "첫 화면에 입력 칸이 없고 메일 로그인도 버튼을 눌러야 열립니다.",
+        "가입은 맨 아래 'Sign up'과 'learn more' 글자 링크입니다. 화면 없는 Chrome으로 찍었습니다."
+      ]
+    },
+    {
+      "id": "r7",
+      "kind": "product",
+      "product": "PostHog",
+      "source": "공개 페이지",
+      "title": "메일보다 먼저 데이터 지역을 고르는 로그인 카드",
+      "url": "https://us.posthog.com/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["entry.signin"],
+      "captures": ["r7-1.png"],
+      "points": [
+        "로그인 카드 맨 위 입력이 'Data region' 선택 상자(United States)이고 그 아래 Email 칸과 주황 'Continue'가 옵니다.",
+        "지역 이름표 옆에 '(what is this?)' 설명 링크를 붙입니다.",
+        "아래 'or continue with' 줄에 Google, GitHub, GitLab 등 다섯 개를 글자 없는 아이콘 버튼으로 둡니다.",
+        "앱 주소를 열면 로그인 화면으로 넘어간 상태를 화면 없는 Chrome으로 찍었습니다."
+      ]
+    },
+    {
+      "id": "r8",
+      "kind": "product",
+      "product": "Netlify",
+      "source": "공개 페이지",
+      "title": "어두운 빈 화면의 로고 로더 뒤에 열리는 로그인",
+      "url": "https://app.netlify.com/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["loading.kind", "entry.signin"],
+      "captures": ["r8-1.png", "r8-2.png"],
+      "points": [
+        "spinner에 가까움: 앱 주소를 연 지 약 0.7초에는 어두운 빈 화면 가운데에 회색 로고 모양 하나만 있고 글자나 뼈대는 없습니다.",
+        "약 2초 뒤에는 왼쪽 로그인 단과 오른쪽 제품 소개 카드로 나뉜 'Welcome back.' 화면이 됩니다.",
+        "로그인 단은 Google, GitHub, 청록 'Log in with email'을 위에 두고 Bitbucket, GitLab, SSO를 아래 묶음으로 둡니다.",
+        "시간 제한을 바꿔 두 번 찍은 정지 화면이고 로고가 움직이는지는 보지 못했습니다."
+      ]
+    },
+    {
+      "id": "r9",
+      "kind": "product",
+      "product": "Grafana",
+      "source": "Grafana Play 공개 데모",
+      "title": "대시보드 주소를 열 때 가운데 작은 원형 스피너",
+      "url": "https://play.grafana.org/d/000000012/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["loading.kind"],
+      "captures": ["r9-1.png"],
+      "points": [
+        "spinner: 앱 틀이 그려지기 전 어두운 전체 화면 한가운데에 주황 호가 있는 작은 원 하나만 보입니다.",
+        "로고, 문구, 메뉴 뼈대 없이 배경색만 앱과 같습니다.",
+        "1.2초, 2.2초, 3.5초에 찍은 세 장이 모두 같은 상태여서 한 장만 남겼습니다."
+      ]
+    },
+    {
+      "id": "r10",
+      "kind": "product",
+      "product": "Vercel",
+      "source": "Vercel 문서",
+      "title": "권한 없는 배포에서 접근 요청과 관리자 쪽 요청 목록",
+      "url": "https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.denied"],
+      "captures": ["r10-1.png", "r10-2.png"],
+      "points": [
+        "막힌 쪽: 'Access Required' 제목 아래 'You are signed in as <이름>.'으로 지금 계정을 밝히고 검은 'Request Access' 버튼 하나를 둡니다.",
+        "버튼 아래 'Log in with a different Vercel Account' 링크로 계정 바꾸기를 함께 둡니다.",
+        "관리자 쪽: Deployment Protection의 'Requests (2)' 탭에 프로젝트, 요청자, 'requested access 18h ago'와 ×, ✓, ⋯ 버튼이 한 행에 있습니다.",
+        "문서의 예시 그림이며 이름은 문서의 가상 인물입니다."
+      ]
+    },
+    {
+      "id": "r11",
+      "kind": "product",
+      "product": "GitHub",
+      "source": "공개 페이지",
+      "title": "그림 큰 404와 아래 검색 상자",
+      "url": "https://github.com/this-org-does-not-exist-zz9/none",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.notfound"],
+      "captures": ["r11-1.png"],
+      "points": [
+        "위 내비게이션은 그대로 두고 본문을 '404'와 'This is not the web page you are looking for.' 말풍선이 있는 큰 그림으로 채웁니다.",
+        "그림 아래 어두운 띠에 'Find code, projects, and people on GitHub:' 검색 상자와 Contact Support, GitHub Status 링크를 둡니다.",
+        "로그인하지 않은 상태로 없는 주소를 연 화면이라 로그인한 앱 안에서도 같은지는 확인하지 않았습니다."
+      ]
+    },
+    {
+      "id": "r12",
+      "kind": "product",
+      "product": "Grafana",
+      "source": "Grafana Play 공개 데모",
+      "title": "왼쪽 메뉴와 위 막대를 남긴 채 본문만 바꾸는 404",
+      "url": "https://play.grafana.org/zz-not-a-page",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.notfound"],
+      "captures": ["r12-1.png", "r12-2.png"],
+      "points": [
+        "왼쪽 메뉴, 위 검색과 경로 줄은 그대로 두고 본문 가운데에 그림, 'Page not found', 한 줄 설명, 'Back to Home'과 'Community Help' 두 버튼을 둡니다.",
+        "없는 대시보드 주소에서는 제목이 'Dashboard not found'로 바뀌고 경로가 'Dashboards > Not found', 왼쪽 메뉴의 Dashboards가 선택 색으로 남습니다.",
+        "없는 일반 주소에서는 경로 줄이 'Page not found'이고 왼쪽 메뉴에 선택된 항목이 없습니다.",
+        "로그인 없이 볼 수 있는 공개 데모를 화면 없는 Chrome으로 찍었습니다."
+      ]
+    },
+    {
+      "id": "r13",
+      "kind": "product",
+      "product": "Vercel",
+      "source": "공개 페이지",
+      "title": "오류 코드와 요청 번호를 붙인 짧은 404",
+      "url": "https://this-does-not-exist-zz9q.vercel.app/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.notfound"],
+      "captures": ["r13-1.png"],
+      "points": [
+        "검은 화면 가운데 'This page doesn't exist'와 두 줄 설명 아래에 고정폭 글자로 '404 DEPLOYMENT_NOT_FOUND'와 요청 번호를 둡니다.",
+        "맨 아래에 'VIEW DOCUMENTATION / COPY DEBUG PROMPT' 두 글자 링크만 있고 홈으로 가는 버튼은 없습니다.",
+        "앱 화면이 아니라 배포 주소 단계의 404입니다."
+      ]
+    },
+    {
+      "id": "r14",
+      "kind": "product",
+      "product": "Netlify",
+      "source": "공개 페이지",
+      "title": "사이트 주인을 위한 안내와 내부 ID를 담은 카드형 404",
+      "url": "https://this-does-not-exist-zz9q.netlify.app/",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.notfound"],
+      "captures": ["r14-1.png"],
+      "points": [
+        "어두운 배경 가운데 흰 카드에 'Site not found'와 방문자용 한 줄 설명을 두고, 구분선 아래에 사이트 주인용 문단과 문제 해결 안내 링크를 따로 둡니다.",
+        "'Netlify Internal ID:' 옆 회색 상자에 고정폭 식별값을 보여 줍니다.",
+        "카드 아래 띠는 Netlify 로고와 'Start building' 링크입니다. 배포 주소 단계의 404입니다."
+      ]
+    },
+    {
+      "id": "r15",
+      "kind": "gallery",
+      "product": "Prelude",
+      "source": "SaaSFrame",
+      "title": "작업 공간과 제품 탭을 그대로 둔 앱 안 404 카드",
+      "url": "https://www.saasframe.io/examples/prelude-page-not-found",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.notfound"],
+      "captures": ["r15-1.webp"],
+      "points": [
+        "위 줄의 작업 공간 선택, 제품 선택, Phone/Email 전환과 아래 Overview, Verifications 탭, 검색을 그대로 두고 본문 위쪽에 흰 카드 하나를 둡니다.",
+        "카드는 선인장 아이콘, 고정폭 'Page Not Found', 'contact us' 링크가 든 한 줄로 끝나며 홈으로 가는 버튼은 없습니다.",
+        "탭 중 어느 것도 선택 표시가 없습니다. 화면의 작업 공간 이름은 SaaSFrame의 계정입니다."
+      ]
+    },
+    {
+      "id": "r16",
+      "kind": "gallery",
+      "product": "Butter",
+      "source": "SaaSFrame",
+      "title": "회색 뼈대 위에 뜨는 연결 실패 대화상자",
+      "url": "https://www.saasframe.io/examples/butter-error-state",
+      "checkedOn": "2026-11-28",
+      "evidence": "still",
+      "behavior": ["guard.error", "loading.kind"],
+      "captures": ["r16-1.webp"],
+      "points": [
+        "skeleton: 화면 전체가 머리, 왼쪽 줄, 4×4 카드 모양의 회색 뼈대이고 오른쪽 아래에 'Joining your video room...'과 작은 원이 남아 있습니다.",
+        "그 위 가운데에 'Unable to connect to Butter' 대화상자가 떠 네트워크 확인을 권하고 도움말 링크를 붙입니다.",
+        "버튼은 회색 'Check connection'과 검은 'Try again' 두 개를 오른쪽에 나란히 둡니다.",
+        "서버 오류가 아니라 첫 연결 실패입니다. 화상 회의 제품이라 운영 앱과 맥락이 다릅니다."
+      ]
+    }
+  ],
+  "selection": null,
+  "status": "collected"
+}
