@@ -2,14 +2,41 @@
 
 조사일: 2026-11-28
 
-Android 음악 앱 착수 전에 웹 문서로 조사한 결과입니다. 앱의 목표와 할 일은 [범위](scope.md)에 있습니다. 이 문서의 내용은 모두 문서 조사이며, 실제 기기에서 재생을 확인한 것은 없습니다.
+Android 음악 앱 착수 전에 웹 문서로 조사하고 중앙 wiki와 대조한 결과입니다. 앱의 목표와 할 일은 [범위](scope.md)에 있습니다. 실제 휴대폰에서 재생을 확인한 것은 없고, Android 14 가상 기기의 최소 실험 결과는 [검증 기록](verification.md#2026-11-28-media3-가상-기기-최소-실험)에 있습니다.
 
 ## 결정
 
-아직 정하지 않았습니다. 재생 엔진은 사용자 결정 대기입니다.
+2026-11-28 사용자 결정: "저는 엔진을 잘모르므로 권장안으로 하겠지만, 그 권장안이 최선인지는 검증이 필요ㅏㅂ니다". 재생 엔진은 Media3로 조건부 채택하고, 아래 검증을 마칠 때까지 확정하지 않습니다.
 
-- 권장안: Media3의 ExoPlayer와 `MediaSessionService`로 재생하고, MediaStore로 기기의 음악 목록을 읽고, 재생 목록과 위치는 Room에 저장합니다.
-- 대안: [장면](../../video/README.md)에서 쓰는 libVLC를 다시 쓰고 Media3 세션에 직접 연결합니다.
+### 개발 스택
+
+| 부분 | 선택 | 상태 |
+|---|---|---|
+| 플랫폼 | Android 먼저 | 사용자 결정([범위](scope.md)) |
+| 재생 엔진 | Media3 ExoPlayer와 `MediaSessionService`, 안정판 1.11.1 | 사용자가 권장안으로 조건부 채택. [확정 조건](#검증-결과와-남은-조건) 검증 중 |
+| 음악 목록 | MediaStore(`READ_MEDIA_AUDIO`). 다른 앱이 받은 `Download` 파일만 시스템 파일 선택기 | 권장안에 포함돼 함께 채택 |
+| 태그 읽기 | `media3-inspector`의 `MetadataRetriever`, 읽기 전용 | 권장안에 포함돼 함께 채택 |
+| 재생 목록과 위치 저장 | Room | 권장안에 포함돼 함께 채택 |
+| 언어와 화면 | Kotlin, Jetpack Compose | AI 제안, 사용자 미확정. [장면](../../video/README.md)과 같은 조합이라 빌드 구성과 검사 방식을 맞출 수 있습니다 |
+| 빌드 | compileSdk와 targetSdk 36, AGP 8.13.2, Kotlin 2.2.21 | AI 제안, 사용자 미확정. 장면과 같은 값이고 가상 기기 실험 앱도 이 값으로 빌드했습니다. Media3 1.12를 쓰려면 compileSdk 37이 필요합니다 |
+
+대안: 장면에서 쓰는 libVLC를 다시 쓰고 Media3 세션에 직접 연결합니다. 바꾸는 조건은 아래에 있습니다.
+
+### 검증 결과와 남은 조건
+
+Android 14 가상 기기 실험([검증 기록](verification.md#2026-11-28-media3-가상-기기-최소-실험))에서 확인한 것:
+
+- 화면을 끄고 다른 앱으로 가도 `MediaSessionService`가 포그라운드 서비스와 미디어 알림을 직접 코드 없이 유지했고, 소리는 계속 나갔습니다.
+- FLAC(24비트 96kHz 포함), WAV, MP3, `iTunSMPB`가 있는 AAC는 곡 사이 끊김이 없었습니다.
+- 확장 없는 Media3 1.11.1에서 Opus는 곡 사이에 13.5ms 틈이 있었고, ALAC는 디코더가 없어 오류 없이 소리 없이 재생됐습니다.
+
+Media3를 확정하는 조건(AI 제안, 사용자 미확정):
+
+1. Android 17 가상 기기에서 `set-enable-hardening throw`를 켜고 화면 밖 재생, 일시정지 뒤 재개를 했을 때 위반 기록이 없습니다.
+2. 사용자의 실제 음악 파일 형식이 기기 디코더나 FFmpeg 확장으로 모두 재생됩니다.
+3. 사용자 음악에 Opus 앨범이 있으면, Media3 1.12에서 곡 사이 틈이 사라집니다.
+
+libVLC로 바꾸는 조건: 1번이 Media3로도 통과하지 않거나, 2번에서 FFmpeg 확장으로도 재생되지 않는 형식이 사용자 음악에 있는 경우입니다. 형식 범위는 libVLC가 넓지만 세션, 포커스, 알림 연결을 직접 만들어야 하므로, 형식 문제만으로는 FFmpeg 확장을 먼저 시도합니다.
 
 ## Android 17의 백그라운드 오디오 제한
 
@@ -33,6 +60,8 @@ Android 음악 앱 착수 전에 웹 문서로 조사한 결과입니다. 앱의
 - 최근 앱 목록에서 앱을 지우면 기본값은 재생 중일 때만 서비스를 유지합니다. `onTaskRemoved`에서 바꿀 수 있습니다.
 - 재부팅 뒤 이어듣기는 기본으로 꺼져 있습니다. `MediaButtonReceiver`를 선언하면 `onPlaybackResumption()`을 반드시 구현해야 하고, 재생 목록과 현재 곡, 시작 위치는 앱이 저장해 둔 값으로 돌려줍니다. 시스템 UI의 이어듣기 알림은 `MediaLibraryService`를 구현해야 나타납니다. Android Auto도 `MediaLibraryService`를 씁니다.
 - 버전: 안정판 1.11.1(2026-09-10), 시험판 1.12.0-rc01(2026-11-25). [릴리스 목록](https://developer.android.com/jetpack/androidx/releases/media3)
+- 1.12.0-rc01은 compileSdk 37을 요구합니다(2026-11-28 빌드에서 AAR 메타데이터 검사가 거절). 장면은 compileSdk 36이므로 1.12를 쓰려면 Android 37 SDK 플랫폼 설치가 필요합니다. AGP 8.13.2가 compileSdk 37을 지원하는지는 확인하지 않았습니다.
+- 1.12.0-alpha02 릴리스 노트에 Ogg와 WebM의 Opus 끝 패딩 제거, 재생 목록 마지막 곡의 끝 패딩 제거가 있습니다.
 
 ## 음악 파일 접근
 
@@ -55,7 +84,10 @@ Android 음악 앱 착수 전에 웹 문서로 조사한 결과입니다. 앱의
 - ExoPlayer는 기본으로 기기의 디코더를 씁니다. Google은 FLAC, Opus, FFmpeg 등의 소프트웨어 디코더 확장을 제공합니다.
 - FLAC은 내장 추출기가 프레임을 꺼내고, API 27 이상 기기의 디코더나 FLAC 또는 FFmpeg 확장으로 풉니다.
 - ALAC처럼 기기 디코더가 없는 형식은 FFmpeg 확장이 필요합니다. Google은 미리 빌드한 FFmpeg 확장을 배포하지 않습니다. Jellyfin이 `org.jellyfin.media3:media3-ffmpeg-decoder`를 배포하며, 검색 결과에 따르면 이 빌드에는 Opus 디코더가 없습니다. FFmpeg 확장을 쓰면 GPL 조건이 따라옵니다.
-- 곡 사이를 끊김 없이 잇는 재생은 MP3의 Xing과 ID3 정보, MP4의 편집 목록을 읽어 처리한다는 2017년 ExoPlayer 블로그만 확인했습니다. FLAC, Opus, ALAC에서 같은지는 미확인입니다.
+- 곡 사이를 끊김 없이 잇는 재생은 MP3의 Xing과 LAME 정보, AAC의 `iTunSMPB`처럼 파일에 적힌 인코더 지연과 패딩으로 처리합니다. 패딩 정보가 없는 AAC(ffmpeg로 만든 M4A)는 가상 기기 실험에서 곡 사이에 틈이 생겼습니다.
+- ALAC는 기기 디코더가 없으면 트랙이 "지원 안 함"이 되고, 재생기는 오류 없이 소리 없이 재생합니다. 앱이 오디오가 선택되지 않은 경우를 직접 알려야 합니다.
+- 공개 음악 앱 Shuttle2는 2026-09에 Media3 1.11.1로 옮기면서도 FLAC 확장을 남겼습니다. 기기 디코더가 48kHz 초과나 다채널 FLAC을 거절하는 경우의 대비라고 적었습니다([Shuttle2 #304](https://github.com/timusus/Shuttle2/issues/304)). 가상 기기의 기기 디코더는 24비트 96kHz FLAC을 재생했습니다.
+- ALAC가 들어 있는 미리 빌드한 확장으로 NextLib(`io.github.anilbeesetti:nextlib-media3ext`)이 검색됐습니다. 버전과 Media3 호환 범위는 확인하지 않았습니다.
 - 참고 앱 Gramophone 기준으로 32비트 정수 FLAC은 Android 14 이상, xHE-AAC는 대체로 Android 9 이상에서만 재생됩니다.
 
 ## 재생 엔진 선택지
@@ -75,9 +107,33 @@ Android 음악 앱 착수 전에 웹 문서로 조사한 결과입니다. 앱의
 - [Gramophone](https://github.com/FoedusProgramme/Gramophone): Media3와 MediaStore로 기기 음악을 읽고 폴더 탐색, 재생 목록, 동기화 가사, ReplayGain 2.0, 시스템 이퀄라이저 연동을 지원합니다. F-Droid 1.1.2(2026-08-23)는 Android 5.0 이상을 요구합니다. 기본값으로 60초 미만 곡을 숨깁니다. [F-Droid](https://f-droid.org/en/packages/org.akanework.gramophone/)
 - [Auxio](https://github.com/oxygencobalt/Auxio): 수정한 Media3와 TagLib으로 곡 사이 끊김 없는 재생, ReplayGain, Android Auto를 지원합니다. 수정한 Media3의 빌드 스크립트가 Unix 전용이라 Windows에서는 빌드할 수 없습니다.
 
+## 중앙 wiki 대조
+
+2026-11-28에 중앙 wiki와 대조했습니다. wiki의 음악 앱 조사 요약은 같은 날 이 문서를 옮긴 것이라 독립된 근거가 아니고, 이 문서와 어긋나는 내용도 없습니다. 아래는 이 문서에 없던 일반 기준을 wiki에서 가져온 것입니다.
+
+- **업데이트 보존 검사의 전제.** 앱 식별자와 서명 키를 첫 설치 빌드부터 고정해야 업데이트 뒤 보존 검사가 같은 문제를 봅니다. 저장 구조의 버전과 이전 버전 데이터베이스에서의 업그레이드, 손상되거나 없는 저장 상태의 복구 경로를 첫 완료 기준에 넣습니다. 앱 식별자를 정할 때 함께 정합니다(중앙 wiki의 Device-First Release Loop).
+- **백그라운드 재생 확인 방법.** 화면이 보이는 동안의 확인으로 통과 처리하지 않습니다. `set-enable-hardening throw`를 켠 실제 휴대폰에서 화면 끄기, 다른 앱으로 가기, 일시정지 뒤 재개를 거치고 위반 기록이 없는지 봅니다(같은 페이지).
+- **곡 목록 성능.** 곡 수를 기준으로 가상화나 최적화를 미리 정하지 않습니다. 릴리스 빌드에서 첫 화면 시간, 스크롤 끊김, 메모리를 재고 정하며, 앨범 아트가 많은 목록은 첫 로드와 캐시 뒤를 따로 잽니다. 선택 상태와 스크롤 위치는 곡 ID로 보존합니다(중앙 wiki의 List Virtualization and Selective Processing).
+- **화면 상태.** Compose에서 프로세스가 다시 만들어진 뒤 복원할 화면 상태는 `rememberSaveable`이나 `SavedStateHandle`로 따로 다룹니다(중앙 wiki의 React State Structure and Component Decomposition). 현재 곡, 위치, 대기열은 세션이 소유하므로 화면 state에 복사하지 않고 `MediaController`에서 읽는 것이 같은 원칙의 적용입니다(AI 해석).
+
+wiki에 등록 페이지가 없어 닫지 못한 것: libVLC 운용 경험(장면 자체가 wiki에 없습니다), 곡 사이 끊김 없는 재생, 오디오 포커스와 이어폰 분리 처리, Android Room 저장 구조 변경 사례.
+
+## 장면에서 이어 쓸 것
+
+저장소 안의 장면 문서에 이미 있는 처리입니다.
+
+- 재생 위치 저장: 파일을 여는 중의 초기 시간이나 이전 위치 이벤트로 저장된 기록을 덮어쓰지 않습니다([장면 재생 위치 이동 처리](../../video/docs/research.md#재생-위치-이동-처리)).
+- 덮어 설치: 같은 앱 식별자와 서명 키의 APK를 `install -r`로 설치하고, 거절되면 앱 삭제로 우회하지 않습니다([장면 QA](../../video/docs/qa.md)).
+
+## 화면 레퍼런스
+
+[오늘의레퍼런스](../../today-ref/README.md)의 `2026-11-28-music` 주제에 음악 플레이어 완성작 "속지"가 있습니다. Apple Music, Spotify, 지니뮤직, 멜론의 화면을 모아 미니 플레이어, 재생 화면, 대기열, 가사를 만들었고 같은 날 사용자가 "이대로 확정"했습니다. 웹 시안이므로 실제 휴대폰 터치와 동작 속도는 확인하지 않았습니다.
+
 ## 확인하지 못한 것
 
-- FLAC, Opus, ALAC의 곡 사이 끊김 없는 재생
+- Android 17에서의 백그라운드 재생과 `set-enable-hardening throw` 결과
+- Media3 1.12의 Opus 곡 사이 처리, FFmpeg 확장의 ALAC 재생
+- 사용자의 실제 음악 파일 형식
 - 테스트 기기의 현재 Android 버전과 Android 17 적용 여부
 - Windows와 macOS 버전의 재생 기술
-- 실제 기기에서의 재생, 백그라운드 유지, 업데이트 후 데이터 보존
+- 실제 휴대폰에서의 재생, 백그라운드 유지, 업데이트 후 데이터 보존(가상 기기 결과만 있습니다)
