@@ -153,7 +153,7 @@ fun MusicApp(
             track = track,
             playlists = playlists,
             onAdd = { viewModel.addToPlaylist(it, track) },
-            onCreate = { viewModel.createPlaylist(it, firstTrack = track) },
+            onCreate = { viewModel.createPlaylist(it, listOf(track)) },
             onDismiss = { addTarget = null },
         )
     }

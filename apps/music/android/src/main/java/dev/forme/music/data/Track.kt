@@ -13,6 +13,10 @@ data class Track(
     /** 헤더가 적은 길이. 잘린 파일은 실제 소리보다 길 수 있다. 모르면 0. */
     val durationMs: Long,
     val addedAtMs: Long,
+    /** 저장소 안의 폴더 경로(예: "Music/공연 실황"). 파일 선택기로 직접 추가한 곡은 알 수 없어 null. */
+    val folder: String? = null,
+    /** 파일 태그의 아티스트. 사용자 음악에서는 영상을 올린 채널 이름이다(2026-11-28 형식 확인). */
+    val artistTag: String? = null,
 )
 
 /** 파일 이름에서 마지막 확장자를 빼 목록 이름을 만든다. 남는 글자가 없으면 파일 이름을 그대로 쓴다. */

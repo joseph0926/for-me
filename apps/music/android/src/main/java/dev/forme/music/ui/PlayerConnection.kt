@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -33,6 +34,8 @@ data class PlayerUiState(
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val tagTitle: String? = null,
     val artwork: Bitmap? = null,
+    /** 지금 곡 다음에 실제로 나올 곡의 [queue] 위치. 셔플이 켜져 있으면 섞인 순서이고, 반복은 따지지 않는다. */
+    val upNext: List<Int> = emptyList(),
 ) {
     val current: QueueEntry? get() = queue.getOrNull(currentIndex)
 }
@@ -104,6 +107,20 @@ class PlayerConnection(private val context: Context, private val onMessage: (Str
         if (it.mediaItemCount == 1) it.prepare()
     }
 
+    /** [tracks]를 지금 곡 바로 뒤에 그 순서대로 넣는다. */
+    fun playNext(tracks: List<Track>) = send {
+        val wasEmpty = it.mediaItemCount == 0
+        val at = if (wasEmpty) 0 else it.currentMediaItemIndex + 1
+        it.addMediaItems(at, tracks.map(Track::toMediaItem))
+        if (wasEmpty) it.prepare()
+    }
+
+    fun addToQueue(tracks: List<Track>) = send {
+        val wasEmpty = it.mediaItemCount == 0
+        it.addMediaItems(tracks.map(Track::toMediaItem))
+        if (wasEmpty) it.prepare()
+    }
+
     fun togglePlay() = send {
         if (it.isPlaying) {
             it.pause()
@@ -157,8 +174,21 @@ class PlayerConnection(private val context: Context, private val onMessage: (Str
                 repeatMode = player.repeatMode,
                 tagTitle = player.currentMediaItem?.mediaMetadata?.subtitle?.toString(),
                 artwork = artwork,
+                upNext = upNextOf(player),
             )
         }
+    }
+
+    private fun upNextOf(player: Player): List<Int> {
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty) return emptyList()
+        val order = mutableListOf<Int>()
+        var index = timeline.getNextWindowIndex(player.currentMediaItemIndex, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
+        while (index != C.INDEX_UNSET && order.size < timeline.windowCount) {
+            order += index
+            index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, player.shuffleModeEnabled)
+        }
+        return order
     }
 
     private fun entryOf(item: MediaItem) = QueueEntry(item.mediaId, item.mediaMetadata.title?.toString() ?: item.mediaId)

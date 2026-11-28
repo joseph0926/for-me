@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -13,6 +14,7 @@ import android.util.Log
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * 휴대폰의 곡 목록. MediaStore의 음악과 파일 선택기로 직접 추가한 곡을 합친다.
@@ -56,6 +58,8 @@ class MusicLibrary(private val context: Context, private val database: MusicData
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATE_ADDED,
+            MediaStore.Audio.Media.ARTIST,
+            folderColumn,
         )
         val tracks = mutableListOf<Track>()
         try {
@@ -65,6 +69,8 @@ class MusicLibrary(private val context: Context, private val database: MusicData
                 val title = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
                 val duration = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 val dateAdded = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+                val artist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val folder = cursor.getColumnIndexOrThrow(folderColumn)
                 while (cursor.moveToNext()) {
                     val fileName = cursor.getString(displayName) ?: continue
                     val uri = ContentUris.withAppendedId(collection, cursor.getLong(id))
@@ -74,6 +80,9 @@ class MusicLibrary(private val context: Context, private val database: MusicData
                         tagTitle = cursor.getString(title)?.takeIf { it.isNotBlank() },
                         durationMs = cursor.getLong(duration),
                         addedAtMs = cursor.getLong(dateAdded) * 1000,
+                        folder = cursor.getString(folder)?.let(::folderOf),
+                        // 태그가 없으면 MediaStore가 "<unknown>"을 넣는다.
+                        artistTag = cursor.getString(artist)?.takeIf { it.isNotBlank() && it != MediaStore.UNKNOWN_STRING },
                     )
                 }
             }
@@ -122,6 +131,23 @@ class MusicLibrary(private val context: Context, private val database: MusicData
         Log.w(TAG, "열 수 없는 파일: $uri", error)
         null
     }
+
+    /**
+     * Android 10부터는 저장소 안의 상대 경로 열을 읽고, 그 전에는 절대 경로 열에서 폴더를 뺀다.
+     * 절대 경로 열은 Android 10부터 쓰지 말라고 하지만 9 이하에는 상대 경로 열이 없다.
+     */
+    @Suppress("DEPRECATION")
+    private val folderColumn =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Audio.Media.RELATIVE_PATH else MediaStore.Audio.Media.DATA
+
+    @Suppress("DEPRECATION")
+    private fun folderOf(value: String): String? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            storageFolder(value)
+        } else {
+            val parent = File(value).parent ?: return null
+            storageFolder(parent.removePrefix(Environment.getExternalStorageDirectory().absolutePath))
+        }
 
     private companion object {
         const val TAG = "MusicLibrary"

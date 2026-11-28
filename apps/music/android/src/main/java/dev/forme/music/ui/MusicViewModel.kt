@@ -79,16 +79,35 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         player.play(playable.map { it.value.track!! }, start, shuffle)
     }
 
-    fun createPlaylist(name: String, firstTrack: Track? = null) {
+    /** 새 재생 목록을 만들고 [tracks]를 그 순서대로 넣는다. */
+    fun createPlaylist(name: String, tracks: List<Track> = emptyList()) {
         viewModelScope.launch {
             playlistEdits.withLock {
                 val id = database.playlists().create(PlaylistRecord(name = name.trim(), createdAtMs = System.currentTimeMillis()))
-                if (firstTrack != null) {
-                    database.playlists().replaceTracks(id, listOf(firstTrack.uri to firstTrack.name))
-                    _messages.trySend("${name.trim()}에 추가했습니다.")
+                if (tracks.isNotEmpty()) {
+                    database.playlists().replaceTracks(id, tracks.map { it.uri to it.name })
+                    _messages.trySend(if (tracks.size == 1) "${name.trim()}에 추가했습니다." else "${name.trim()}에 ${tracks.size}곡을 추가했습니다.")
                 }
             }
         }
+    }
+
+    /**
+     * 여러 곡을 재생 목록 끝에 붙인다. 묶음을 통째로 담을 때 같은 곡이 두 번 들어가지 않도록 이미 있는 곡은 건너뛴다.
+     * 곡 하나를 담는 [addToPlaylist]는 예전처럼 겹쳐 넣는다.
+     */
+    fun addAllToPlaylist(playlist: PlaylistRecord, tracks: List<Track>) = editPlaylist(playlist.id) { current ->
+        val existing = current.mapTo(HashSet()) { it.first }
+        val added = tracks.distinctBy { it.uri }.filter { it.uri !in existing }
+        val skipped = tracks.size - added.size
+        _messages.trySend(
+            when {
+                added.isEmpty() -> "${playlist.name}에 이미 모두 있습니다."
+                skipped > 0 -> "${playlist.name}에 ${added.size}곡을 추가하고 이미 있는 ${skipped}곡은 건너뛰었습니다."
+                else -> "${playlist.name}에 ${added.size}곡을 추가했습니다."
+            },
+        )
+        current + added.map { it.uri to it.name }
     }
 
     fun renamePlaylist(playlistId: Long, name: String) {
